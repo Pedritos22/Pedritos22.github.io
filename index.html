@@ -3,520 +3,219 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pietro Molendys</title>
+  <title>Pietro Molendys — Python Resume</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    :root {
-      --primary: #8e2de2;
-      --secondary: #4a00e0;
-      --background: #0a0a0a;
-      --text: #ffffff;
-      --card-bg: rgba(255, 255, 255, 0.05);
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--background);
-      color: var(--text);
-      line-height: 1.6;
-      overflow-x: hidden;
-      position: relative;
-    }
-    
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(45deg, rgba(142,45,226,0.05), rgba(74,0,224,0.05));
-      pointer-events: none;
-      z-index: -2;
-    }
-    
-    .container {
-      max-width: 1200px;
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      font-family: 'Fira Code', monospace;
+      padding: 60px 25px;
+      line-height: 1.7;
+      max-width: 900px;
       margin: 0 auto;
-      padding: 0 20px;
-      position: relative;
     }
-    
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 15px 0;
-      background-color: rgba(10, 10, 10, 0.8);
-      backdrop-filter: blur(10px);
-      z-index: 1000;
-      transition: all 0.3s ease;
-    }
-    
-    header.scrolled {
-      padding: 10px 0;
-      background-color: rgba(10, 10, 10, 0.95);
-    }
-    
-    nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .logo {
+
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
       font-size: 1rem;
-      font-weight: 500;
-      background: linear-gradient(45deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      opacity: 0.8;
-      transition: all 0.3s ease;
     }
-    
-    .logo:hover {
-      opacity: 1;
-      text-shadow: 0 0 10px rgba(142,45,226,0.5);
-    }
-    
-    nav ul {
-      display: flex;
-      list-style: none;
-    }
-    
-    nav ul li {
-      margin-left: 30px;
-    }
-    
-    nav ul li a {
+
+    /* Syntax colors */
+    .comment { color: #6a9955; }
+    .keyword { color: #569cd6; }
+    .string { color: #ce9178; }
+    .function { color: #dcdcaa; }
+    .class-name { color: #4ec9b0; }
+    .builtin { color: #9cdcfe; }
+    .docstring { color: #608b4e; font-style: italic; }
+
+    a.link {
+      color: #9cdcfe;
       text-decoration: none;
-      color: var(--text);
-      font-weight: 500;
-      transition: color 0.3s ease;
     }
-    
-    nav ul li a:hover {
-      color: var(--primary);
+    a.link:hover {
+      color: #4ec9b0;
+      text-decoration: underline;
     }
-    
-    .hero {
-      min-height: 100vh;
-      padding: 100px 20px 150px; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      background: linear-gradient(180deg, rgba(14,14,14,0.95) 0%, rgba(14,14,14,0.85) 60%, rgba(14,14,14,0) 100%);
-    }
-    
-    .hero-content {
-      z-index: 1;
-      position: relative;
-    }
-    
-    .hero h1 {
-      font-size: 3.8rem;
-      margin-bottom: 20px;
-      background: linear-gradient(45deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      position: relative;
-      z-index: 1;
-      padding: 20px;
-    }
-    
-    .hero p {
-      font-size: 1.5rem;
-      max-width: 700px;
-      margin: 0 auto 30px;
-    }
-    
-    .btn {
-      display: inline-block;
-      padding: 12px 24px;
-      background: linear-gradient(45deg, var(--primary), var(--secondary));
-      color: #fff;
-      text-decoration: none;
-      border-radius: 5px;
-      transition: all 0.3s ease;
-      border: none;
-      cursor: pointer;
-    }
-    
-    .btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 15px rgba(142,45,226,0.4);
-    }
-    
-    .about,
-    .skills,
-    .contact {
-      padding: 80px 0;
-    }
-    
-    .about h2,
-    .skills h2,
-    .contact h2 {
-      font-size: 2.5rem;
-      margin-bottom: 30px;
-      text-align: center;
-      background: linear-gradient(45deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .about-content {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 20px;
-    }
-    
-    .skills-content {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-    }
-    
-    .about-item,
-    .skill-item {
-      flex-basis: calc(33.333% - 20px);
-      padding: 20px;
-      background-color: var(--card-bg);
-      border-radius: 10px;
-      backdrop-filter: blur(10px);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    
-    .skill-item {
-      flex-basis: calc(50% - 20px);
-      max-width: 300px;
-    }
-    
-    .about-item:hover,
-    .skill-item:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 4px 15px rgba(142,45,226,0.2);
-    }
-    
-    .about-item h3,
-    .skill-item h3 {
-      font-size: 1.5rem;
-      margin-bottom: 10px;
-      color: var(--primary);
-    }
-    
-    .contact-info {
-      text-align: center;
-      background-color: var(--card-bg);
-      padding: 30px;
-      border-radius: 10px;
-      backdrop-filter: blur(10px);
-      max-width: 600px;
-      margin: 0 auto;
-      transition: box-shadow 0.5s ease;
-    }
-    
-    .contact-info:hover {
-      box-shadow: 0 0 15px rgba(142,45,226,0.3);
-    }
-    
-    .contact-info p {
-      margin-bottom: 20px;
-      font-size: 1.1rem;
-    }
-    
-    .contact-info ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    
-    .contact-info li {
-      margin-bottom: 15px;
-      font-size: 1.1rem;
-    }
-    
-    .contact-info a {
-      color: var(--primary);
-      text-decoration: none;
-      transition: color 0.3s ease;
-    }
-    
-    .contact-info a:hover {
-      color: var(--secondary);
-    }
-    
-    .contact-info i {
-      margin-right: 10px;
-      color: var(--primary);
-    }
-    
-    footer {
-      text-align: center;
-      padding: 20px 0;
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-    
-    #particles-js {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-    }
-    
-    .profile-pic {
-      width: 200px;
-      height: 200px;
+
+    .spacer { display: block; height: 1.5em; }
+
+    img.profile-pic {
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
+      border: 2px solid #333;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      display: block;
+      margin: 0 auto 10px;
+    }
+
+    h1.name {
+      text-align: center;
+      color: #dcdcaa;
+      font-size: 1.6rem;
       margin-bottom: 30px;
-      border: 4px solid var(--primary);
-      box-shadow: 0 0 20px rgba(142,45,226,0.5);
-      object-fit: cover;
+      letter-spacing: 0.5px;
     }
-    
-    .skill-icon {
-      font-size: 2.5rem;
-      margin-bottom: 15px;
-      color: var(--primary);
-    }
-    
-    .quote {
-      font-style: italic;
-      font-size: 1.3rem;
-      color: rgba(255, 255, 255, 0.9);
-      margin-bottom: 20px;
-      padding: 15px;
-      position: relative;
-    }
-    
-    .quote-author {
-      font-style: normal;
+
+    button {
+      background: #0e639c;
+      color: white;
+      font-family: 'Fira Code', monospace;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 25px;
       font-size: 1rem;
-      color: rgba(255, 255, 255, 0.7);
+      margin-top: 20px;
+      cursor: pointer;
+      transition: 0.2s;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
     }
-    
-    .social-links {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-top: 10px;
+    button:hover { background: #1177bb; }
+
+    #output {
+      background: #252526;
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 30px;
+      color: #d4d4d4;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
     }
-    
-    .social-link {
-      color: var(--primary);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: color 0.3s ease;
+
+    footer {
+      margin-top: 50px;
+      text-align: center;
+      color: #808080;
     }
-    
-    .social-link:hover {
-      color: var(--secondary);
-    }
-    
-    .social-link i {
+    .social { margin-top: 10px; }
+    .social a {
+      color: #9cdcfe;
+      margin: 0 10px;
       font-size: 1.2rem;
     }
-    
+    .social a:hover { color: #4ec9b0; }
+
     @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 2.8rem;
-      }
-    
-      .hero p {
-        font-size: 1.2rem;
-      }
-    
-      .about-item,
-      .skill-item {
-        flex-basis: 100%;
-      }
-    
-      .profile-pic {
-        width: 150px;
-        height: 150px;
-      }
-    
-      .skills-content {
-        flex-direction: column;
-        align-items: center;
-      }
-    
-      .skill-item {
-        max-width: 100%;
-      }
+      body { padding: 40px 15px; font-size: 0.95rem; }
+      img.profile-pic { width: 100px; height: 100px; }
+      h1.name { font-size: 1.3rem; }
     }
   </style>
 </head>
 <body>
-  <div id="particles-js"></div>
-  
-  <header>
-    <nav class="container">
-      <h1 class="logo">Pietro Molendys</h1>
-      <ul>
-        <li><a href="#about">About</a></li>
-        <li><a href="#skills">Skills</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
-    </nav>
-  </header>
-  
-  <main>
-    <section class="hero">
-      <div class="hero-content">
-        <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/profile%20picture-tzPS9wZ1g8Wd8UG3dhveDHOYOUiB1a.jpeg" alt="Pietro Molendys" class="profile-pic" />
-        <h1>Pietro Molendys</h1>
-        <p class="quote">
-          "Nothing in life is to be feared. It is only to be understood."<br />
-          <span class="quote-author">– Maria Skłodowska-Curie</span>
-        </p>
-        <p>
-          I'm Pietro, a Computer Science student based in Cracow, Poland. I am eager to learn new programming principles and enjoy creating some funky projects!
-        </p>
-        <a href="#contact" class="btn">Get in Touch</a>
-      </div>
-    </section>
-    
-    <section id="about" class="about">
-      <div class="container">
-        <h2>About Me</h2>
-        <div class="about-content">
-          <div class="about-item">
-            <h3>Education</h3>
-            <p>Studying Computer Science at Cracow University of Technology</p>
-          </div>
-          <div class="about-item">
-            <h3>Passion</h3>
-            <p>Big technology enthusiast</p>
-          </div>
-          <div class="about-item">
-            <h3>Attitude</h3>
-            <p>Always open to new challenges and opportunities for growth</p>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section id="skills" class="skills">
-      <div class="container">
-        <h2>Languages I Mostly Code In</h2>
-        <div class="skills-content">
-          <div class="skill-item">
-            <i class="skill-icon fas fa-code"></i>
-            <h3>C</h3>
-            <p>Low-level programming and optimization</p>
-          </div>
-          <div class="skill-item">
-            <i class="skill-icon fab fa-python"></i>
-            <h3>Python</h3>
-            <p>Data analysis and automation</p>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <section id="contact" class="contact">
-      <div class="container">
-        <h2>Contact Me</h2>
-        <div class="contact-info">
-          <p>Feel free to reach out via email or connect with me on LinkedIn:</p>
-          <ul>
-            <li>
-              <i class="fas fa-envelope"></i>
-              <a href="mailto:molendyspietro@gmail.com">molendyspietro@gmail.com</a>
-            </li>
-            <li>
-              <i class="fab fa-linkedin"></i>
-              <a href="https://www.linkedin.com/in/pietro-molendys-b1324231b/" target="_blank" rel="noopener noreferrer">LinkedIn Profile</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </section>
-  </main>
-  
+
+  <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/profile%20picture-tzPS9wZ1g8Wd8UG3dhveDHOYOUiB1a.jpeg" 
+       alt="Pietro Molendys" class="profile-pic" />
+  <h1 class="name">Pietro Molendys</h1>
+
+  <pre>
+<span class="comment"># -*- coding: utf-8 -*-</span>
+<span class="comment"># personal_resume.py — Welcome to my profile!</span>
+
+
+<span class="keyword">class</span> <span class="class-name">PietroMolendys</span>:
+    <span class="docstring">""" 
+    Computer Science student from Cracow, Poland.  
+    Focused on algorithms, software development, and data-driven solutions.  
+    """</span>
+
+    <span class="keyword">def</span> <span class="function">__init__</span>(self):
+        <span class="comment"># Core attributes</span>
+        self.name = <span class="string">"Pietro Molendys"</span>
+        self.location = <span class="string">"Cracow, Poland"</span>
+        self.email = <span class="string">"molendyspietro@gmail.com"</span>
+        self.linkedin = <span class="string">"<a href='https://linkedin.com/in/pietro-molendys-b1324231b' class='link'>linkedin.com/in/pietro-molendys-b1324231b</a>"</span>
+        self.github = <span class="string">"<a href='https://github.com/pedritos22' class='link'>github.com/pedritos22</a>"</span>
+        self.quote = <span class="string">"Nothing in life is to be feared. It is only to be understood."</span>
+        self.quote_author = <span class="string">"– Maria Skłodowska-Curie"</span>
+
+<span class="spacer"></span>
+    <span class="keyword">def</span> <span class="function">education</span>(self):
+        <span class="docstring">"""Return educational background."""</span>
+        <span class="keyword">return</span> <span class="string">"Cracow University of Technology — Computer Science"</span>
+
+<span class="spacer"></span>
+    <span class="keyword">def</span> <span class="function">skills</span>(self):
+        <span class="docstring">"""Return list of primary technical skills."""</span>
+        <span class="keyword">return</span> [
+            <span class="string">"C — low-level programming & optimization"</span>,
+            <span class="string">"Python — data analysis & automation"</span>,
+        ]
+
+<span class="spacer"></span>
+    <span class="keyword">def</span> <span class="function">attitude</span>(self):
+        <span class="docstring">"""Describe mindset and approach to learning."""</span>
+        <span class="keyword">return</span> <span class="string">"Open to new challenges, continuously learning, and growth-oriented."</span>
+
+<span class="spacer"></span>
+    <span class="keyword">def</span> <span class="function">contact</span>(self):
+        <span class="docstring">"""Print contact information."""</span>
+        <span class="builtin">print</span>(<span class="string">f"Email: {self.email}"</span>)
+        <span class="builtin">print</span>(<span class="string">f"LinkedIn: {self.linkedin}"</span>)
+        <span class="builtin">print</span>(<span class="string">f"GitHub: {self.github}"</span>)
+
+
+<span class="comment"># --- Script Execution ---</span>
+
+me = <span class="class-name">PietroMolendys</span>()
+
+<span class="builtin">print</span>(<span class="string">f"Name: {me.name}"</span>)
+<span class="builtin">print</span>(<span class="string">f"Location: {me.location}"</span>)
+<span class="builtin">print</span>(<span class="string">f'"{me.quote}" {me.quote_author}'</span>)
+
+<span class="builtin">print</span>(<span class="string">"\nEducation:"</span>, me.education())
+
+<span class="builtin">print</span>(<span class="string">"\nSkills:"</span>)
+<span class="keyword">for</span> skill <span class="keyword">in</span> me.skills():
+    <span class="builtin">print</span>(<span class="string">" - "</span> + skill)
+
+<span class="builtin">print</span>(<span class="string">"\nAttitude:"</span>, me.attitude())
+
+<span class="builtin">print</span>(<span class="string">"\nContact:"</span>)
+me.contact()
+  </pre>
+
+  <button id="run-btn">▶ Run Code</button>
+  <div id="output"></div>
+
   <footer>
-    <div class="container">
-      <p>&copy; 2025 Pietro Molendys. The future is today.</p>
-      <div class="social-links">
-        <a href="https://github.com/pedritos22" target="_blank" rel="noopener noreferrer" class="social-link">
-          <i class="fab fa-github"></i>GitHub
-        </a>
-      </div>
+    &copy; 2025 Pietro Molendys  
+    <span class="comment"># the future is today</span>
+    <div class="social">
+      <a href="https://github.com/pedritos22"><i class="fab fa-github"></i></a>
+      <a href="https://linkedin.com/in/pietro-molendys-b1324231b"><i class="fab fa-linkedin"></i></a>
     </div>
   </footer>
-  
-  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-          e.preventDefault();
-          document.querySelector(this.getAttribute('href')).scrollIntoView({
-            behavior: 'smooth'
-          });
-        });
-      });
-      
-      particlesJS('particles-js', {
-        particles: {
-          number: { value: 100, density: { enable: true, value_area: 800 } },
-          color: { value: "#ffffff" },
-          shape: { type: "circle" },
-          opacity: { value: 0.5, random: true },
-          size: { value: 3, random: true },
-          line_linked: { enable: true, distance: 150, color: "#ffffff", opacity: 0.4, width: 1 },
-          move: { enable: true, speed: 2, direction: "none", random: true, straight: false, out_mode: "out", bounce: false }
-        },
-        interactivity: {
-          detect_on: "canvas",
-          events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" }, resize: true },
-          modes: { grab: { distance: 400, line_linked: { opacity: 1 } }, bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 }, repulse: { distance: 200, duration: 0.4 }, push: { particles_nb: 4 }, remove: { particles_nb: 2 } }
-        },
-        retina_detect: true
-      });
-      
-      function animateOnScroll() {
-        const items = document.querySelectorAll('.about-item, .skill-item');
-        items.forEach(item => {
-          const rect = item.getBoundingClientRect();
-          if (rect.top < window.innerHeight && rect.bottom > 0) {
-            item.style.opacity = '1';
-            item.style.transform = 'translateY(0)';
-          }
-        });
-      }
-      
-      window.addEventListener('scroll', animateOnScroll);
-      animateOnScroll();
-      
-      window.addEventListener('scroll', () => {
-        const header = document.querySelector('header');
-        if (window.scrollY > 100) {
-          header.classList.add('scrolled');
-        } else {
-          header.classList.remove('scrolled');
-        }
-      });
+    document.getElementById("run-btn").addEventListener("click", () => {
+      const output = `
+Name: Pietro Molendys
+Location: Cracow, Poland
+"Nothing in life is to be feared. It is only to be understood." – Maria Skłodowska-Curie
+
+Education: Cracow University of Technology — Computer Science
+
+Skills:
+ - C — low-level programming & optimization
+ - Python — data analysis & automation
+
+Attitude: Open to new challenges, continuously learning, and growth-oriented.
+
+Contact:
+Email: molendyspietro@gmail.com
+LinkedIn: linkedin.com/in/pietro-molendys-b1324231b
+GitHub: github.com/pedritos22
+      `;
+      document.getElementById("output").textContent = output;
     });
   </script>
+
 </body>
 </html>
