@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pietro Molendys — Python Resume</title>
+  <title>Pietro Molendys - Contact</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     body {
@@ -14,12 +14,15 @@
       line-height: 1.7;
       max-width: 900px;
       margin: 0 auto;
+      box-sizing: border-box;
     }
 
     pre {
       white-space: pre-wrap;
       word-wrap: break-word;
       font-size: 1rem;
+      overflow-x: auto;
+      background: #1e1e1e;
     }
 
     /* Syntax colors */
@@ -50,6 +53,7 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.4);
       display: block;
       margin: 0 auto 10px;
+      object-fit: cover;
     }
 
     h1.name {
@@ -66,14 +70,15 @@
       font-family: 'Fira Code', monospace;
       border: none;
       border-radius: 6px;
-      padding: 10px 25px;
+      padding: 12px 28px;
       font-size: 1rem;
-      margin-top: 20px;
+      margin-top: 25px;
       cursor: pointer;
       transition: 0.2s;
       display: block;
       margin-left: auto;
       margin-right: auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     button:hover { background: #1177bb; }
 
@@ -86,26 +91,74 @@
       font-size: 0.95rem;
       white-space: pre-wrap;
       box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      font-family: 'Fira Code', monospace;
     }
 
     footer {
-      margin-top: 50px;
+      margin-top: 60px;
       text-align: center;
       color: #808080;
+      font-size: 0.9rem;
     }
-    .social { margin-top: 10px; }
+    .social { margin-top: 12px; }
     .social a {
       color: #9cdcfe;
       margin: 0 10px;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
     }
     .social a:hover { color: #4ec9b0; }
 
+    /* --- Tablet --- */
     @media (max-width: 768px) {
-      body { padding: 40px 15px; font-size: 0.95rem; }
-      img.profile-pic { width: 100px; height: 100px; }
-      h1.name { font-size: 1.3rem; }
+      body { padding: 40px 20px; font-size: 0.95rem; }
+      img.profile-pic { width: 110px; height: 110px; }
+      h1.name { font-size: 1.4rem; }
+      pre { font-size: 0.95rem; }
+      button { width: 100%; padding: 12px; font-size: 1rem; }
     }
+
+    /* --- Mobile --- */
+    @media (max-width: 600px) {
+      body {
+        padding: 25px 15px;
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+      img.profile-pic {
+        width: 90px;
+        height: 90px;
+        margin-bottom: 8px;
+      }
+      h1.name {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+      }
+      pre {
+        background: #1e1e1e;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+      #output {
+        font-size: 0.9rem;
+        padding: 15px;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        border-radius: 8px;
+      }
+    }
+
+    /* --- Extra small --- */
+    @media (max-width: 400px) {
+      body { padding: 20px 10px; }
+      pre { font-size: 0.85rem; }
+      h1.name { font-size: 1.1rem; }
+      button { font-size: 0.9rem; padding: 10px; }
+    }
+
   </style>
 </head>
 <body>
@@ -116,13 +169,13 @@
 
   <pre>
 <span class="comment"># -*- coding: utf-8 -*-</span>
-<span class="comment"># personal_resume.py — Welcome to my profile!</span>
+<span class="comment"># personal_resume.py</span>
 
 
 <span class="keyword">class</span> <span class="class-name">PietroMolendys</span>:
     <span class="docstring">""" 
     Computer Science student from Cracow, Poland.  
-    Focused on algorithms, software development, and data-driven solutions.  
+    Focused on algorithms, software development and programming overall.  
     """</span>
 
     <span class="keyword">def</span> <span class="function">__init__</span>(self):
@@ -144,14 +197,14 @@
     <span class="keyword">def</span> <span class="function">skills</span>(self):
         <span class="docstring">"""Return list of primary technical skills."""</span>
         <span class="keyword">return</span> [
-            <span class="string">"C — low-level programming & optimization"</span>,
-            <span class="string">"Python — data analysis & automation"</span>,
+            <span class="string">"C - low-level programming & optimization"</span>,
+            <span class="string">"Python - data analysis, ML & automation"</span>,
         ]
 
 <span class="spacer"></span>
     <span class="keyword">def</span> <span class="function">attitude</span>(self):
         <span class="docstring">"""Describe mindset and approach to learning."""</span>
-        <span class="keyword">return</span> <span class="string">"Open to new challenges, continuously learning, and growth-oriented."</span>
+        <span class="keyword">return</span> <span class="string">"Open to new challenges, continuously learning, growth-oriented."</span>
 
 <span class="spacer"></span>
     <span class="keyword">def</span> <span class="function">contact</span>(self):
@@ -200,13 +253,13 @@ Name: Pietro Molendys
 Location: Cracow, Poland
 "Nothing in life is to be feared. It is only to be understood." – Maria Skłodowska-Curie
 
-Education: Cracow University of Technology — Computer Science
+Education: Cracow University of Technology - Computer Science
 
 Skills:
- - C — low-level programming & optimization
- - Python — data analysis & automation
+ * C - low-level programming & optimization
+ * Python - data analysis & automation
 
-Attitude: Open to new challenges, continuously learning, and growth-oriented.
+Attitude: Open to new challenges, continuously learning and growth-oriented.
 
 Contact:
 Email: molendyspietro@gmail.com
