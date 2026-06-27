@@ -3,272 +3,2268 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pietro Molendys - Contact</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <meta name="description" content="Pietro Molendys - Computer Science student and software developer from Cracow, Poland." />
+  <title>Pietro Molendys - Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Inter:wght@500;700;900&display=swap" rel="stylesheet" />
   <style>
-    body {
-      background-color: #1e1e1e;
-      color: #d4d4d4;
-      font-family: 'Fira Code', monospace;
-      padding: 60px 25px;
-      line-height: 1.7;
-      max-width: 900px;
-      margin: 0 auto;
+    :root {
+      color-scheme: dark;
+      --ink: #020713;
+      --night: #061329;
+      --blue: #0455ff;
+      --blue-soft: #4f9fff;
+      --cyan: #46d8ff;
+      --paper: #f7fbff;
+      --muted: rgba(247, 251, 255, 0.64);
+      --line: rgba(247, 251, 255, 0.16);
+      --hot: #ff6c8e;
+      --red: #d9092d;
+      --yellow: #ffd34d;
+    }
+
+    * {
       box-sizing: border-box;
     }
 
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      font-size: 1rem;
-      overflow-x: auto;
-      background: #1e1e1e;
+    html {
+      min-height: 100%;
+      background: var(--ink);
+      scroll-behavior: smooth;
     }
 
-    /* Syntax colors */
-    .comment { color: #6a9955; }
-    .keyword { color: #569cd6; }
-    .string { color: #ce9178; }
-    .function { color: #dcdcaa; }
-    .class-name { color: #4ec9b0; }
-    .builtin { color: #9cdcfe; }
-    .docstring { color: #608b4e; font-style: italic; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        linear-gradient(115deg, rgba(2, 7, 19, 0.96) 0%, rgba(6, 19, 41, 0.84) 42%, rgba(7, 39, 113, 0.56) 100%),
+        radial-gradient(circle at 72% 50%, rgba(4, 85, 255, 0.42), transparent 32%),
+        #020713;
+      color: var(--paper);
+      font-family: Inter, system-ui, sans-serif;
+    }
 
-    a.link {
-      color: #9cdcfe;
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    body::before {
+      z-index: 1;
+      background:
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.42), transparent 50%, rgba(0, 0, 0, 0.25));
+      mix-blend-mode: screen;
+      opacity: 0.45;
+    }
+
+    body::after {
+      z-index: 2;
+      background:
+        linear-gradient(88deg, transparent 0 63%, rgba(217, 9, 45, 0.92) 63% 63.55%, transparent 63.55%),
+        linear-gradient(95deg, transparent 0 78%, rgba(255, 255, 255, 0.18) 78% 78.25%, transparent 78.25%);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 5;
+      min-height: 100svh;
+      height: 100svh;
+      display: grid;
+      grid-template-columns: minmax(320px, 0.85fr) minmax(340px, 1.15fr);
+      align-items: center;
+      gap: clamp(22px, 4.5vw, 64px);
+      padding: clamp(26px, 4.6vw, 58px);
+      isolation: isolate;
+      overflow: clip;
+    }
+
+    .shell::before {
+      content: "PROFILE";
+      position: absolute;
+      left: -1.8vw;
+      bottom: -5.5vw;
+      z-index: -1;
+      color: rgba(255, 255, 255, 0.035);
+      font-family: "Anton", Impact, sans-serif;
+      font-size: clamp(110px, 22vw, 310px);
+      line-height: 0.78;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .identity {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(18px, 3vw, 36px);
+      min-width: 0;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: rgba(247, 251, 255, 0.72);
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .status-line::before {
+      content: "";
+      width: 52px;
+      height: 4px;
+      background: var(--red);
+      clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%);
+    }
+
+    .nameplate {
+      margin: 0;
+      display: grid;
+      gap: 0;
+      font-family: "Anton", Impact, sans-serif;
+      font-size: clamp(54px, 9.5vw, 126px);
+      line-height: 0.78;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-shadow: 0 12px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .name-button {
+      all: unset;
+      display: grid;
+      gap: 0;
+      cursor: pointer;
+    }
+
+    .name-button:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 8px;
+      border-radius: 8px;
+    }
+
+    .name-button:hover span:last-child,
+    .name-button:focus-visible span:last-child {
+      color: var(--cyan);
+    }
+
+    .nameplate span:first-child {
+      color: var(--paper);
+      transform: translateX(-0.02em);
+    }
+
+    .nameplate span:last-child {
+      color: var(--blue-soft);
+      -webkit-text-stroke: 1px rgba(247, 251, 255, 0.22);
+    }
+
+    .menu {
+      display: grid;
+      gap: clamp(2px, 1vw, 9px);
+      width: min(100%, 650px);
+    }
+
+    .menu-item {
+      --item-size: clamp(50px, 7vw, 96px);
+      position: relative;
+      min-height: calc(var(--item-size) * 0.86);
+      width: fit-content;
+      max-width: 100%;
+      border: 0;
+      padding: 0 20px 0 0;
+      background: transparent;
+      color: rgba(79, 159, 255, 0.72);
+      font-family: "Bebas Neue", Impact, sans-serif;
+      font-size: var(--item-size);
+      line-height: 0.86;
+      letter-spacing: 0.02em;
+      text-align: left;
+      text-transform: uppercase;
+      cursor: pointer;
+      isolation: isolate;
+      opacity: 0;
+      transform: translateX(-42px);
+      animation: slide-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      transition: color 140ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .menu-label {
+      display: inline-block;
+    }
+
+    .menu-item:nth-child(1) {
+      margin-left: clamp(3px, 2.5vw, 30px);
+    }
+
+    .menu-item:nth-child(2) {
+      margin-left: clamp(18px, 5vw, 62px);
+      animation-delay: 80ms;
+    }
+
+    .menu-item:nth-child(3) {
+      margin-left: clamp(4px, 2.5vw, 30px);
+      animation-delay: 160ms;
+    }
+
+    .menu-item:nth-child(4) {
+      margin-left: clamp(28px, 6vw, 74px);
+      animation-delay: 240ms;
+    }
+
+    .menu-item::before {
+      content: "";
+      position: absolute;
+      left: -32px;
+      top: 50%;
+      z-index: -1;
+      width: calc(100% + 74px);
+      height: 88%;
+      transform: translateY(-50%) scaleX(0);
+      transform-origin: left center;
+      background: linear-gradient(90deg, var(--hot), #ff9dab);
+      clip-path: polygon(0 10%, 88% 0, 100% 44%, 92% 100%, 4% 92%);
+      box-shadow: 0 18px 42px rgba(255, 108, 142, 0.22);
+      transition: transform 210ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .menu-item::after {
+      content: attr(data-code);
+      position: absolute;
+      left: -52px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.22);
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+    }
+
+    .menu-item.is-active {
+      color: var(--paper);
+      transform: translateX(14px);
+      outline: none;
+    }
+
+    .menu-item:hover:not(.is-active) {
+      color: rgba(247, 251, 255, 0.86);
+    }
+
+    .menu-item:focus-visible:not(.is-active) {
+      color: var(--cyan);
+      outline: 2px solid rgba(70, 216, 255, 0.72);
+      outline-offset: 6px;
+    }
+
+    .menu-item.is-active::before {
+      transform: translateY(-50%) scaleX(1);
+    }
+
+    .panel-wrap {
+      position: relative;
+      min-height: min(620px, calc(100svh - 70px));
+      display: grid;
+      place-items: start center;
+      padding-top: clamp(54px, 9vh, 76px);
+    }
+
+    .mobile-section-stack {
+      display: none;
+    }
+
+    .portrait-orbit {
+      position: absolute;
+      right: min(3vw, 36px);
+      top: clamp(8px, 4vh, 42px);
+      width: clamp(142px, 16vw, 218px);
+      aspect-ratio: 1;
+      transform: rotate(-4deg);
+      opacity: 0.95;
+    }
+
+    .portrait-orbit::before,
+    .portrait-orbit::after {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .portrait-orbit::after {
+      inset: 12px;
+      border-color: rgba(255, 211, 77, 0.64);
+      clip-path: polygon(0 0, 62% 0, 62% 100%, 0 100%);
+      animation: slow-turn 14s linear infinite reverse;
+    }
+
+    .portrait {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      filter: saturate(1.08) contrast(1.08);
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.38);
+    }
+
+    .content-card {
+      position: relative;
+      width: min(100%, 620px);
+      min-height: 390px;
+      padding: clamp(24px, 3.4vw, 40px);
+      margin-top: 0;
+      color: var(--paper);
+      background:
+        linear-gradient(135deg, rgba(2, 7, 19, 0.92), rgba(3, 41, 110, 0.78)),
+        linear-gradient(90deg, rgba(70, 216, 255, 0.07), transparent 58%);
+      border: 0;
+      clip-path: polygon(0 4%, 92% 0, 99.4% 12%, 96% 99.2%, 5% 95%);
+      box-shadow:
+        0 34px 86px rgba(0, 0, 0, 0.38),
+        inset 0 0 0 1px rgba(70, 216, 255, 0.08);
+      overflow: hidden;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
+
+    .content-card::before {
+      content: attr(data-section);
+      position: absolute;
+      right: -7px;
+      top: -23px;
+      color: rgba(255, 255, 255, 0.055);
+      font-family: "Anton", Impact, sans-serif;
+      font-size: clamp(78px, 12vw, 156px);
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .content-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 auto;
+      width: 64%;
+      height: 6px;
+      background: linear-gradient(90deg, transparent, rgba(70, 216, 255, 0.28), rgba(126, 202, 255, 0.72));
+      clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%);
+    }
+
+    .section-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      color: var(--cyan);
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .section-kicker::before {
+      content: "";
+      width: 18px;
+      height: 18px;
+      background: var(--red);
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    }
+
+    .content-card h2 {
+      position: relative;
+      margin: 0 0 18px;
+      color: var(--paper);
+      font-family: "Anton", Impact, sans-serif;
+      font-size: clamp(40px, 5.6vw, 72px);
+      line-height: 0.9;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .content-card p {
+      position: relative;
+      max-width: 54ch;
+      margin: 0;
+      color: rgba(247, 251, 255, 0.8);
+      font-size: clamp(0.98rem, 1.4vw, 1.08rem);
+      line-height: 1.72;
+    }
+
+    .detail-list {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      margin: 28px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .detail-list li {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 14px;
+      align-items: baseline;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.075);
+      border-left: 4px solid rgba(70, 216, 255, 0.78);
+      clip-path: polygon(0 0, 98% 0, 100% 48%, 97% 100%, 0 100%);
+    }
+
+    .detail-list span {
+      color: rgba(126, 202, 255, 0.92);
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .detail-list strong,
+    .detail-list a {
+      color: var(--paper);
+      font-size: 0.96rem;
+      font-weight: 800;
       text-decoration: none;
     }
-    a.link:hover {
-      color: #4ec9b0;
-      text-decoration: underline;
+
+    .detail-list a:hover,
+    .detail-list a:focus-visible {
+      color: var(--cyan);
+      outline: none;
     }
 
-    .spacer { display: block; height: 1.5em; }
+    .skill-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
 
-    img.profile-pic {
-      width: 130px;
-      height: 130px;
-      border-radius: 50%;
-      border: 2px solid #333;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    .skill {
+      min-height: 104px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 0;
+      box-shadow: inset 0 0 0 1px rgba(70, 216, 255, 0.07);
+      clip-path: polygon(0 0, 92% 0, 99.2% 16%, 96% 99.2%, 0 100%);
+      transform: translateZ(0);
+    }
+
+    .skill b {
       display: block;
-      margin: 0 auto 10px;
-      object-fit: cover;
-    }
-
-    h1.name {
-      text-align: center;
-      color: #dcdcaa;
-      font-size: 1.6rem;
-      margin-bottom: 30px;
-      letter-spacing: 0.5px;
-    }
-
-    button {
-      background: #0e639c;
-      color: white;
-      font-family: 'Fira Code', monospace;
-      border: none;
-      border-radius: 6px;
-      padding: 12px 28px;
+      margin-bottom: 9px;
+      color: var(--paper);
       font-size: 1rem;
-      margin-top: 25px;
-      cursor: pointer;
-      transition: 0.2s;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .skill span {
       display: block;
-      margin-left: auto;
-      margin-right: auto;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    button:hover { background: #1177bb; }
-
-    #output {
-      background: #252526;
-      border-radius: 6px;
-      padding: 20px;
-      margin-top: 30px;
-      color: #d4d4d4;
-      font-size: 0.95rem;
-      white-space: pre-wrap;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-      font-family: 'Fira Code', monospace;
-    }
-
-    footer {
-      margin-top: 60px;
-      text-align: center;
-      color: #808080;
+      color: rgba(247, 251, 255, 0.66);
       font-size: 0.9rem;
-    }
-    .social { margin-top: 12px; }
-    .social a {
-      color: #9cdcfe;
-      margin: 0 10px;
-      font-size: 1.3rem;
-    }
-    .social a:hover { color: #4ec9b0; }
-
-    /* --- Tablet --- */
-    @media (max-width: 768px) {
-      body { padding: 40px 20px; font-size: 0.95rem; }
-      img.profile-pic { width: 110px; height: 110px; }
-      h1.name { font-size: 1.4rem; }
-      pre { font-size: 0.95rem; }
-      button { width: 100%; padding: 12px; font-size: 1rem; }
+      line-height: 1.48;
     }
 
-    /* --- Mobile --- */
-    @media (max-width: 600px) {
+    .actions {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .action-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 22px;
+      color: var(--paper);
+      background: var(--blue);
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      text-transform: uppercase;
+      clip-path: polygon(0 0, 92% 0, 100% 36%, 92% 100%, 0 100%, 7% 50%);
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .action-link:hover,
+    .action-link:focus-visible {
+      transform: translateY(-2px);
+      background: var(--hot);
+      outline: none;
+    }
+
+    .action-link.secondary {
+      background: rgba(255, 255, 255, 0.12);
+      border: 0;
+      box-shadow: inset 0 0 0 1px rgba(247, 251, 255, 0.14);
+    }
+
+
+
+    .top-tools {
+      position: fixed;
+      top: 18px;
+      right: clamp(18px, 3vw, 38px);
+      z-index: 22;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .help-toggle,
+    .reset-toggle {
+      display: inline-grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 0;
+      color: var(--paper);
+      background: rgba(2, 7, 19, 0.68);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.24),
+        inset 0 0 0 1px rgba(247, 251, 255, 0.16);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      font-family: "Anton", Impact, sans-serif;
+      font-size: 1.26rem;
+      line-height: 1;
+      cursor: pointer;
+      clip-path: polygon(0 0, 88% 0, 100% 30%, 86% 100%, 0 100%, 10% 50%);
+      transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+    }
+
+    .help-toggle:hover,
+    .help-toggle:focus-visible,
+    .reset-toggle:hover,
+    .reset-toggle:focus-visible {
+      transform: translateY(-1px);
+      background: rgba(70, 216, 255, 0.2);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.28),
+        0 0 24px rgba(70, 216, 255, 0.18),
+        inset 0 0 0 1px rgba(70, 216, 255, 0.26);
+      outline: none;
+    }
+
+    .reset-toggle {
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    .reset-toggle:active {
+      transform: translateY(0) scale(0.96);
+    }
+
+    .audio-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 6px 10px;
+      background: rgba(2, 7, 19, 0.58);
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.24),
+        inset 0 0 0 1px rgba(247, 251, 255, 0.16);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      clip-path: polygon(0 0, 96% 0, 100% 32%, 94% 100%, 0 100%, 5% 50%);
+    }
+
+    .audio-toggle {
+      min-height: 34px;
+      padding: 0 13px;
+      border: 0;
+      color: rgba(247, 251, 255, 0.76);
+      background: rgba(255, 255, 255, 0.08);
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 0.64rem;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      clip-path: polygon(0 0, 94% 0, 100% 36%, 92% 100%, 0 100%, 7% 50%);
+      transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .audio-toggle:hover,
+    .audio-toggle:focus-visible {
+      color: var(--paper);
+      background: rgba(70, 216, 255, 0.18);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .audio-toggle.is-on {
+      color: var(--paper);
+      background: rgba(4, 85, 255, 0.68);
+      box-shadow: 0 0 28px rgba(70, 216, 255, 0.2);
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: rgba(247, 251, 255, 0.58);
+      font-size: 0.58rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .volume-slider {
+      width: 94px;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    .name-button {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: filter 180ms ease, transform 180ms ease;
+    }
+
+    .name-button.is-hold-ready {
+      filter: drop-shadow(0 0 22px rgba(70, 216, 255, 0.38));
+    }
+
+    .name-button.is-dragging {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 80;
+      cursor: grabbing;
+      filter: drop-shadow(0 28px 38px rgba(0, 0, 0, 0.42)) drop-shadow(0 0 24px rgba(70, 216, 255, 0.35));
+      transform: translate3d(var(--drag-x, 0), var(--drag-y, 0), 0) rotate(var(--drag-rotate, -4deg)) scale(1.04);
+    }
+
+    .name-button.is-dropped {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 18;
+      transform: translate3d(var(--drag-x, 0), var(--drag-y, 0), 0) rotate(var(--drag-rotate, -3deg));
+    }
+
+    .name-button.is-dragging span,
+    .name-button.is-dropped span {
+      text-shadow:
+        0 10px 0 rgba(0, 0, 0, 0.22),
+        0 0 24px rgba(70, 216, 255, 0.2);
+    }
+
+    .objection-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.88);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+
+    .objection-overlay::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 211, 77, 0.24), transparent 36%),
+        linear-gradient(115deg, transparent 0 35%, rgba(217, 9, 45, 0.86) 35% 58%, transparent 58% 100%);
+      filter: blur(0.2px);
+    }
+
+    .objection-overlay.is-visible {
+      opacity: 1;
+      transform: scale(1);
+      animation: objection-shake 420ms steps(2, end) 1;
+    }
+
+    .objection-word {
+      position: relative;
+      margin: 0;
+      padding: 0 clamp(18px, 4vw, 58px);
+      color: #fff7f7;
+      font-family: "Anton", Impact, sans-serif;
+      font-size: clamp(64px, 16vw, 210px);
+      line-height: 0.82;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      text-shadow:
+        7px 7px 0 #020713,
+        -3px -3px 0 var(--red),
+        0 0 34px rgba(255, 211, 77, 0.5);
+      transform: rotate(-5deg) skewX(-8deg);
+    }
+
+    .objection-word::after {
+      content: "";
+      position: absolute;
+      left: -8%;
+      right: -8%;
+      bottom: 0.06em;
+      height: 0.12em;
+      z-index: -1;
+      background: var(--red);
+      clip-path: polygon(0 22%, 100% 0, 94% 100%, 4% 78%);
+      box-shadow: 0 0 36px rgba(217, 9, 45, 0.68);
+    }
+
+    @keyframes objection-shake {
+      0% { transform: translate(0, 0) scale(1); }
+      20% { transform: translate(-12px, 7px) scale(1.04); }
+      40% { transform: translate(10px, -5px) scale(1.01); }
+      60% { transform: translate(-7px, -4px) scale(1.05); }
+      80% { transform: translate(8px, 5px) scale(1.02); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    .hint-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: rgba(2, 7, 19, 0.68);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .hint-overlay[hidden] {
+      display: none;
+    }
+
+    .hint-panel {
+      position: relative;
+      width: min(100%, 560px);
+      padding: clamp(24px, 4vw, 38px);
+      background:
+        linear-gradient(135deg, rgba(2, 7, 19, 0.96), rgba(4, 43, 113, 0.88)),
+        linear-gradient(90deg, rgba(70, 216, 255, 0.1), transparent 58%);
+      color: var(--paper);
+      box-shadow:
+        0 34px 90px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(70, 216, 255, 0.16);
+      clip-path: polygon(0 4%, 92% 0, 99% 13%, 96% 100%, 5% 96%);
+      overflow: hidden;
+    }
+
+    .hint-panel::before {
+      content: "HINTS";
+      position: absolute;
+      right: -6px;
+      top: -20px;
+      color: rgba(255, 255, 255, 0.055);
+      font-family: "Anton", Impact, sans-serif;
+      font-size: clamp(78px, 18vw, 140px);
+      line-height: 1;
+    }
+
+    .hint-panel h2 {
+      position: relative;
+      margin: 0 0 14px;
+      color: var(--paper);
+      font-family: "Anton", Impact, sans-serif;
+      font-size: clamp(38px, 7vw, 64px);
+      line-height: 0.9;
+      text-transform: uppercase;
+    }
+
+    .hint-panel p {
+      position: relative;
+      margin: 0 0 18px;
+      color: rgba(247, 251, 255, 0.74);
+      line-height: 1.6;
+    }
+
+    .hint-list {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hint-list li {
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.075);
+      box-shadow: inset 0 0 0 1px rgba(70, 216, 255, 0.08);
+      clip-path: polygon(0 0, 98% 0, 100% 40%, 96% 100%, 0 100%);
+      color: rgba(247, 251, 255, 0.82);
+      line-height: 1.5;
+    }
+
+    .hint-list b {
+      color: rgba(126, 202, 255, 0.95);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .hint-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      z-index: 2;
+      width: 38px;
+      height: 38px;
+      border: 0;
+      color: var(--paper);
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 1.1rem;
+      font-weight: 900;
+      cursor: pointer;
+      clip-path: polygon(0 0, 86% 0, 100% 28%, 86% 100%, 0 100%, 12% 50%);
+    }
+
+    .hint-close:hover,
+    .hint-close:focus-visible {
+      background: rgba(255, 108, 142, 0.34);
+      outline: none;
+    }
+
+    .glass-fracture {
+      position: relative;
+      isolation: isolate;
+      transform-origin: center;
+      cursor: inherit;
+      --crack-alpha: 0;
+      --crack-scale: 1;
+    }
+
+    .content-card.glass-fracture,
+    .detail-list li.glass-fracture,
+    .skill.glass-fracture {
+      cursor: crosshair;
+    }
+
+    .content-card > p.glass-fracture,
+    .section-kicker.glass-fracture,
+    .content-card h2.glass-fracture,
+    .menu-label.glass-fracture {
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .glass-fracture .crack-overlay {
+      position: absolute;
+      inset: -0.28em -0.32em;
+      z-index: 15;
+      pointer-events: none;
+      opacity: var(--crack-alpha);
+      overflow: visible;
+      mix-blend-mode: screen;
+      filter:
+        drop-shadow(0 0 2px rgba(240, 250, 255, 0.48))
+        drop-shadow(0 0 10px rgba(95, 190, 255, 0.24));
+      transform: scale(var(--crack-scale));
+      transition: opacity 170ms ease, transform 170ms ease;
+    }
+
+    .content-card.glass-fracture .crack-overlay,
+    .detail-list li.glass-fracture .crack-overlay,
+    .skill.glass-fracture .crack-overlay {
+      inset: 0;
+    }
+
+    .glass-fracture .crack-overlay svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      display: block;
+    }
+
+    .glass-fracture .crack-main {
+      fill: none;
+      stroke: rgba(232, 248, 255, 0.9);
+      stroke-width: 1.05;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .glass-fracture .crack-branch {
+      fill: none;
+      stroke: rgba(116, 203, 255, 0.68);
+      stroke-width: 0.62;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .glass-fracture .crack-hairline {
+      fill: none;
+      stroke: rgba(174, 226, 255, 0.46);
+      stroke-width: 0.34;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .glass-fracture .crack-glint {
+      fill: none;
+      stroke: rgba(232, 248, 255, 0.38);
+      stroke-width: 0.28;
+      stroke-linecap: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .glass-fracture.crack-1 {
+      --crack-alpha: 0.34;
+    }
+
+    .glass-fracture.crack-2 {
+      --crack-alpha: 0.62;
+      --crack-scale: 1.012;
+      filter: drop-shadow(0 0 8px rgba(70, 216, 255, 0.08));
+    }
+
+    .glass-fracture.crack-3 {
+      --crack-alpha: 0.88;
+      --crack-scale: 1.026;
+      animation: crack-jolt 220ms steps(2, end) 1;
+      filter: brightness(1.08) drop-shadow(0 0 12px rgba(70, 216, 255, 0.12));
+    }
+
+    .glass-fracture.glass-broken {
+      pointer-events: none;
+      animation: glass-collapse 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      filter: brightness(1.12) saturate(1.08) drop-shadow(0 0 18px rgba(94, 181, 255, 0.2));
+    }
+
+    .glass-fracture.glass-broken .crack-overlay {
+      opacity: 0.96;
+      filter:
+        drop-shadow(0 0 4px rgba(240, 250, 255, 0.54))
+        drop-shadow(0 0 14px rgba(95, 190, 255, 0.3));
+    }
+
+    .content-card.glass-broken {
+      pointer-events: none;
+    }
+
+    .menu-item:disabled,
+    .menu-item.is-shattered {
+      cursor: not-allowed;
+      opacity: 0.24;
+      transform: none !important;
+    }
+
+    .menu-item:disabled::before,
+    .menu-item.is-shattered::before {
+      transform: translateY(-50%) scaleX(0) !important;
+    }
+
+    .glass-shard {
+      position: fixed;
+      z-index: 88;
+      width: var(--w, 18px);
+      height: var(--h, 14px);
+      left: var(--x, 0px);
+      top: var(--y, 0px);
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(245, 252, 255, 0.86), rgba(145, 214, 255, 0.32) 46%, rgba(4, 85, 255, 0.08)),
+        radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.8), transparent 24%);
+      box-shadow:
+        inset 0 0 0 1px rgba(232, 248, 255, 0.42),
+        inset 8px 8px 22px rgba(255, 255, 255, 0.12),
+        0 0 16px rgba(96, 185, 255, 0.18);
+      clip-path: polygon(var(--p1, 8% 0), var(--p2, 100% 18%), var(--p3, 82% 100%), var(--p4, 0 78%));
+      transform-style: preserve-3d;
+      backdrop-filter: blur(1px);
+      -webkit-backdrop-filter: blur(1px);
+      animation: shard-fly 980ms cubic-bezier(0.18, 0.75, 0.3, 1) forwards;
+    }
+
+    @keyframes crack-jolt {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-2px, 1px) rotate(-0.7deg); }
+      66% { transform: translate(2px, -1px) rotate(0.7deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    @keyframes glass-collapse {
+      0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+      18% { opacity: 1; transform: translate3d(0, -5px, 0) rotate(-0.7deg) scale(1.018); }
+      100% { opacity: 0; transform: translate3d(22px, 126px, 0) rotate(13deg) scale(0.68); }
+    }
+
+    @keyframes shard-fly {
+      0% { opacity: 0; transform: translate3d(0, 0, 0) rotate3d(0, 0, 1, 0deg) scale(0.72); }
+      9% { opacity: 0.96; }
+      100% { opacity: 0; transform: translate3d(var(--tx, 0px), var(--ty, 80px), 0) rotate3d(var(--rx, 1), var(--ry, 0.45), 1, var(--rot, 160deg)) scale(0.42); }
+    }
+
+    .meta-bar {
+      position: fixed;
+      left: clamp(18px, 3vw, 38px);
+      right: clamp(18px, 3vw, 38px);
+      bottom: 18px;
+      z-index: 8;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      color: rgba(247, 251, 255, 0.38);
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    @keyframes slide-in {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slow-turn {
+      to {
+        rotate: 360deg;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+
+    @media (max-width: 920px) {
       body {
-        padding: 25px 15px;
-        font-size: 0.9rem;
-        line-height: 1.6;
+        overflow-y: auto;
       }
-      img.profile-pic {
-        width: 90px;
-        height: 90px;
-        margin-bottom: 8px;
+
+      .shell {
+        height: auto;
+        min-height: 100svh;
+        grid-template-columns: 1fr;
+        align-items: start;
+        gap: clamp(22px, 5vw, 34px);
+        padding: 24px clamp(18px, 5vw, 36px) 54px;
+        overflow: visible;
       }
-      h1.name {
-        font-size: 1.2rem;
-        margin-bottom: 20px;
+
+      .shell::before {
+        position: fixed;
+        left: -8vw;
+        bottom: -8vw;
+        font-size: clamp(96px, 32vw, 230px);
       }
-      pre {
-        background: #1e1e1e;
-        padding: 10px;
-        border-radius: 4px;
-        font-size: 0.9rem;
+
+      .identity {
+        min-height: auto;
+        align-self: start;
+        justify-content: start;
+        gap: 18px;
       }
-      #output {
-        font-size: 0.9rem;
-        padding: 15px;
+
+      .top-tools {
+        position: static;
+        align-self: flex-start;
+        width: min(100%, 360px);
+        margin: -4px 0 2px;
+        justify-content: flex-start;
       }
-      button {
+
+      .help-toggle,
+      .reset-toggle {
+        flex: 0 0 42px;
+      }
+
+      .audio-controls {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .audio-toggle {
+        min-height: 34px;
+        padding: 0 12px;
+        font-size: 0.6rem;
+        transform: none;
+      }
+
+      .audio-toggle:hover,
+      .audio-toggle:focus-visible {
+        transform: none;
+      }
+
+      .volume-slider {
+        width: min(34vw, 96px);
+      }
+
+      .menu {
+        display: grid;
+        gap: clamp(2px, 1.6vw, 8px);
+        width: min(100%, 650px);
+        overflow: visible;
+        padding: 4px 0 10px;
+      }
+
+      .menu-item {
+        --item-size: clamp(48px, 13vw, 76px);
+        width: fit-content;
+        max-width: 100%;
+        min-height: calc(var(--item-size) * 0.86);
+        padding-right: 12px;
+        opacity: 1;
+        transform: none;
+        animation: none;
+      }
+
+      .menu-item:nth-child(n) {
+        margin-left: 0;
+        animation-delay: 0ms;
+      }
+
+      .menu-item::after {
+        display: none;
+      }
+
+      .menu-item::before {
+        left: -10px;
+        width: calc(100% + 24px);
+        height: 78%;
+      }
+
+      .menu-item.is-active {
+        transform: none;
+      }
+
+      .panel-wrap {
+        min-height: 0;
+        display: block;
+        padding-top: 0;
+      }
+
+      .panel-wrap > .content-card {
+        display: none;
+      }
+
+      .mobile-section-stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .mobile-section-stack .content-card {
         width: 100%;
-        padding: 12px;
-        font-size: 1rem;
-        border-radius: 8px;
+        min-height: 0;
+        margin-top: 0;
+        scroll-margin-top: 18px;
+      }
+
+      .content-card {
+        min-height: 0;
+        padding: clamp(22px, 5vw, 34px);
+        clip-path: polygon(0 2.5%, 94% 0, 99.2% 8.5%, 97% 99%, 4% 97%);
+      }
+
+      .content-card::before {
+        top: -14px;
+        right: -4px;
+        font-size: clamp(72px, 24vw, 136px);
+      }
+
+      .portrait-orbit {
+        display: none;
+      }
+
+      .skill-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .meta-bar {
+        position: relative;
+        inset: auto;
+        z-index: 5;
+        margin: -30px clamp(18px, 5vw, 36px) 22px;
+        flex-direction: column;
+        gap: 6px;
       }
     }
 
-    /* --- Extra small --- */
-    @media (max-width: 400px) {
-      body { padding: 20px 10px; }
-      pre { font-size: 0.85rem; }
-      h1.name { font-size: 1.1rem; }
-      button { font-size: 0.9rem; padding: 10px; }
-    }
+    @media (max-width: 620px) {
+      .shell {
+        padding: 22px 18px 52px;
+      }
 
+      .status-line {
+        font-size: 0.66rem;
+        letter-spacing: 0.14em;
+      }
+
+      .nameplate {
+        font-size: clamp(54px, 18vw, 82px);
+      }
+
+      .top-tools {
+        width: 100%;
+        gap: 8px;
+      }
+
+      .audio-controls {
+        width: 100%;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .help-toggle,
+      .reset-toggle {
+        width: 40px;
+        height: 40px;
+      }
+
+      .volume-control {
+        gap: 5px;
+      }
+
+      .volume-slider {
+        width: 82px;
+      }
+
+      .menu {
+        gap: 4px;
+      }
+
+      .content-card {
+        padding: 24px 18px 28px;
+      }
+
+      .detail-list li {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      .actions {
+        display: grid;
+      }
+
+      .action-link {
+        width: 100%;
+      }
+
+      .objection-word {
+        font-size: clamp(56px, 18vw, 120px);
+      }
+    }
   </style>
 </head>
 <body>
+  <main class="shell">
+    <section class="identity" aria-labelledby="site-title">
+      <p class="status-line">Cracow, Poland / Computer Science</p>
+      <h1 id="site-title" class="nameplate">
+        <button class="name-button" type="button" aria-label="Show profile 00">
+          <span>Pietro</span>
+          <span>Molendys</span>
+        </button>
+      </h1>
 
-  <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/profile%20picture-tzPS9wZ1g8Wd8UG3dhveDHOYOUiB1a.jpeg" 
-       alt="Pietro Molendys" class="profile-pic" />
-  <h1 class="name">Pietro Molendys</h1>
+      <div class="top-tools" aria-label="Site tools">
+        <button class="help-toggle" type="button" aria-expanded="false" aria-controls="hint-panel" title="Easter egg hints">?</button>
+        <button class="reset-toggle" type="button" title="Reset easter eggs" aria-label="Reset easter eggs">↺</button>
+        <div class="audio-controls" aria-label="Lo-fi controls">
+          <button class="audio-toggle" type="button" aria-pressed="false">Lo-fi: off</button>
+          <label class="volume-control">
+            Vol
+            <input class="volume-slider" type="range" min="0" max="100" value="92" aria-label="Lo-fi volume" />
+          </label>
+        </div>
+      </div>
 
-  <pre>
-<span class="comment"># -*- coding: utf-8 -*-</span>
-<span class="comment"># personal_resume.py</span>
+      <nav class="menu" aria-label="Profile sections">
+        <button class="menu-item" type="button" data-code="01" data-section="about"><span class="menu-label">About</span></button>
+        <button class="menu-item" type="button" data-code="02" data-section="education"><span class="menu-label">Education</span></button>
+        <button class="menu-item" type="button" data-code="03" data-section="skills"><span class="menu-label">Skills</span></button>
+        <button class="menu-item" type="button" data-code="04" data-section="contact"><span class="menu-label">Contact</span></button>
+      </nav>
+    </section>
 
+    <section class="panel-wrap" aria-live="polite">
+      <article class="content-card" data-section="Welcome">
+        <p class="section-kicker">Profile 00.</p>
+        <h2>Welcome to my page!</h2>
+        <p>Glad to have you here. Feel free to explore it, fiddle around, and get to know me better!</p>
+        <ul class="detail-list">
+          <li><span>Fun-fact 1</span><strong>I can talk fluently in at least 3 languages.</strong></li>
+          <li><span>Fun-fact 2</span><strong>My favourite board game is Mahjong.</strong></li>
+          <li><span>Fun-fact3</span><strong>My favourite beverage is Estathé.</strong></li>
+        </ul>
+      </article>
 
-<span class="keyword">class</span> <span class="class-name">PietroMolendys</span>:
-    <span class="docstring">""" 
-    Computer Science student from Cracow, Poland.  
-    Focused on algorithms, software development and programming overall.  
-    """</span>
-
-    <span class="keyword">def</span> <span class="function">__init__</span>(self):
-        <span class="comment"># Core attributes</span>
-        self.name = <span class="string">"Pietro Molendys"</span>
-        self.location = <span class="string">"Cracow, Poland"</span>
-        self.email = <span class="string">"molendyspietro@gmail.com"</span>
-        self.linkedin = <span class="string">"<a href='https://linkedin.com/in/pietro-molendys-b1324231b' class='link'>linkedin.com/in/pietro-molendys-b1324231b</a>"</span>
-        self.github = <span class="string">"<a href='https://github.com/pedritos22' class='link'>github.com/pedritos22</a>"</span>
-        self.quote = <span class="string">"Nothing in life is to be feared. It is only to be understood."</span>
-        self.quote_author = <span class="string">"– Maria Skłodowska-Curie"</span>
-
-<span class="spacer"></span>
-    <span class="keyword">def</span> <span class="function">education</span>(self):
-        <span class="docstring">"""Return educational background."""</span>
-        <span class="keyword">return</span> <span class="string">"Cracow University of Technology — Computer Science"</span>
-
-<span class="spacer"></span>
-    <span class="keyword">def</span> <span class="function">skills</span>(self):
-        <span class="docstring">"""Return list of primary technical skills."""</span>
-        <span class="keyword">return</span> [
-            <span class="string">"C - low-level programming & optimization"</span>,
-            <span class="string">"Python - data analysis, ML & automation"</span>,
-        ]
-
-<span class="spacer"></span>
-    <span class="keyword">def</span> <span class="function">attitude</span>(self):
-        <span class="docstring">"""Describe mindset and approach to learning."""</span>
-        <span class="keyword">return</span> <span class="string">"Open to new challenges, continuously learning, growth-oriented."</span>
-
-<span class="spacer"></span>
-    <span class="keyword">def</span> <span class="function">contact</span>(self):
-        <span class="docstring">"""Print contact information."""</span>
-        <span class="builtin">print</span>(<span class="string">f"Email: {self.email}"</span>)
-        <span class="builtin">print</span>(<span class="string">f"LinkedIn: {self.linkedin}"</span>)
-        <span class="builtin">print</span>(<span class="string">f"GitHub: {self.github}"</span>)
+      <div class="mobile-section-stack" aria-label="All profile sections"></div>
+    </section>
+  </main>
 
 
-<span class="comment"># --- Script Execution ---</span>
+  <div class="objection-overlay" aria-hidden="true">
+    <p class="objection-word">Objection!</p>
+  </div>
 
-me = <span class="class-name">PietroMolendys</span>()
+  <div class="hint-overlay" hidden>
+    <section class="hint-panel" id="hint-panel" role="dialog" aria-modal="true" aria-labelledby="hint-title">
+      <button class="hint-close" type="button" aria-label="Close hints">×</button>
+      <h2 id="hint-title">Hidden tricks</h2>
+      <p>Some interactions are intentionally hidden. Nothing here is required, but it is fun to poke around.</p>
+      <ul class="hint-list">
+        <li><b>Objection:</b> sometimes being quick with your mouse can trigger a surprise, especially if Pietro Molendys is clicked.</li>
+        <li><b>Mii drag:</b> what happens if you hold Pietro Molendys for just a moment?</li>
+        <li><b>Glass mode:</b> glass elements are often fragile, what happens when you interact with them aggressively?</li>
+        <li><b>Lo-fi:</b> some lofi generated beats to listen to :D</li>
+        <li><b>Reset:</b> use ↺ to repair shattered cards/text, re-enable broken menu items, and return the dragged name to normal.</li>
+      </ul>
+    </section>
+  </div>
 
-<span class="builtin">print</span>(<span class="string">f"Name: {me.name}"</span>)
-<span class="builtin">print</span>(<span class="string">f"Location: {me.location}"</span>)
-<span class="builtin">print</span>(<span class="string">f'"{me.quote}" {me.quote_author}'</span>)
-
-<span class="builtin">print</span>(<span class="string">"\nEducation:"</span>, me.education())
-
-<span class="builtin">print</span>(<span class="string">"\nSkills:"</span>)
-<span class="keyword">for</span> skill <span class="keyword">in</span> me.skills():
-    <span class="builtin">print</span>(<span class="string">" - "</span> + skill)
-
-<span class="builtin">print</span>(<span class="string">"\nAttitude:"</span>, me.attitude())
-
-<span class="builtin">print</span>(<span class="string">"\nContact:"</span>)
-me.contact()
-  </pre>
-
-  <button id="run-btn">▶ Run Code</button>
-  <div id="output"></div>
-
-  <footer>
-    &copy; 2025 Pietro Molendys  
-    <span class="comment"># the future is today</span>
-    <div class="social">
-      <a href="https://github.com/pedritos22"><i class="fab fa-github"></i></a>
-      <a href="https://linkedin.com/in/pietro-molendys-b1324231b"><i class="fab fa-linkedin"></i></a>
-    </div>
+  <footer class="meta-bar" aria-label="Site metadata">
+    <span>"Nothing in life is to be feared. It is only to be understood." - Maria Skłodowska-Curie</span>
+    <span>2026 / PM</span>
   </footer>
 
   <script>
-    document.getElementById("run-btn").addEventListener("click", () => {
-      const output = `
-Name: Pietro Molendys
-Location: Cracow, Poland
-"Nothing in life is to be feared. It is only to be understood." – Maria Skłodowska-Curie
+    const sections = {
+      home: {
+        label: "Profile 00.",
+        stamp: "Welcome",
+        title: "Welcome to my page!",
+        copy: "Glad to have you here. Feel free to explore it, fiddle around, and get to know me better!",
+        details: [
+          ["Fun-fact 1", "I can talk fluently in at least 3 languages."],
+          ["Fun-fact 2", "My favourite board game is Mahjong."],
+          ["Fun-fact 3", "My favourite beverage is Estathé."]
+        ]
+      },
+      about: {
+        label: "Profile 01",
+        stamp: "About",
+        title: "Hi, I am Pietro.",
+        copy: "I am a creative individual with a passion for software development and I love to find ways to express myself. I enjoy building new things, learning new skills, aswell as meeting new people.",
+        details: [
+          ["Name", "Pietro Molendys"],
+          ["Location", "Cracow, Poland"],
+          ["Favorite color", "Blue / Navy"]
+        ]
+      },
+      education: {
+        label: "Archive 02",
+        stamp: "Education",
+        title: "Cracow University of Technology.",
+        copy: "I study Computer Science with attention on strong fundamentals: algorithms, data structures, systems thinking, and disciplined software development practice.",
+        details: [
+          ["School", "Cracow University of Technology"],
+          ["Program", "Computer Science"],
+          ["Focus", "Algorithms, software development, programming fundamentals"]
+        ]
+      },
+      skills: {
+        label: "Loadout 03",
+        stamp: "Skills",
+        title: "Technical toolkit.",
+        copy: "I encourage you to check my github to see some of my projects. The skills I have listed below are the ones I am most comfortable with, but I am always learning new things and expanding my skillset.",
+        skills: [
+          ["Java", "Object-oriented programming, data structures, scalable systems"],
+          ["Python", "Data analysis, automation, scripting"],
+          ["Algorithms", "Problem solving, complexity thinking, and CS fundamentals."],
+          ["Docker", "Containerization, deployment, and environment management"],
+          ["Git", "Version control, collaboration, and code management"],
+        ]
+      },
+      contact: {
+        label: "Network 04",
+        stamp: "Contact",
+        title: "Let's connect.",
+        copy: "The best way to reach me is email. You can also find my projects on GitHub and professional profile on LinkedIn.",
+        details: [
+          ["Email", '<a href="mailto:molendyspietro@gmail.com">molendyspietro@gmail.com</a>'],
+          ["LinkedIn", '<a href="https://linkedin.com/in/pietro-molendys-b1324231b">linkedin.com/in/pietro-molendys-b1324231b</a>'],
+          ["GitHub", '<a href="https://github.com/pedritos22">github.com/pedritos22</a>']
+        ],
+        actions: [
+          ["Email", "mailto:molendyspietro@gmail.com", ""],
+          ["GitHub", "https://github.com/pedritos22", "secondary"],
+          ["LinkedIn", "https://linkedin.com/in/pietro-molendys-b1324231b", "secondary"]
+        ]
+      }
+    };
 
-Education: Cracow University of Technology - Computer Science
+    const buttons = Array.from(document.querySelectorAll(".menu-item"));
+    const nameButton = document.querySelector(".name-button");
+    const card = document.querySelector(".panel-wrap > .content-card");
+    const mobileStack = document.querySelector(".mobile-section-stack");
+    const shell = document.querySelector(".shell");
+    const objectionOverlay = document.querySelector(".objection-overlay");
+    const audioToggle = document.querySelector(".audio-toggle");
+    const volumeSlider = document.querySelector(".volume-slider");
+    const helpToggle = document.querySelector(".help-toggle");
+    const resetToggle = document.querySelector(".reset-toggle");
+    const hintOverlay = document.querySelector(".hint-overlay");
+    const hintClose = document.querySelector(".hint-close");
+    const mobileLayoutQuery = window.matchMedia("(max-width: 920px)");
+    const OBJECTION_CLICK_TARGET = 7;
+    const OBJECTION_CLICK_WINDOW = 2200;
+    let nameClickCount = 0;
+    let nameClickTimer = null;
+    let objectionTimer = null;
 
-Skills:
- * C - low-level programming & optimization
- * Python - data analysis & automation
+    // Put your three recorded files next to this HTML with these names.
+    // The script chooses one randomly whenever the easter egg fires.
+    const objectionAudios = ["assets/objection-1.mp3", "assets/objection-2.mp3", "assets/objection-3.mp3"].map((src) => {
+      const audio = new Audio(src);
+      audio.preload = "auto";
+      audio.volume = 0.9;
+      return audio;
+    });
 
-Attitude: Open to new challenges, continuously learning and growth-oriented.
 
-Contact:
-Email: molendyspietro@gmail.com
-LinkedIn: linkedin.com/in/pietro-molendys-b1324231b
-GitHub: github.com/pedritos22
+    // Put these local files next to this HTML if you want the new SFX:
+    // button-click.mp3, glass-break-1.mp3, glass-break-2.mp3, glass-break-3.mp3
+    const buttonClickAudio = new Audio("assets/button-click.mp3");
+    buttonClickAudio.preload = "auto";
+    buttonClickAudio.volume = 0.62;
+
+    const glassBreakAudios = ["assets/glass-break-1.mp3", "assets/glass-break-2.mp3", "assets/glass-break-3.mp3"].map((src) => {
+      const audio = new Audio(src);
+      audio.preload = "auto";
+      audio.volume = 0.86;
+      return audio;
+    });
+
+    let audioContext = null;
+    let masterGain = null;
+    let delayNode = null;
+    let feedbackGain = null;
+    let toneFilter = null;
+    let noiseFilter = null;
+    let compressorNode = null;
+    let musicTimer = null;
+    let musicStep = 0;
+    let isMusicPlaying = false;
+    let lofiVolume = 0.92;
+
+    let namePointerId = null;
+    let nameHoldTimer = null;
+    let isNameDragActive = false;
+    let nameDragStart = { x: 0, y: 0 };
+    let nameDragOffset = { x: 0, y: 0 };
+    let nameLastPosition = null;
+
+    const FRACTURE_IDLE_RESET_MS = 1350;
+    const FRACTURE_CRACK_1 = 5;
+    const FRACTURE_CRACK_2 = 8;
+    const FRACTURE_CRACK_3 = 10;
+    const FRACTURE_BREAK = 12;
+
+
+
+    function playOneShotAudio(audio, volume = null) {
+      if (!audio) return;
+      const clone = audio.cloneNode();
+      clone.volume = volume ?? audio.volume ?? 0.7;
+      clone.currentTime = 0;
+      clone.play().catch(() => {
+        // Missing local file or browser policy: the visual interaction still works.
+      });
+    }
+
+    function playButtonClickSound() {
+      playOneShotAudio(buttonClickAudio, 0.62);
+    }
+
+    function playRandomGlassBreakSound() {
+      const audio = glassBreakAudios[Math.floor(Math.random() * glassBreakAudios.length)];
+      playOneShotAudio(audio, 0.86);
+    }
+
+    function getAudioContext() {
+      if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContextClass();
+
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = 0.0001;
+
+        delayNode = audioContext.createDelay(1.4);
+        delayNode.delayTime.value = 0.34;
+
+        feedbackGain = audioContext.createGain();
+        feedbackGain.gain.value = 0.22;
+
+        toneFilter = audioContext.createBiquadFilter();
+        toneFilter.type = "lowpass";
+        toneFilter.frequency.value = 1700;
+        toneFilter.Q.value = 0.45;
+
+        noiseFilter = audioContext.createBiquadFilter();
+        noiseFilter.type = "highpass";
+        noiseFilter.frequency.value = 6500;
+
+        compressorNode = audioContext.createDynamicsCompressor();
+        compressorNode.threshold.value = -18;
+        compressorNode.knee.value = 18;
+        compressorNode.ratio.value = 5;
+        compressorNode.attack.value = 0.004;
+        compressorNode.release.value = 0.16;
+
+        delayNode.connect(feedbackGain);
+        feedbackGain.connect(delayNode);
+        delayNode.connect(masterGain);
+        toneFilter.connect(delayNode);
+        toneFilter.connect(masterGain);
+        noiseFilter.connect(masterGain);
+        masterGain.connect(compressorNode);
+        compressorNode.connect(audioContext.destination);
+      }
+
+      return audioContext;
+    }
+
+    function getTargetLoFiGain() {
+      // The generated synth is quiet by nature, so the master is now intentionally stronger.
+      // The compressor above catches peaks, while the slider still lets you tame it.
+      return 0.72 * lofiVolume;
+    }
+
+    function updateLoFiVolume() {
+      if (!volumeSlider) return;
+      lofiVolume = Number(volumeSlider.value) / 100;
+
+      if (audioContext && masterGain && isMusicPlaying) {
+        masterGain.gain.cancelScheduledValues(audioContext.currentTime);
+        masterGain.gain.setTargetAtTime(getTargetLoFiGain(), audioContext.currentTime, 0.08);
+      }
+    }
+
+    function playTone(frequency, duration = 0.22, type = "sine", volume = 0.09, detune = 0) {
+      const context = getAudioContext();
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const envelope = context.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      oscillator.detune.value = detune;
+
+      envelope.gain.setValueAtTime(0.0001, now);
+      envelope.gain.exponentialRampToValueAtTime(volume, now + 0.018);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      oscillator.connect(envelope);
+      envelope.connect(toneFilter);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.04);
+    }
+
+    function playNoise(duration = 0.035, volume = 0.034) {
+      const context = getAudioContext();
+      const bufferSize = Math.floor(context.sampleRate * duration);
+      const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+      const data = buffer.getChannelData(0);
+      const source = context.createBufferSource();
+      const envelope = context.createGain();
+
+      for (let i = 0; i < bufferSize; i += 1) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      }
+
+      envelope.gain.value = volume;
+      source.buffer = buffer;
+      source.connect(envelope);
+      envelope.connect(noiseFilter);
+      source.start();
+    }
+
+    function playLoFiStep() {
+      const chords = [
+        [130.81, 196.0, 246.94],
+        [146.83, 220.0, 277.18],
+        [110.0, 164.81, 220.0],
+        [123.47, 185.0, 233.08]
+      ];
+      const melody = [523.25, 587.33, 659.25, 493.88, 440.0, 493.88, 392.0, 440.0];
+      const chord = chords[Math.floor(musicStep / 4) % chords.length];
+
+      if (musicStep % 4 === 0) {
+        chord.forEach((frequency, index) => {
+          playTone(frequency, 0.92, "triangle", index === 0 ? 0.11 : 0.074, index * 4);
+        });
+      }
+
+      if (musicStep % 8 === 2 || musicStep % 8 === 6) {
+        playTone(melody[musicStep % melody.length], 0.24, "sine", 0.085, -6);
+      }
+
+      if (musicStep % 4 === 2) {
+        playTone(chord[0] / 2, 0.32, "sine", 0.105);
+      }
+
+      if (musicStep % 2 === 1) {
+        playNoise(0.045, 0.052);
+      }
+
+      musicStep = (musicStep + 1) % 16;
+    }
+
+    async function startLoFi() {
+      const context = getAudioContext();
+      await context.resume();
+
+      isMusicPlaying = true;
+      audioToggle.classList.add("is-on");
+      audioToggle.setAttribute("aria-pressed", "true");
+      audioToggle.textContent = "Lo-fi: on";
+
+      masterGain.gain.cancelScheduledValues(context.currentTime);
+      masterGain.gain.setTargetAtTime(getTargetLoFiGain(), context.currentTime, 0.12);
+
+      playLoFiStep();
+      window.clearInterval(musicTimer);
+      musicTimer = window.setInterval(playLoFiStep, 360);
+    }
+
+    function stopLoFi() {
+      if (!audioContext || !masterGain) return;
+
+      isMusicPlaying = false;
+      audioToggle.classList.remove("is-on");
+      audioToggle.setAttribute("aria-pressed", "false");
+      audioToggle.textContent = "Lo-fi: off";
+
+      window.clearInterval(musicTimer);
+      musicTimer = null;
+      masterGain.gain.cancelScheduledValues(audioContext.currentTime);
+      masterGain.gain.setTargetAtTime(0.0001, audioContext.currentTime, 0.16);
+    }
+
+    function playRandomObjectionSound() {
+      const audio = objectionAudios[Math.floor(Math.random() * objectionAudios.length)];
+      if (!audio) return;
+
+      audio.pause();
+      audio.currentTime = 0;
+      audio.play().catch(() => {
+        // If the file is missing or the browser blocks it, the visual easter egg still works.
+      });
+    }
+
+
+    function openHints() {
+      if (!hintOverlay || !helpToggle) return;
+      hintOverlay.hidden = false;
+      helpToggle.setAttribute("aria-expanded", "true");
+      hintClose?.focus();
+    }
+
+    function closeHints() {
+      if (!hintOverlay || !helpToggle) return;
+      hintOverlay.hidden = true;
+      helpToggle.setAttribute("aria-expanded", "false");
+      helpToggle.focus();
+    }
+
+    function buildJaggedPath(points) {
+      return points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+    }
+
+    function makeCrackRay(cx, cy, angle, length, segments = 4, wobble = 7) {
+      const points = [[cx, cy]];
+      for (let i = 1; i <= segments; i += 1) {
+        const progress = i / segments;
+        const bend = (Math.random() - 0.5) * wobble;
+        const distance = length * progress;
+        const x = cx + Math.cos(angle) * distance + Math.sin(angle) * bend;
+        const y = cy + Math.sin(angle) * distance - Math.cos(angle) * bend;
+        points.push([
+          Math.max(-8, Math.min(108, x)),
+          Math.max(-8, Math.min(108, y))
+        ]);
+      }
+      return points;
+    }
+
+    function generateCrackPaths(element) {
+      const isLargeSurface = element.classList.contains("content-card") || element.classList.contains("skill") || element.matches(".detail-list li");
+      const cx = 34 + Math.random() * 32;
+      const cy = isLargeSurface ? 28 + Math.random() * 38 : 38 + Math.random() * 24;
+      const rayCount = isLargeSurface ? 9 : 6;
+      const paths = [];
+
+      for (let i = 0; i < rayCount; i += 1) {
+        const angle = (-Math.PI * 0.92) + (Math.PI * 1.84 * i) / Math.max(1, rayCount - 1) + (Math.random() - 0.5) * 0.45;
+        const length = (isLargeSurface ? 44 : 34) + Math.random() * (isLargeSurface ? 42 : 30);
+        const ray = makeCrackRay(cx, cy, angle, length, isLargeSurface ? 5 : 4, isLargeSurface ? 9 : 6);
+        paths.push([buildJaggedPath(ray), i < 3 ? "crack-main" : "crack-branch"]);
+
+        if (i % 2 === 0) {
+          const pivot = ray[2] || ray[1];
+          const branchAngle = angle + (Math.random() > 0.5 ? 1 : -1) * (0.55 + Math.random() * 0.75);
+          const branch = makeCrackRay(pivot[0], pivot[1], branchAngle, length * (0.24 + Math.random() * 0.26), 3, 5);
+          paths.push([buildJaggedPath(branch), "crack-hairline"]);
+        }
+      }
+
+      if (isLargeSurface) {
+        for (let i = 0; i < 5; i += 1) {
+          const angle = Math.random() * Math.PI * 2;
+          const startX = 12 + Math.random() * 76;
+          const startY = 12 + Math.random() * 76;
+          const glint = makeCrackRay(startX, startY, angle, 12 + Math.random() * 20, 2, 2.5);
+          paths.push([buildJaggedPath(glint), "crack-glint"]);
+        }
+      } else {
+        paths.push([`M ${(cx - 14).toFixed(1)} ${(cy + 4).toFixed(1)} L ${(cx + 18).toFixed(1)} ${(cy - 10).toFixed(1)}`, "crack-glint"]);
+      }
+
+      return paths;
+    }
+
+    function ensureCrackOverlay(element) {
+      let overlay = element.querySelector(":scope > .crack-overlay");
+      if (overlay) return overlay;
+
+      const paths = generateCrackPaths(element);
+
+      overlay = document.createElement("span");
+      overlay.className = "crack-overlay";
+      overlay.setAttribute("aria-hidden", "true");
+      overlay.innerHTML = `
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false">
+          ${paths.map(([d, className]) => `<path class="${className}" d="${d}" />`).join("")}
+        </svg>
       `;
-      document.getElementById("output").textContent = output;
+      element.appendChild(overlay);
+      return overlay;
+    }
+
+    function clearCrackOverlay(element) {
+      element.querySelectorAll(":scope > .crack-overlay").forEach((overlay) => overlay.remove());
+    }
+
+    function spawnGlassShards(element) {
+      const rect = element.getBoundingClientRect();
+      const isLargeSurface = element.classList.contains("content-card") || element.classList.contains("skill") || element.matches(".detail-list li");
+      const baseCount = isLargeSurface ? Math.round((rect.width + rect.height) / 18) : Math.round(rect.width / 13);
+      const shardCount = Math.max(isLargeSurface ? 28 : 14, Math.min(isLargeSurface ? 58 : 32, baseCount));
+
+      for (let i = 0; i < shardCount; i += 1) {
+        const shard = document.createElement("span");
+        const x = rect.left + Math.random() * rect.width;
+        const y = rect.top + Math.random() * rect.height;
+        const direction = (i / shardCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.95;
+        const distance = (isLargeSurface ? 110 : 70) + Math.random() * (isLargeSurface ? 250 : 190);
+        const fall = (isLargeSurface ? 120 : 80) + Math.random() * 170;
+        const slim = Math.random() > 0.46;
+
+        shard.className = "glass-shard";
+        shard.style.setProperty("--x", `${x}px`);
+        shard.style.setProperty("--y", `${y}px`);
+        shard.style.setProperty("--w", `${(slim ? 6 : 10) + Math.random() * (isLargeSurface ? 30 : 22)}px`);
+        shard.style.setProperty("--h", `${(slim ? 5 : 8) + Math.random() * (isLargeSurface ? 24 : 18)}px`);
+        shard.style.setProperty("--tx", `${Math.cos(direction) * distance}px`);
+        shard.style.setProperty("--ty", `${Math.sin(direction) * distance + fall}px`);
+        shard.style.setProperty("--rot", `${-520 + Math.random() * 1040}deg`);
+        shard.style.setProperty("--rx", `${(Math.random() * 2 - 1).toFixed(2)}`);
+        shard.style.setProperty("--ry", `${(Math.random() * 2 - 1).toFixed(2)}`);
+        shard.style.setProperty("--p1", `${Math.round(Math.random() * 22)}% ${Math.round(Math.random() * 18)}%`);
+        shard.style.setProperty("--p2", `${76 + Math.round(Math.random() * 24)}% ${Math.round(Math.random() * 36)}%`);
+        shard.style.setProperty("--p3", `${58 + Math.round(Math.random() * 38)}% ${68 + Math.round(Math.random() * 32)}%`);
+        shard.style.setProperty("--p4", `${Math.round(Math.random() * 32)}% ${54 + Math.round(Math.random() * 42)}%`);
+        document.body.appendChild(shard);
+        window.setTimeout(() => shard.remove(), 1120);
+      }
+    }
+
+    function disableBrokenTarget(element) {
+      const parentButton = element.closest(".menu-item");
+      if (!parentButton) return;
+
+      parentButton.disabled = true;
+      parentButton.classList.add("is-shattered");
+      parentButton.setAttribute("aria-disabled", "true");
+      parentButton.setAttribute("aria-pressed", "false");
+      parentButton.classList.remove("is-active");
+    }
+
+    function resetFractureElement(element) {
+      window.clearTimeout(element._fractureResetTimer);
+      element.dataset.fractureClicks = "0";
+      element.dataset.fractureLast = "0";
+      element.classList.remove("crack-1", "crack-2", "crack-3", "glass-broken");
+      element.removeAttribute("aria-hidden");
+      clearCrackOverlay(element);
+    }
+
+    function updateCrackState(element, clicks) {
+      element.classList.remove("crack-1", "crack-2", "crack-3");
+
+      if (clicks >= FRACTURE_CRACK_3) {
+        ensureCrackOverlay(element);
+        element.classList.add("crack-3");
+        return;
+      }
+
+      if (clicks >= FRACTURE_CRACK_2) {
+        ensureCrackOverlay(element);
+        element.classList.add("crack-2");
+        return;
+      }
+
+      if (clicks >= FRACTURE_CRACK_1) {
+        ensureCrackOverlay(element);
+        element.classList.add("crack-1");
+      }
+    }
+
+    function handleFractureClick(event) {
+      const element = event.currentTarget;
+      const isMenuLabel = element.classList.contains("menu-label");
+
+      if (!isMenuLabel) {
+        event.stopPropagation();
+      }
+
+      if (element.classList.contains("glass-broken")) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      const now = performance.now();
+      const lastClick = Number(element.dataset.fractureLast || "0");
+      const previousClicks = now - lastClick > FRACTURE_IDLE_RESET_MS
+        ? 0
+        : Number(element.dataset.fractureClicks || "0");
+      const currentClicks = previousClicks + 1;
+
+      element.dataset.fractureLast = String(now);
+      element.dataset.fractureClicks = String(currentClicks);
+
+      window.clearTimeout(element._fractureResetTimer);
+      element._fractureResetTimer = window.setTimeout(() => {
+        if (!element.classList.contains("glass-broken")) {
+          resetFractureElement(element);
+        }
+      }, FRACTURE_IDLE_RESET_MS + 260);
+
+      if (currentClicks < FRACTURE_CRACK_1) {
+        return;
+      }
+
+      if (isMenuLabel) {
+        event.stopPropagation();
+      }
+
+      updateCrackState(element, currentClicks);
+
+      if (currentClicks < FRACTURE_BREAK) {
+        event.preventDefault();
+        return;
+      }
+
+      playRandomGlassBreakSound();
+      spawnGlassShards(element);
+      element.classList.add("glass-broken");
+      element.setAttribute("aria-hidden", "true");
+      disableBrokenTarget(element);
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function makeFracturable(root = document) {
+      const targets = root.querySelectorAll([
+        ".content-card",
+        ".menu-label",
+        ".section-kicker",
+        ".content-card h2",
+        ".content-card > p",
+        ".detail-list li",
+        ".skill"
+      ].join(", "));
+
+      targets.forEach((element) => {
+        if (element.dataset.fractureReady === "true") return;
+        element.dataset.fractureReady = "true";
+        element.classList.add("glass-fracture");
+        element.addEventListener("click", handleFractureClick);
+      });
+    }
+
+    function resetAllEasterEggs() {
+      document.querySelectorAll(".glass-fracture").forEach(resetFractureElement);
+      document.querySelectorAll(".menu-item").forEach((button) => {
+        button.disabled = false;
+        button.classList.remove("is-shattered");
+        button.removeAttribute("aria-disabled");
+      });
+      document.querySelectorAll(".glass-shard").forEach((shard) => shard.remove());
+      clearActive();
+      restoreNamePosition();
+      if (!isMobileLayout()) {
+        renderSection("home");
+      }
+    }
+
+    function buildSectionMarkup(sectionName) {
+      const section = sections[sectionName];
+
+      const details = section.details
+        ? `<ul class="detail-list">${section.details.map(([label, value]) => `<li><span>${label}</span><strong>${value}</strong></li>`).join("")}</ul>`
+        : "";
+
+      const skills = section.skills
+        ? `<div class="skill-grid">${section.skills.map(([name, value]) => `<div class="skill"><b>${name}</b><span>${value}</span></div>`).join("")}</div>`
+        : "";
+
+      const actions = section.actions
+        ? `<div class="actions">${section.actions.map(([label, href, className]) => `<a class="action-link ${className}" href="${href}">${label}</a>`).join("")}</div>`
+        : "";
+
+      return `
+        <p class="section-kicker">${section.label}</p>
+        <h2>${section.title}</h2>
+        <p>${section.copy}</p>
+        ${details}
+        ${skills}
+        ${actions}
+      `;
+    }
+
+    function renderSection(sectionName) {
+      const section = sections[sectionName];
+      card.dataset.section = section.stamp;
+
+      card.animate(
+        [
+          { opacity: 0.58, transform: "translateX(18px) skewX(-1deg)" },
+          { opacity: 1, transform: "translateX(0) skewX(0)" }
+        ],
+        { duration: 260, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+      );
+
+      card.innerHTML = buildSectionMarkup(sectionName);
+      makeFracturable(card);
+    }
+
+    function renderMobileSections() {
+      if (!mobileStack) return;
+
+      mobileStack.innerHTML = Object.keys(sections)
+        .map((sectionName) => {
+          const section = sections[sectionName];
+          return `<article class="content-card" id="section-${sectionName}" data-section="${section.stamp}">${buildSectionMarkup(sectionName)}</article>`;
+        })
+        .join("");
+
+      makeFracturable(mobileStack);
+    }
+
+    function isMobileLayout() {
+      return mobileLayoutQuery.matches;
+    }
+
+    function scrollToMobileSection(sectionName) {
+      const target = document.getElementById(`section-${sectionName}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function clearActive() {
+      buttons.forEach((button) => {
+        button.classList.remove("is-active");
+        button.setAttribute("aria-pressed", "false");
+      });
+    }
+
+    function showHome() {
+      clearActive();
+
+      if (isMobileLayout()) {
+        scrollToMobileSection("home");
+        return;
+      }
+
+      shell.scrollTop = 0;
+      renderSection("home");
+    }
+
+    function showObjection() {
+      playRandomObjectionSound();
+      objectionOverlay.classList.remove("is-visible");
+      void objectionOverlay.offsetWidth;
+      objectionOverlay.classList.add("is-visible");
+
+      window.clearTimeout(objectionTimer);
+      objectionTimer = window.setTimeout(() => {
+        objectionOverlay.classList.remove("is-visible");
+      }, 1450);
+    }
+
+    function handleNameClick() {
+      showHome();
+      nameClickCount += 1;
+      window.clearTimeout(nameClickTimer);
+
+      if (nameClickCount >= OBJECTION_CLICK_TARGET) {
+        nameClickCount = 0;
+        showObjection();
+        return;
+      }
+
+      nameClickTimer = window.setTimeout(() => {
+        nameClickCount = 0;
+      }, OBJECTION_CLICK_WINDOW);
+    }
+
+    function moveNameTo(clientX, clientY) {
+      const x = clientX - nameDragOffset.x;
+      const y = clientY - nameDragOffset.y;
+      const maxX = Math.max(0, window.innerWidth - nameButton.offsetWidth);
+      const maxY = Math.max(0, window.innerHeight - nameButton.offsetHeight);
+      const safeX = Math.min(Math.max(0, x), maxX);
+      const safeY = Math.min(Math.max(0, y), maxY);
+      const rotation = Math.max(-8, Math.min(8, (safeX / Math.max(1, window.innerWidth) - 0.5) * 12));
+
+      nameLastPosition = { x: safeX, y: safeY, rotation };
+      nameButton.style.setProperty("--drag-x", `${safeX}px`);
+      nameButton.style.setProperty("--drag-y", `${safeY}px`);
+      nameButton.style.setProperty("--drag-rotate", `${rotation}deg`);
+    }
+
+    function startNameDrag(event) {
+      const rect = nameButton.getBoundingClientRect();
+      nameDragOffset = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+
+      nameButton.classList.remove("is-hold-ready", "is-dropped");
+      nameButton.classList.add("is-dragging");
+      isNameDragActive = true;
+      nameClickCount = 0;
+      window.clearTimeout(nameClickTimer);
+      moveNameTo(event.clientX, event.clientY);
+    }
+
+    function handleNamePointerDown(event) {
+      if (event.button !== undefined && event.button !== 0) return;
+      namePointerId = event.pointerId;
+      nameDragStart = { x: event.clientX, y: event.clientY };
+      isNameDragActive = false;
+      nameButton.classList.add("is-hold-ready");
+      nameButton.setPointerCapture?.(event.pointerId);
+
+      window.clearTimeout(nameHoldTimer);
+      nameHoldTimer = window.setTimeout(() => startNameDrag(event), 420);
+    }
+
+    function handleNamePointerMove(event) {
+      if (event.pointerId !== namePointerId) return;
+
+      const moved = Math.hypot(event.clientX - nameDragStart.x, event.clientY - nameDragStart.y);
+      if (!isNameDragActive && moved > 12) {
+        window.clearTimeout(nameHoldTimer);
+        nameButton.classList.remove("is-hold-ready");
+        return;
+      }
+
+      if (isNameDragActive) {
+        event.preventDefault();
+        moveNameTo(event.clientX, event.clientY);
+      }
+    }
+
+    function handleNamePointerEnd(event) {
+      if (event.pointerId !== namePointerId) return;
+
+      window.clearTimeout(nameHoldTimer);
+      nameButton.classList.remove("is-hold-ready");
+      nameButton.releasePointerCapture?.(event.pointerId);
+
+      if (isNameDragActive) {
+        nameButton.classList.remove("is-dragging");
+        nameButton.classList.add("is-dropped");
+        isNameDragActive = false;
+      } else {
+        handleNameClick();
+      }
+
+      namePointerId = null;
+    }
+
+    function restoreNamePosition() {
+      nameLastPosition = null;
+      nameButton.classList.remove("is-dragging", "is-dropped", "is-hold-ready");
+      nameButton.style.removeProperty("--drag-x");
+      nameButton.style.removeProperty("--drag-y");
+      nameButton.style.removeProperty("--drag-rotate");
+    }
+
+    function setActive(index) {
+      if (!buttons[index] || buttons[index].disabled) return;
+
+      buttons.forEach((button, buttonIndex) => {
+        const isActive = buttonIndex === index;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+
+      const sectionName = buttons[index].dataset.section;
+
+      if (isMobileLayout()) {
+        scrollToMobileSection(sectionName);
+        return;
+      }
+
+      shell.scrollTop = 0;
+      renderSection(sectionName);
+    }
+
+    renderMobileSections();
+    makeFracturable(document);
+
+    helpToggle?.addEventListener("click", () => {
+      playButtonClickSound();
+      openHints();
+    });
+    resetToggle?.addEventListener("click", () => {
+      playButtonClickSound();
+      resetAllEasterEggs();
+    });
+    hintClose?.addEventListener("click", () => {
+      playButtonClickSound();
+      closeHints();
+    });
+    hintOverlay?.addEventListener("click", (event) => {
+      if (event.target === hintOverlay) {
+        closeHints();
+      }
+    });
+
+    nameButton.addEventListener("pointerdown", handleNamePointerDown);
+    nameButton.addEventListener("pointermove", handleNamePointerMove);
+    nameButton.addEventListener("pointerup", handleNamePointerEnd);
+    nameButton.addEventListener("pointercancel", handleNamePointerEnd);
+    nameButton.addEventListener("dblclick", restoreNamePosition);
+    nameButton.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleNameClick();
+      }
+      if (event.key === "Escape") {
+        restoreNamePosition();
+      }
+    });
+
+    audioToggle.addEventListener("click", () => {
+      playButtonClickSound();
+      if (isMusicPlaying) {
+        stopLoFi();
+      } else {
+        updateLoFiVolume();
+        startLoFi();
+      }
+    });
+
+    volumeSlider?.addEventListener("input", updateLoFiVolume);
+
+    buttons.forEach((button, index) => {
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => {
+        if (button.disabled) return;
+        playButtonClickSound();
+        setActive(index);
+      });
+    });
+
+
+
+    document.addEventListener("click", (event) => {
+      const link = event.target.closest?.(".action-link");
+      if (link) {
+        playButtonClickSound();
+      }
+    });
+
+    mobileLayoutQuery.addEventListener?.("change", () => {
+      if (isMobileLayout()) {
+        renderMobileSections();
+      } else {
+        renderSection("home");
+      }
+      clearActive();
+    });
+
+    window.addEventListener("resize", () => {
+      if (!nameLastPosition) return;
+      const x = Math.min(nameLastPosition.x, Math.max(0, window.innerWidth - nameButton.offsetWidth));
+      const y = Math.min(nameLastPosition.y, Math.max(0, window.innerHeight - nameButton.offsetHeight));
+      nameLastPosition = { ...nameLastPosition, x, y };
+      nameButton.style.setProperty("--drag-x", `${x}px`);
+      nameButton.style.setProperty("--drag-y", `${y}px`);
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        if (hintOverlay && !hintOverlay.hidden) {
+          closeHints();
+          return;
+        }
+        restoreNamePosition();
+      }
+
+      if (isMobileLayout() && !document.activeElement.classList.contains("menu-item")) {
+        return;
+      }
+
+      const activeIndex = buttons.findIndex((button) => button.classList.contains("is-active"));
+      const focusedIndex = buttons.findIndex((button) => button === document.activeElement);
+      const current = activeIndex !== -1 ? activeIndex : focusedIndex;
+
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        const next = current <= 0 ? buttons.length - 1 : current - 1;
+        setActive(next);
+        buttons[next].focus();
+      }
+
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+        event.preventDefault();
+        const next = current === -1 || current >= buttons.length - 1 ? 0 : current + 1;
+        setActive(next);
+        buttons[next].focus();
+      }
+
+      if (event.key === "Enter" && document.activeElement.classList.contains("menu-item")) {
+        document.activeElement.click();
+      }
     });
   </script>
-
 </body>
 </html>
