@@ -1,0 +1,9 @@
+/* Projects section (GitHub repos). Owner: audio/projects workstream (D). */
+
+.projects-placeholder {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}

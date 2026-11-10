@@ -1,0 +1,60 @@
+/* Background scenery: page background, scanlines, red slash, WebGL canvas, skyline,
+   butterflies, emblem, Dark Hour scenery. Owner: atmosphere workstream (A). */
+
+body {
+  background:
+    linear-gradient(115deg, rgba(2, 7, 19, 0.96) 0%, rgba(6, 19, 41, 0.84) 42%, rgba(7, 39, 113, 0.56) 100%),
+    radial-gradient(circle at 72% 50%, rgba(4, 85, 255, 0.42), transparent 32%),
+    #020713;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Scanlines + side vignette */
+body::before {
+  z-index: var(--z-grain);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.42), transparent 50%, rgba(0, 0, 0, 0.25));
+  mix-blend-mode: screen;
+  opacity: 0.45;
+}
+
+/* The red slash */
+body::after {
+  z-index: var(--z-grain);
+  background:
+    linear-gradient(88deg, transparent 0 63%, rgba(217, 9, 45, 0.92) 63% 63.55%, transparent 63.55%),
+    linear-gradient(95deg, transparent 0 78%, rgba(255, 255, 255, 0.18) 78% 78.25%, transparent 78.25%);
+}
+
+/* Mount point for background layers (canvas, skyline, butterflies). */
+.fx-root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-bg);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Mount point for the clock/moon emblem on the right (inside .panel-wrap). */
+.emblem-mount {
+  position: absolute;
+  right: min(3vw, 36px);
+  top: clamp(8px, 4vh, 42px);
+  width: clamp(142px, 16vw, 218px);
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+@media (max-width: 920px) {
+  .emblem-mount {
+    display: none;
+  }
+}

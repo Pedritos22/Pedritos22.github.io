@@ -1,0 +1,222 @@
+/* Objection burst, hints dialog, nameplate drag states, intro, toasts.
+   Owner: HUD/overlays workstream (C). */
+
+/* ---------------------------------------------------------- nameplate drag */
+
+.name-button {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: filter 180ms ease, transform 180ms ease;
+}
+
+.name-button.is-hold-ready {
+  filter: drop-shadow(0 0 22px rgba(70, 216, 255, 0.38));
+}
+
+.name-button.is-dragging {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 80;
+  cursor: grabbing;
+  filter: drop-shadow(0 28px 38px rgba(0, 0, 0, 0.42)) drop-shadow(0 0 24px rgba(70, 216, 255, 0.35));
+  transform: translate3d(var(--drag-x, 0), var(--drag-y, 0), 0) rotate(var(--drag-rotate, -4deg)) scale(1.04);
+}
+
+.name-button.is-dropped {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 18;
+  transform: translate3d(var(--drag-x, 0), var(--drag-y, 0), 0) rotate(var(--drag-rotate, -3deg));
+}
+
+.name-button.is-dragging span,
+.name-button.is-dropped span {
+  text-shadow:
+    0 10px 0 rgba(0, 0, 0, 0.22),
+    0 0 24px rgba(70, 216, 255, 0.2);
+}
+
+/* --------------------------------------------------------------- objection */
+
+.objection-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.88);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.objection-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 211, 77, 0.24), transparent 36%),
+    linear-gradient(115deg, transparent 0 35%, rgba(217, 9, 45, 0.86) 35% 58%, transparent 58% 100%);
+  filter: blur(0.2px);
+}
+
+.objection-overlay.is-visible {
+  opacity: 1;
+  transform: scale(1);
+  animation: objection-shake 420ms steps(2, end) 1;
+}
+
+.objection-word {
+  position: relative;
+  margin: 0;
+  padding: 0 clamp(18px, 4vw, 58px);
+  color: #fff7f7;
+  font-family: "Anton", Impact, sans-serif;
+  font-size: clamp(64px, 16vw, 210px);
+  line-height: 0.82;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-shadow:
+    7px 7px 0 #020713,
+    -3px -3px 0 var(--red),
+    0 0 34px rgba(255, 211, 77, 0.5);
+  transform: rotate(-5deg) skewX(-8deg);
+}
+
+.objection-word::after {
+  content: "";
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  bottom: 0.06em;
+  height: 0.12em;
+  z-index: -1;
+  background: var(--red);
+  clip-path: polygon(0 22%, 100% 0, 94% 100%, 4% 78%);
+  box-shadow: 0 0 36px rgba(217, 9, 45, 0.68);
+}
+
+@keyframes objection-shake {
+  0% { transform: translate(0, 0) scale(1); }
+  20% { transform: translate(-12px, 7px) scale(1.04); }
+  40% { transform: translate(10px, -5px) scale(1.01); }
+  60% { transform: translate(-7px, -4px) scale(1.05); }
+  80% { transform: translate(8px, 5px) scale(1.02); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+/* ------------------------------------------------------------------- hints */
+
+.hint-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(2, 7, 19, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hint-overlay[hidden] {
+  display: none;
+}
+
+.hint-panel {
+  position: relative;
+  width: min(100%, 560px);
+  padding: clamp(24px, 4vw, 38px);
+  background:
+    linear-gradient(135deg, rgba(2, 7, 19, 0.96), rgba(4, 43, 113, 0.88)),
+    linear-gradient(90deg, rgba(70, 216, 255, 0.1), transparent 58%);
+  color: var(--paper);
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(70, 216, 255, 0.16);
+  clip-path: polygon(0 4%, 92% 0, 99% 13%, 96% 100%, 5% 96%);
+  overflow: hidden;
+}
+
+.hint-panel::before {
+  content: "HINTS";
+  position: absolute;
+  right: -6px;
+  top: -20px;
+  color: rgba(255, 255, 255, 0.055);
+  font-family: "Anton", Impact, sans-serif;
+  font-size: clamp(78px, 18vw, 140px);
+  line-height: 1;
+}
+
+.hint-panel h2 {
+  position: relative;
+  margin: 0 0 14px;
+  color: var(--paper);
+  font-family: "Anton", Impact, sans-serif;
+  font-size: clamp(38px, 7vw, 64px);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.hint-panel p {
+  position: relative;
+  margin: 0 0 18px;
+  color: rgba(247, 251, 255, 0.74);
+  line-height: 1.6;
+}
+
+.hint-list {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hint-list li {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.075);
+  box-shadow: inset 0 0 0 1px rgba(70, 216, 255, 0.08);
+  clip-path: polygon(0 0, 98% 0, 100% 40%, 96% 100%, 0 100%);
+  color: rgba(247, 251, 255, 0.82);
+  line-height: 1.5;
+}
+
+.hint-list b {
+  color: rgba(126, 202, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.hint-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  color: var(--paper);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 1.1rem;
+  font-weight: 900;
+  cursor: pointer;
+  clip-path: polygon(0 0, 86% 0, 100% 28%, 86% 100%, 0 100%, 12% 50%);
+}
+
+.hint-close:hover,
+.hint-close:focus-visible {
+  background: rgba(255, 108, 142, 0.34);
+  outline: none;
+}
+
+@media (max-width: 620px) {
+  .objection-word {
+    font-size: clamp(56px, 18vw, 120px);
+  }
+}

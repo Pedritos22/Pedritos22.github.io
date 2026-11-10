@@ -1,0 +1,168 @@
+/* Shell grid, columns, footer, responsive layout. Owner: menu/panel workstream (B). */
+
+.shell {
+  position: relative;
+  z-index: var(--z-shell);
+  min-height: 100svh;
+  height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(340px, 1.15fr);
+  align-items: center;
+  gap: clamp(22px, 4.5vw, 64px);
+  padding: clamp(26px, 4.6vw, 58px);
+  isolation: isolate;
+  overflow: clip;
+}
+
+.shell::before {
+  content: "PROFILE";
+  position: absolute;
+  left: -1.8vw;
+  bottom: -5.5vw;
+  z-index: -1;
+  color: rgba(255, 255, 255, 0.035);
+  font-family: "Anton", Impact, sans-serif;
+  font-size: clamp(110px, 22vw, 310px);
+  line-height: 0.78;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.identity {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(18px, 3vw, 36px);
+  min-width: 0;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: rgba(247, 251, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.status-line::before {
+  content: "";
+  width: 52px;
+  height: 4px;
+  background: var(--red);
+  clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%);
+}
+
+.panel-wrap {
+  position: relative;
+  min-height: min(620px, calc(100svh - 70px));
+  display: grid;
+  place-items: start center;
+  padding-top: clamp(54px, 9vh, 76px);
+}
+
+.mobile-section-stack {
+  display: none;
+}
+
+.meta-bar {
+  position: fixed;
+  left: clamp(18px, 3vw, 38px);
+  right: clamp(18px, 3vw, 38px);
+  bottom: 18px;
+  z-index: calc(var(--z-shell) + 1);
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  color: rgba(247, 251, 255, 0.38);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.noscript-note {
+  position: relative;
+  z-index: var(--z-shell);
+  max-width: 640px;
+  margin: 0 auto var(--s-7);
+  padding: var(--s-5);
+  color: var(--text-2);
+  background: var(--abyss);
+}
+
+@media (max-width: 920px) {
+  body {
+    overflow-y: auto;
+  }
+
+  .shell {
+    height: auto;
+    min-height: 100svh;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: clamp(22px, 5vw, 34px);
+    padding: 24px clamp(18px, 5vw, 36px) 54px;
+    overflow: visible;
+  }
+
+  .shell::before {
+    position: fixed;
+    left: -8vw;
+    bottom: -8vw;
+    font-size: clamp(96px, 32vw, 230px);
+  }
+
+  .identity {
+    min-height: auto;
+    align-self: start;
+    justify-content: start;
+    gap: 18px;
+  }
+
+  .panel-wrap {
+    min-height: 0;
+    display: block;
+    padding-top: 0;
+  }
+
+  .panel-wrap > .content-card {
+    display: none;
+  }
+
+  .mobile-section-stack {
+    display: grid;
+    gap: 18px;
+  }
+
+  .mobile-section-stack .content-card {
+    width: 100%;
+    min-height: 0;
+    margin-top: 0;
+    scroll-margin-top: 18px;
+  }
+
+  .meta-bar {
+    position: relative;
+    inset: auto;
+    z-index: 5;
+    margin: -30px clamp(18px, 5vw, 36px) 22px;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 620px) {
+  .shell {
+    padding: 22px 18px 52px;
+  }
+
+  .status-line {
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+  }
+}

@@ -1,0 +1,219 @@
+/* Nameplate and main menu. Owner: menu/panel workstream (B).
+   Drag states of the nameplate live in overlays.css (C). */
+
+.nameplate {
+  margin: 0;
+  display: grid;
+  gap: 0;
+  font-family: "Anton", Impact, sans-serif;
+  font-size: clamp(54px, 9.5vw, 126px);
+  line-height: 0.78;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-shadow: 0 12px 0 rgba(0, 0, 0, 0.2);
+}
+
+.name-button {
+  all: unset;
+  display: grid;
+  gap: 0;
+  cursor: pointer;
+}
+
+.name-button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 8px;
+  border-radius: 8px;
+}
+
+.name-button:hover span:last-child,
+.name-button:focus-visible span:last-child {
+  color: var(--cyan);
+}
+
+.nameplate span:first-child {
+  color: var(--paper);
+  transform: translateX(-0.02em);
+}
+
+.nameplate span:last-child {
+  color: var(--blue-soft);
+  -webkit-text-stroke: 1px rgba(247, 251, 255, 0.22);
+}
+
+.menu {
+  display: grid;
+  gap: clamp(2px, 1vw, 9px);
+  width: min(100%, 650px);
+}
+
+.menu-item {
+  --item-size: clamp(50px, 7vw, 96px);
+  position: relative;
+  min-height: calc(var(--item-size) * 0.86);
+  width: fit-content;
+  max-width: 100%;
+  border: 0;
+  padding: 0 20px 0 0;
+  background: transparent;
+  color: rgba(79, 159, 255, 0.72);
+  font-family: "Bebas Neue", Impact, sans-serif;
+  font-size: var(--item-size);
+  line-height: 0.86;
+  letter-spacing: 0.02em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  isolation: isolate;
+  opacity: 0;
+  transform: translateX(-42px);
+  animation: slide-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transition: color 140ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menu-label {
+  display: inline-block;
+}
+
+.menu-item:nth-child(1) {
+  margin-left: clamp(3px, 2.5vw, 30px);
+}
+
+.menu-item:nth-child(2) {
+  margin-left: clamp(18px, 5vw, 62px);
+  animation-delay: 80ms;
+}
+
+.menu-item:nth-child(3) {
+  margin-left: clamp(4px, 2.5vw, 30px);
+  animation-delay: 160ms;
+}
+
+.menu-item:nth-child(4) {
+  margin-left: clamp(28px, 6vw, 74px);
+  animation-delay: 240ms;
+}
+
+.menu-item:nth-child(5) {
+  margin-left: clamp(10px, 3.5vw, 44px);
+  animation-delay: 320ms;
+}
+
+.menu-item::before {
+  content: "";
+  position: absolute;
+  left: -32px;
+  top: 50%;
+  z-index: -1;
+  width: calc(100% + 74px);
+  height: 88%;
+  transform: translateY(-50%) scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--hot), #ff9dab);
+  clip-path: polygon(0 10%, 88% 0, 100% 44%, 92% 100%, 4% 92%);
+  box-shadow: 0 18px 42px rgba(255, 108, 142, 0.22);
+  transition: transform 210ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menu-item::after {
+  content: attr(data-code);
+  position: absolute;
+  left: -52px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.22);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.menu-item.is-active {
+  color: var(--paper);
+  transform: translateX(14px);
+  outline: none;
+}
+
+.menu-item:hover:not(.is-active) {
+  color: rgba(247, 251, 255, 0.86);
+}
+
+.menu-item:focus-visible:not(.is-active) {
+  color: var(--cyan);
+  outline: 2px solid rgba(70, 216, 255, 0.72);
+  outline-offset: 6px;
+}
+
+.menu-item.is-active::before {
+  transform: translateY(-50%) scaleX(1);
+}
+
+/* Disabled by the glass easter egg (shatter.js adds .is-shattered + disabled). */
+.menu-item:disabled,
+.menu-item.is-shattered {
+  cursor: not-allowed;
+  opacity: 0.24;
+  transform: none !important;
+}
+
+.menu-item:disabled::before,
+.menu-item.is-shattered::before {
+  transform: translateY(-50%) scaleX(0) !important;
+}
+
+@keyframes slide-in {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 920px) {
+  .menu {
+    display: grid;
+    gap: clamp(2px, 1.6vw, 8px);
+    width: min(100%, 650px);
+    overflow: visible;
+    padding: 4px 0 10px;
+  }
+
+  .menu-item {
+    --item-size: clamp(48px, 13vw, 76px);
+    width: fit-content;
+    max-width: 100%;
+    min-height: calc(var(--item-size) * 0.86);
+    padding-right: 12px;
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .menu-item:nth-child(n) {
+    margin-left: 0;
+    animation-delay: 0ms;
+  }
+
+  .menu-item::after {
+    display: none;
+  }
+
+  .menu-item::before {
+    left: -10px;
+    width: calc(100% + 24px);
+    height: 78%;
+  }
+
+  .menu-item.is-active {
+    transform: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .nameplate {
+    font-size: clamp(54px, 18vw, 82px);
+  }
+
+  .menu {
+    gap: 4px;
+  }
+}
