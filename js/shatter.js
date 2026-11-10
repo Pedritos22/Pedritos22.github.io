@@ -737,8 +737,8 @@ function disableBrokenTarget(element) {
   parentButton.disabled = true;
   parentButton.classList.add("is-shattered");
   parentButton.setAttribute("aria-disabled", "true");
-  parentButton.setAttribute("aria-pressed", "false");
-  parentButton.classList.remove("is-active");
+  // The menu marks the open section with aria-current (menu.js re-syncs on GLASS_BREAK).
+  parentButton.removeAttribute("aria-current");
 }
 
 /** Shatter an element immediately. x/y are viewport coordinates of the impact. */

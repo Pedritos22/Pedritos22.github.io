@@ -51,6 +51,13 @@ export const HOME = {
     ["Fun fact 01", "I speak at least three languages fluently.", "speech"],
     ["Fun fact 02", "My favourite board game is Mahjong.", "tile"],
     ["Fun fact 03", "My favourite drink is Estathé.", "drink"]
+  ],
+  /** Quick-start tiles under the fun facts (desktop): [section id, caption]. */
+  start: [
+    ["about", "Who I am"],
+    ["skills", "What I work with"],
+    ["projects", "What I've built"],
+    ["contact", "Say hello"]
   ]
 };
 

@@ -162,10 +162,31 @@ function contactMarkup(section) {
     ${actions ? `<div class="actions">${actions}</div>` : ""}`;
 }
 
+/** Quick-start tiles: shortcuts into the menu (desktop home card). */
+function startMarkup(section) {
+  if (!section.start?.length) return "";
+  const tiles = section.start
+    .map(([id, caption]) => {
+      const target = SECTION_MAP[id];
+      if (!target) return "";
+      return `<li><button class="quick-tile" type="button" data-goto="${esc(id)}">
+          <span class="quick-tile__code">${esc(target.code)}</span>
+          <span class="quick-tile__name">${esc(target.menu)}</span>
+          <span class="quick-tile__hint">${esc(caption)}</span>
+          <span class="quick-tile__arrow" aria-hidden="true">${glyph("external")}</span>
+        </button></li>`;
+    })
+    .join("");
+  return `<nav class="quick-start" aria-label="Quick start">
+      <p class="quick-start__label"><span>Start here</span></p>
+      <ul class="quick-start__grid" role="list">${tiles}</ul>
+    </nav>`;
+}
+
 function bodyMarkup(section) {
   switch (section.kind) {
     case "facts":
-      return rowsMarkup(section.details, "facts");
+      return rowsMarkup(section.details, "facts") + startMarkup(section);
     case "profile":
       return rowsMarkup(section.details, "profile");
     case "archive":
@@ -311,7 +332,7 @@ function revealTargets(root) {
     items: body
       ? Array.from(
           body.querySelectorAll(
-            ".detail-list > li, .archive-caption, .cal-rings, .cal-cell, .arcana-slot, .actions > *, .section-custom"
+            ".detail-list > li, .archive-caption, .cal-rings, .cal-cell, .arcana-slot, .actions > *, .section-custom, .quick-start__label, .quick-start__grid > li"
           )
         )
       : [],
@@ -830,6 +851,21 @@ export function init() {
     if (card && state.section !== target) renderInstant(state.section);
     else updateOverflow();
   });
+
+  // Quick-start tiles go through the menu, so the cursor, marker and sounds stay in sync.
+  // Capture phase: the glass engine stops click propagation inside the card.
+  document.addEventListener(
+    "click",
+    (event) => {
+      const tile = event.target.closest?.("[data-goto]");
+      if (!tile) return;
+      event.stopPropagation(); // a shortcut press is not a knock on the glass
+      const item =document.querySelector(`.menu-item[data-section="${CSS.escape(tile.dataset.goto)}"]`);
+      if (item && !item.disabled) item.click();
+      else showSection(tile.dataset.goto);
+    },
+    true
+  );
 
   on(EVT.RESET, () => {
     // shatter.js repairs the glass first; re-measure in case broken pieces changed sizes.

@@ -372,6 +372,161 @@
   gap: var(--s-1);
 }
 
+/* ------------------------------------------------------------ quick start */
+
+/* Home-card shortcuts into the menu. Shown only when the card body has room for them. */
+.quick-start {
+  margin-top: var(--s-6);
+}
+
+.quick-start__label {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-3);
+  color: var(--text-3);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.quick-start__label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line), transparent);
+}
+
+.quick-start__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quick-tile {
+  --tile-h: 84px;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: start;
+  width: 100%;
+  height: var(--tile-h);
+  padding: var(--s-2) var(--s-4) var(--s-2) calc(var(--s-3) + 6px);
+  border: 0;
+  color: var(--paper);
+  text-align: left;
+  cursor: pointer;
+  isolation: isolate;
+  background: none;
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+/* The plate leans at -8deg: 84px * tan(8deg) ~ 12px of offset. */
+.quick-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--blue) 26%, transparent), color-mix(in srgb, var(--paper) 3%, transparent) 70%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 18%, transparent);
+  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  transition: background-color var(--dur-1) var(--ease-out);
+}
+
+.quick-tile__code {
+  color: var(--cyan);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+}
+
+.quick-tile__name {
+  align-self: center;
+  font-family: var(--font-menu);
+  font-size: 1.6rem;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.quick-tile__hint {
+  overflow: hidden;
+  color: var(--text-3);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.quick-tile__arrow {
+  position: absolute;
+  top: var(--s-2);
+  right: calc(var(--s-3) + 4px);
+  color: var(--text-3);
+  transition: transform var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+}
+
+.quick-tile__arrow .glyph {
+  width: 14px;
+  height: 14px;
+}
+
+.quick-tile:hover,
+.quick-tile:focus-visible {
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.quick-tile:hover::before,
+.quick-tile:focus-visible::before {
+  background: linear-gradient(160deg, var(--hot), color-mix(in srgb, var(--hot) 55%, var(--deep)));
+}
+
+.quick-tile:hover .quick-tile__code,
+.quick-tile:focus-visible .quick-tile__code,
+.quick-tile:hover .quick-tile__hint,
+.quick-tile:focus-visible .quick-tile__hint {
+  color: color-mix(in srgb, var(--paper) 82%, transparent);
+}
+
+.quick-tile:hover .quick-tile__arrow,
+.quick-tile:focus-visible .quick-tile__arrow {
+  color: var(--paper);
+  transform: translate(2px, -2px);
+}
+
+/* Keyboard focus ring drawn inside the clipped plate. */
+.quick-tile:focus-visible::before {
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+/* Only when the body has room: never make the home card scroll for shortcuts. */
+@container cardbody (max-height: 344px) {
+  .quick-start {
+    display: none;
+  }
+}
+
+@media (max-width: 920px) {
+  .quick-start {
+    display: none;
+  }
+}
+
 .swatch {
   width: 22px;
   height: 14px;
