@@ -9,8 +9,8 @@
   --hud-tool: 34px;
   --hud-tool-gap: 6px;
   --hud-lean: 5px; /* horizontal offset of a -8deg lean over one tool row: 34px * tan(8deg) */
-  --hud-pad-left: 26px;
-  --hud-gap: var(--s-5);
+  --hud-pad-left: 22px;
+  --hud-gap: var(--s-4);
   --hud-tools-w: calc(3 * var(--hud-tool) + 2 * var(--hud-tool-gap));
 
   position: fixed;
