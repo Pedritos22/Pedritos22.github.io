@@ -1,0 +1,594 @@
+/* 404 page ("Lost after midnight"). Owner: audio/projects workstream (D).
+   Standalone: only fonts.css + base.css + this file. Tokens from base.css throughout. */
+
+.nf {
+  --nf-gutter: clamp(var(--s-4), 5vw, var(--s-8));
+
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100svh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse 70% 55% at 78% 20%, color-mix(in srgb, var(--deep) 70%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--ink) 0%, var(--abyss) 58%, var(--night) 100%);
+  background-color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ scenery */
+
+.nf-scene {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-bg);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.nf-moon {
+  position: absolute;
+  top: 14%;
+  right: 14%;
+  width: clamp(96px, 12vw, 172px);
+  aspect-ratio: 1;
+  animation: nf-drift 11s var(--ease-out) infinite alternate;
+}
+
+/* Halo: a soft light around the whole moon, unmasked. */
+.nf-moon::before {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ice) 22%, transparent) 0 22%, color-mix(in srgb, var(--blue-soft) 12%, transparent) 40%, transparent 68%);
+}
+
+/* The disc, cut into a crescent by a mask (the sky shows through the dark side).
+   Mask colours only define opacity. */
+.nf-moon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 40%, var(--paper) 0 36%, var(--ice) 68%, color-mix(in srgb, var(--blue-soft) 60%, var(--ice)) 100%);
+  -webkit-mask-image: radial-gradient(circle at 74% 34%, transparent 0 52%, black 54%);
+  mask-image: radial-gradient(circle at 74% 34%, transparent 0 52%, black 54%);
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--ice) 60%, transparent));
+}
+
+/* The cut stays behind the 404 and ends before the copy column. */
+.nf-slash {
+  position: absolute;
+  left: -8%;
+  top: 60%;
+  width: 62%;
+  height: 6px;
+  background: linear-gradient(90deg, var(--red) 72%, transparent);
+  transform: rotate(var(--tilt-major));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--red) 45%, transparent);
+}
+
+.nf-slash::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cyan) 60%, transparent) 30%, transparent 85%);
+}
+
+.nf-water {
+  position: absolute;
+  inset: auto 0 0;
+  height: 28%;
+  background:
+    repeating-linear-gradient(180deg, color-mix(in srgb, var(--ice) 7%, transparent) 0 1px, transparent 1px 10px),
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--abyss) 85%, transparent));
+  -webkit-mask-image: linear-gradient(180deg, transparent, black 40%);
+  mask-image: linear-gradient(180deg, transparent, black 40%); /* mask keyword colour = opacity only */
+}
+
+/* Moonlight on the water: a column of broken streaks under the moon. */
+.nf-water__glint {
+  position: absolute;
+  top: 0;
+  right: calc(14% + clamp(48px, 6vw, 86px) - 70px);
+  width: 140px;
+  height: 100%;
+  background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--ice) 55%, transparent) 0 2px, transparent 2px 9px);
+  -webkit-mask-image: radial-gradient(ellipse 50% 60% at 50% 30%, black, transparent 70%);
+  mask-image: radial-gradient(ellipse 50% 60% at 50% 30%, black, transparent 70%);
+  opacity: 0.5;
+  animation: nf-shimmer 6s ease-in-out infinite alternate;
+}
+
+.nf-scan {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-grain);
+  background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--paper) 2.5%, transparent) 0 1px, transparent 1px 4px);
+}
+
+/* ---------------------------------------------------------------------- HUD */
+
+.nf-hud {
+  position: relative;
+  z-index: var(--z-hud);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-6) var(--nf-gutter) 0;
+}
+
+.nf-status,
+.nf-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0;
+  color: var(--text-2);
+  font: italic 800 var(--fs-sm) / 1.1 var(--font-hud);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.nf-diamond {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: var(--red);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.nf-clock {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.nf-clock__face {
+  width: 56px;
+  height: 56px;
+  overflow: visible;
+}
+
+.nf-clock__rim {
+  fill: color-mix(in srgb, var(--night) 75%, transparent);
+  stroke: color-mix(in srgb, var(--ice) 40%, transparent);
+  stroke-width: 2;
+}
+
+.nf-clock__ticks line {
+  stroke: color-mix(in srgb, var(--ice) 55%, transparent);
+  stroke-width: 2;
+}
+
+.nf-clock__ticks .is-major {
+  stroke: var(--paper);
+  stroke-width: 3;
+}
+
+.nf-clock__hour,
+.nf-clock__minute {
+  stroke: var(--paper);
+  stroke-linecap: square;
+}
+
+.nf-clock__hour { stroke-width: 5; }
+.nf-clock__minute { stroke-width: 3; }
+
+.nf-clock__second {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: nf-stuck 1s var(--ease-out) infinite;
+}
+
+.nf-clock__second line {
+  stroke: var(--red);
+  stroke-width: 1.6;
+}
+
+.nf-clock__second circle {
+  fill: var(--red);
+}
+
+.nf-clock__time {
+  color: var(--paper);
+  font: italic 800 var(--fs-xl) / 1 var(--font-hud);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.nf-clock__colon {
+  animation: nf-blink 1s steps(1, end) infinite;
+}
+
+/* --------------------------------------------------------------------- main */
+
+.nf-main {
+  position: relative;
+  z-index: var(--z-shell);
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: var(--s-7);
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--nf-gutter);
+}
+
+.nf-code {
+  position: relative;
+  justify-self: center;
+  font-family: var(--font-display);
+  font-size: clamp(9rem, 3rem + 17vw, 21rem);
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  transform: rotate(var(--tilt-major));
+  animation: nf-slam var(--dur-4) var(--ease-snap) both;
+}
+
+.nf-code__face {
+  position: relative;
+  display: block;
+  color: var(--paper);
+  text-shadow: 0 0.03em 0 var(--ink);
+}
+
+.nf-code__shadow {
+  position: absolute;
+  inset: 0;
+  color: var(--blue);
+  transform: translate(0.045em, 0.05em);
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--blue-soft) 60%, transparent);
+}
+
+.nf-cracks {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 118%;
+  height: auto;
+  overflow: visible;
+  transform: translate(-50%, -48%);
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cyan) 35%, transparent));
+}
+
+.nf-crack {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ice) 78%, transparent);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: nf-crack 520ms var(--ease-out) forwards;
+  animation-delay: calc(420ms + var(--i, 0) * 22ms);
+}
+
+.nf-crack--main {
+  stroke: var(--paper);
+  stroke-width: 2;
+}
+
+.nf-crack--ring {
+  stroke: color-mix(in srgb, var(--ice) 55%, transparent);
+  stroke-width: 1.1;
+  animation-delay: calc(640ms + var(--i, 0) * 18ms);
+}
+
+.nf-crack--hair {
+  stroke: color-mix(in srgb, var(--ice) 45%, transparent);
+  stroke-width: 0.8;
+  animation-delay: calc(760ms + var(--i, 0) * 20ms);
+}
+
+.nf-impact {
+  fill: var(--paper);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nf-impact 700ms var(--ease-out) 380ms forwards;
+}
+
+/* --------------------------------------------------------------------- copy */
+
+.nf-copy {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-4);
+  max-width: 34rem;
+  animation: nf-rise var(--dur-4) var(--ease-out) 260ms both;
+}
+
+.nf-kicker {
+  color: var(--cyan);
+}
+
+.nf-title {
+  margin: 0;
+  color: var(--paper);
+  font: italic 800 var(--fs-3xl) / 0.86 var(--font-hud);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.nf-text {
+  max-width: 40ch;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-lg);
+  line-height: 1.65;
+}
+
+.nf-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  max-width: 100%;
+  margin: 0;
+  color: var(--text-3);
+  font: italic 600 var(--fs-sm) / 1.3 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.nf-path__value {
+  min-width: 0;
+  color: var(--ice);
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+/* Primary action: a parallelogram plate leaning at the major angle. */
+.nf-button {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 56px;
+  margin-top: var(--s-3);
+  padding: 0 var(--s-6);
+  color: var(--paper);
+  font: italic 800 var(--fs-lg) / 1 var(--font-hud);
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  text-transform: uppercase;
+  outline: none;
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+.nf-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--blue);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--ink) 60%, transparent);
+  transform: skewX(var(--tilt-major));
+  transition: background-color var(--dur-1) var(--ease-out);
+}
+
+.nf-button svg {
+  width: 18px;
+  height: 18px;
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.nf-button:hover,
+.nf-button:focus-visible {
+  transform: translateY(-2px);
+}
+
+.nf-button:hover::before,
+.nf-button:focus-visible::before {
+  background: var(--hot);
+}
+
+.nf-button:hover svg,
+.nf-button:focus-visible svg {
+  transform: translateX(4px);
+}
+
+/* Focus ring inside the plate's own shape. */
+.nf-button:focus-visible::before {
+  box-shadow:
+    inset 0 0 0 3px var(--paper),
+    0 18px 40px color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.nf-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ------------------------------------------------------------------- footer */
+
+.nf-foot {
+  position: relative;
+  z-index: var(--z-shell);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 0 var(--nf-gutter) var(--s-5);
+  color: var(--text-3);
+  font: italic 600 var(--fs-xs) / 1.1 var(--font-hud);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- keyframes */
+
+@keyframes nf-drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-4px, 3px); }
+}
+
+@keyframes nf-shimmer {
+  from { opacity: 0.32; }
+  to { opacity: 0.58; }
+}
+
+@keyframes nf-stuck {
+  /* The second hand tries to leave midnight and springs back. */
+  0%, 100% { transform: rotate(0deg); }
+  12% { transform: rotate(6deg); }
+  22% { transform: rotate(-1.5deg); }
+  32% { transform: rotate(0deg); }
+}
+
+@keyframes nf-blink {
+  50% { opacity: 0.2; }
+}
+
+@keyframes nf-slam {
+  from {
+    opacity: 0;
+    transform: rotate(var(--tilt-major)) translate(-6%, 2%) scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--tilt-major));
+  }
+}
+
+@keyframes nf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes nf-crack {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes nf-impact {
+  0% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 1; transform: scale(2.4); }
+  100% { opacity: 0.7; transform: scale(1); }
+}
+
+/* ------------------------------------------------------------------- mobile */
+
+@media (max-width: 920px) {
+  .nf-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-6);
+    align-content: center;
+  }
+
+  .nf-copy {
+    justify-self: center;
+    max-width: 36rem;
+  }
+
+  /* The rotated 404 leaves its top-left corner free: the moon hangs there. */
+  .nf-moon {
+    top: 13%;
+    right: auto;
+    left: 5%;
+    width: 84px;
+  }
+
+  .nf-water__glint {
+    right: auto;
+    left: calc(5% + 42px - 70px);
+  }
+
+  .nf-slash {
+    left: -20%;
+    top: 31%;
+    width: 140%;
+    background: var(--red);
+  }
+}
+
+@media (max-width: 560px) {
+  .nf-hud {
+    padding-top: var(--s-5);
+  }
+
+  .nf-status {
+    letter-spacing: 0.16em;
+  }
+
+  .nf-status__extra {
+    display: none;
+  }
+
+  .nf-clock__face {
+    width: 44px;
+    height: 44px;
+  }
+
+  .nf-clock__time {
+    font-size: var(--fs-lg);
+  }
+
+  .nf-code {
+    font-size: clamp(8rem, 40vw, 11rem);
+  }
+
+  .nf-copy {
+    justify-self: stretch;
+  }
+
+  .nf-button {
+    justify-content: center;
+    width: calc(100% - var(--s-4));
+    justify-self: center;
+  }
+
+  .nf-foot {
+    flex-direction: column;
+    gap: var(--s-2);
+  }
+}
+
+/* ----------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-moon,
+  .nf-water__glint,
+  .nf-clock__second,
+  .nf-clock__colon,
+  .nf-copy {
+    animation: none;
+  }
+
+  .nf-code {
+    animation: nf-fade 200ms linear both;
+  }
+
+  .nf-crack {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .nf-impact {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  .nf-button:hover,
+  .nf-button:focus-visible {
+    transform: none;
+  }
+}
+
+@keyframes nf-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
