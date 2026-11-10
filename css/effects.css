@@ -1,60 +1,582 @@
-/* Background scenery: page background, scanlines, red slash, WebGL canvas, skyline,
-   butterflies, emblem, Dark Hour scenery. Owner: atmosphere workstream (A). */
+/* Background scenery: page background, grain, red slash + section sweep, WebGL canvas,
+   skyline, butterflies, emblem, Dark Hour scenery. Owner: atmosphere workstream (A).
+   Colours come from the tokens in base.css (mixed with color-mix so Dark Hour follows). */
 
 body {
-  background:
-    linear-gradient(115deg, rgba(2, 7, 19, 0.96) 0%, rgba(6, 19, 41, 0.84) 42%, rgba(7, 39, 113, 0.56) 100%),
-    radial-gradient(circle at 72% 50%, rgba(4, 85, 255, 0.42), transparent 32%),
-    #020713;
+  background-color: var(--ink);
 }
 
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-}
+/* ------------------------------------------------------------------ fx root */
 
-/* Scanlines + side vignette */
-body::before {
-  z-index: var(--z-grain);
-  background:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.42), transparent 50%, rgba(0, 0, 0, 0.25));
-  mix-blend-mode: screen;
-  opacity: 0.45;
-}
-
-/* The red slash */
-body::after {
-  z-index: var(--z-grain);
-  background:
-    linear-gradient(88deg, transparent 0 63%, rgba(217, 9, 45, 0.92) 63% 63.55%, transparent 63.55%),
-    linear-gradient(95deg, transparent 0 78%, rgba(255, 255, 255, 0.18) 78% 78.25%, transparent 78.25%);
-}
-
-/* Mount point for background layers (canvas, skyline, butterflies). */
+/* Fixed scenery stack. Its own background is the no-WebGL / ?nofx fallback: moonlight from
+   the upper right, a faint light band at the major angle, a dark left column for the menu. */
 .fx-root {
   position: fixed;
   inset: 0;
   z-index: var(--z-bg);
   pointer-events: none;
   overflow: hidden;
+  contain: strict;
+  background-color: var(--ink);
+  background-image:
+    radial-gradient(ellipse 30% 34% at 84% 18%, color-mix(in srgb, var(--cyan) 16%, transparent), transparent 72%),
+    radial-gradient(ellipse 70% 62% at 80% 26%, color-mix(in srgb, var(--blue) 22%, transparent), transparent 72%),
+    linear-gradient(82deg, transparent 56%, color-mix(in srgb, var(--ice) 5%, transparent) 63%, transparent 71%),
+    radial-gradient(ellipse 90% 40% at 70% 100%, color-mix(in srgb, var(--deep) 70%, transparent), transparent 75%),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 75%, transparent) 0%, transparent 52%),
+    linear-gradient(180deg, var(--ink) 0%, var(--abyss) 38%, var(--night) 72%, var(--deep) 100%);
 }
 
-/* Mount point for the clock/moon emblem on the right (inside .panel-wrap). */
-.emblem-mount {
+.fx-bg {
   position: absolute;
-  right: min(3vw, 36px);
-  top: clamp(8px, 4vh, 42px);
-  width: clamp(142px, 16vw, 218px);
-  aspect-ratio: 1;
+  inset: 0;
+  z-index: var(--z-bg);
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity var(--dur-4) var(--ease-out);
+}
+
+.fx-root--gl .fx-bg {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------ grain overlay */
+
+/* Fine scanlines + a soft frame vignette over the scenery only (the shell paints above). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-grain);
   pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--paper) 2.5%, transparent) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse 120% 100% at 62% 48%, transparent 55%, color-mix(in srgb, var(--ink) 55%, transparent) 100%);
+}
+
+/* Dark Hour static: a faint rolling band, only while the hour lasts. */
+body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: -40vh;
+  height: 40vh;
+  z-index: var(--z-grain);
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--cyan) 5%, transparent) 46%, color-mix(in srgb, var(--cyan) 9%, transparent) 50%, transparent);
+}
+
+html[data-darkhour] body::after {
+  animation: fx-static-roll 7.5s linear infinite, fx-static-flicker 1.9s steps(6, end) infinite;
+}
+
+@keyframes fx-static-roll {
+  from { transform: translateY(0); }
+  to { transform: translateY(180vh); }
+}
+
+@keyframes fx-static-flicker {
+  0%, 100% { opacity: 0.55; }
+  20% { opacity: 0.25; }
+  45% { opacity: 0.7; }
+  70% { opacity: 0.35; }
+}
+
+/* -------------------------------------------------------- slash and sweep */
+
+/* The red slash: one crisp blade at the major angle, crossing behind the content card. */
+.fx-slash {
+  --slash-x: 61.5%;
+  position: absolute;
+  z-index: var(--z-grain);
+  left: var(--slash-x);
+  top: -14vh;
+  width: 30vw;
+  height: 128vh;
+  margin-left: -43px; /* 40px of room for the blade glow, 3px to centre the 6px blade */
+  transform-origin: 43px 50%;
+  transform: rotate(var(--tilt-major));
+  -webkit-mask-image: linear-gradient(180deg, #000 0 74%, transparent 90%); /* mask alpha, not a colour */
+  mask-image: linear-gradient(180deg, #000 0 74%, transparent 90%); /* mask alpha, not a colour */
+}
+
+.fx-slash__bar,
+.fx-slash__echo,
+.fx-slash__glint {
+  position: absolute;
+  top: 0;
+  left: 40px;
+  width: 6px;
+  height: 100%;
+}
+
+.fx-slash__bar {
+  background: var(--red);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--red) 45%, transparent);
+}
+
+.fx-slash__echo {
+  background: color-mix(in srgb, var(--red) 55%, transparent);
+  opacity: 0;
+}
+
+.fx-slash__glint {
+  height: 22%;
+  background: linear-gradient(180deg, transparent, var(--paper) 45%, var(--paper) 55%, transparent);
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* A thin cold hairline running parallel to the blade. */
+.fx-slash__hair {
+  position: absolute;
+  top: 0;
+  left: calc(40px + clamp(120px, 17vw, 260px));
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ice) 22%, transparent) 30%, color-mix(in srgb, var(--ice) 12%, transparent) 80%, transparent);
+}
+
+/* Section-change sweep: a wide band of cold light with a crisp leading edge. */
+.fx-sweep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-fx);
+  width: 0;
+  visibility: hidden;
+  will-change: transform;
+}
+
+.fx-sweep__inner {
+  position: absolute;
+  top: -16vh;
+  left: -26vw;
+  width: 28vw;
+  height: 132vh;
+  transform: rotate(var(--tilt-major));
+}
+
+.fx-sweep[data-dir="-1"] .fx-sweep__inner {
+  transform: rotate(var(--tilt-major)) scaleX(-1);
+}
+
+.fx-sweep__band {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--blue) 9%, transparent) 50%, color-mix(in srgb, var(--cyan) 20%, transparent) 94%, transparent);
+}
+
+.fx-sweep__edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 5%;
+  width: 2px;
+  background: var(--ice);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 70%, transparent);
+}
+
+.fx-sweep__trail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 8%;
+  width: 70%;
+  transform-origin: 100% 50%;
+  background: repeating-linear-gradient(90deg, transparent 0 22px, color-mix(in srgb, var(--ice) 9%, transparent) 22px 23px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000); /* mask alpha, not a colour */
+  mask-image: linear-gradient(90deg, transparent, #000); /* mask alpha, not a colour */
+}
+
+/* ----------------------------------------------------------------- skyline */
+
+.fx-skyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-skyline);
+  height: clamp(124px, 20vh, 220px);
+}
+
+.sky-layer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  will-change: transform;
+}
+
+.sky-layer canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sky-build--dark {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* The tower: drawn at its full Dark Hour height, sunk below the city until then. */
+.sky-tower {
+  position: absolute;
+  bottom: 0;
+  will-change: transform;
+}
+
+.sky-tower canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sky-tower__glow {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Dark Hour: the risen tower burns green (a static filter; only its wrapper translates). */
+.fx-skyline.is-dark .sky-tower__glow {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--dh-glow) 80%, transparent));
+}
+
+/* Aviation beacons: a hard red core with a soft bloom, blinking on the compositor. */
+.sky-beacon {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, var(--red) 0 22%, color-mix(in srgb, var(--red) 45%, transparent) 34%, transparent 100%);
+  opacity: 0.15;
+  animation: sky-blink 2.8s steps(1, end) infinite;
+}
+
+.sky-beacon--tower {
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+}
+
+@keyframes sky-blink {
+  0%, 100% { opacity: 0.15; }
+  6% { opacity: 1; }
+  20% { opacity: 0.15; }
+}
+
+/* -------------------------------------------------------------- butterflies */
+
+/* Above the shell (so they can be clicked) but below the HUD: z 20 = --z-hud minus 10.
+   The layer ignores the pointer; only each butterfly's small hit circle catches it. */
+.fx-flyers {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-hud) - 10);
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+.bfly {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  perspective: 220px;
+  will-change: transform, opacity;
+}
+
+.bfly__tilt {
+  position: absolute;
+  top: -20px;
+  left: -24px;
+  width: 48px;
+  height: 40px;
+  transform: scale(var(--bfly-scale, 1)) rotateX(28deg);
+  transform-style: preserve-3d;
+}
+
+.bfly__wing {
+  position: absolute;
+  top: 3px;
+  width: 22px;
+  height: 34px;
+  animation: bfly-flap-r var(--bfly-flap, 0.3s) ease-in-out infinite alternate;
+}
+
+.bfly__wing svg,
+.bfly__body svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.bfly__wing--r {
+  left: 50%;
+  transform-origin: 0 50%;
+}
+
+.bfly__wing--l {
+  right: 50%;
+  transform-origin: 100% 50%;
+  animation-name: bfly-flap-l;
+}
+
+.bfly__mirror {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1);
+}
+
+.bfly__body {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 22px;
+  margin: -13px 0 0 -3px;
+}
+
+.bfly__hit {
+  position: absolute;
+  top: -24px;
+  left: -24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@keyframes bfly-flap-r {
+  from { transform: rotateY(-6deg); }
+  to { transform: rotateY(70deg); }
+}
+
+@keyframes bfly-flap-l {
+  from { transform: rotateY(6deg); }
+  to { transform: rotateY(-70deg); }
+}
+
+.bfly-burst {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Four-point star sparks and a soft flash: the butterfly dissolves into moonlight. */
+.bfly-spark {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--paper);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+}
+
+.bfly-spark--hot {
+  background: var(--cyan);
+}
+
+.bfly-flash {
+  position: absolute;
+  top: -40px;
+  left: -40px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, color-mix(in srgb, var(--paper) 90%, transparent), color-mix(in srgb, var(--cyan) 45%, transparent) 40%, transparent);
+}
+
+.bfly-ring {
+  position: absolute;
+  top: -34px;
+  left: -34px;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ice) 85%, transparent), 0 0 18px color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
+/* ------------------------------------------------------------------ emblem */
+
+/* The moon clock stands behind the content card like a character behind the UI:
+   z-index -1 inside .panel-wrap paints it under the card (the shell isolates). */
+.emblem-mount {
+  --emblem-size: clamp(440px, 78vh, 780px);
+  position: absolute;
+  z-index: -1;
+  top: calc(var(--emblem-size) * -0.36);
+  right: calc(var(--emblem-size) * -0.34);
+  width: var(--emblem-size);
+  height: var(--emblem-size);
+  pointer-events: none;
+  contain: layout style;
+}
+
+.emblem,
+.emb-layer,
+.emb-pivot,
+.emb-spin,
+.emb-moon__face {
+  position: absolute;
+  inset: 0;
+}
+
+.emb-layer svg,
+.emb-hand svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.emb-ring,
+.emb-moon,
+.emb-pivot,
+.emb-spin,
+.emb-hand {
+  will-change: transform;
+}
+
+/* Soft moonlight bloom; the moon disc covers the inner 39%. */
+.emb-halo {
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--ice) 30%, transparent) 37%,
+    color-mix(in srgb, var(--cyan) 13%, transparent) 46%,
+    color-mix(in srgb, var(--blue) 7%, transparent) 62%,
+    transparent 84%
+  );
+}
+
+.emb-ring--outer {
+  color: var(--ice);
+  opacity: 0.62;
+}
+
+.emb-ring--bezel {
+  color: var(--blue-soft);
+  opacity: 0.85;
+}
+
+.emb-ring--dial {
+  color: var(--ice);
+  opacity: 0.9;
+}
+
+.emb-ring--inner {
+  color: var(--cyan);
+  opacity: 0.75;
+}
+
+.emblem .emb-acc {
+  color: var(--cyan);
+}
+
+.emb-numerals {
+  fill: var(--paper);
+  font-family: var(--font-menu);
+  font-size: 50px;
+  letter-spacing: 0.06em;
+}
+
+/* Hands: an 8% x 50% box whose bottom-centre sits on the dial centre. */
+.emb-hand {
+  position: absolute;
+  top: 0;
+  left: 46%;
+  width: 8%;
+  height: 50%;
+  transform-origin: 50% 100%;
+}
+
+.emb-hand__blade {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 5;
+  stroke-linejoin: miter;
+  paint-order: stroke;
+}
+
+.emb-hand__core {
+  stroke: var(--blue);
+  stroke-width: 2.5;
+}
+
+.emb-hand__line {
+  fill: var(--ice);
+}
+
+.emb-hand__tip {
+  fill: var(--red);
+}
+
+.emb-moon__face--dark {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Dark Hour: time stops, the rings burn green. Static filters (nothing spins while frozen). */
+.emblem.is-dark .emb-ring svg {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--dh-glow) 75%, transparent));
+}
+
+.emblem.is-dark .emb-ring--outer,
+.emblem.is-dark .emb-ring--bezel,
+.emblem.is-dark .emb-ring--inner {
+  color: var(--cyan);
+}
+
+.emblem.is-dark .emb-halo {
+  background: radial-gradient(
+    circle closest-side,
+    color-mix(in srgb, var(--gold) 34%, transparent) 37%,
+    color-mix(in srgb, var(--dh-glow) 16%, transparent) 48%,
+    color-mix(in srgb, var(--blue) 8%, transparent) 66%,
+    transparent 86%
+  );
+}
+
+.emblem.is-reduced .emb-pivot--second {
+  display: none;
 }
 
 @media (max-width: 920px) {
+  /* Mobile: a quiet moon hanging in the top-right corner, fixed like the sky. */
   .emblem-mount {
+    --emblem-size: min(96vw, 440px);
+    position: fixed;
+    top: calc(var(--emblem-size) * -0.22);
+    right: calc(var(--emblem-size) * -0.32);
+    opacity: 0.38;
+  }
+
+  .emb-numerals {
+    display: none;
+  }
+
+  .fx-slash {
+    --slash-x: 84%;
+  }
+
+  .fx-slash__bar {
+    box-shadow: none;
+  }
+
+  .fx-slash__hair {
     display: none;
   }
 }
