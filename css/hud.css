@@ -1,184 +1,818 @@
-/* HUD and tool controls (help, reset, lo-fi, volume). Owner: HUD/overlays workstream (C). */
+/* HUD: calendar plate (date, weekday, time of day, clock, moon) and the tool cluster.
+   Owner: HUD/overlays workstream (C).
+   Desktop: fixed top-right, within ~120px x ~440px. Mobile (<= 920px): an in-flow top bar. */
 
-.top-tools {
+.hud {
+  --hud-row-1: 46px;
+  --hud-row-2: 24px;
+  --hud-row-gap: 6px;
+  --hud-tool: 34px;
+  --hud-tool-gap: 6px;
+  --hud-lean: 5px; /* horizontal offset of a -8deg lean over one tool row: 34px * tan(8deg) */
+  --hud-pad-left: 26px;
+  --hud-gap: var(--s-5);
+  --hud-tools-w: calc(3 * var(--hud-tool) + 2 * var(--hud-tool-gap));
+
   position: fixed;
-  top: 18px;
-  right: clamp(18px, 3vw, 38px);
+  top: var(--s-3);
+  right: clamp(var(--s-4), 2vw, var(--s-6));
   z-index: var(--z-hud);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
+  gap: var(--hud-gap);
+  padding: var(--s-2) var(--s-1) var(--s-2) var(--hud-pad-left);
+  color: var(--paper);
+  font-family: var(--font-hud);
+  isolation: isolate;
 }
 
-.help-toggle,
-.reset-toggle {
-  display: inline-grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 0;
-  color: var(--paper);
-  background: rgba(2, 7, 19, 0.68);
-  box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.24),
-    inset 0 0 0 1px rgba(247, 251, 255, 0.16);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  font-family: "Anton", Impact, sans-serif;
-  font-size: 1.26rem;
+/* Hidden until the bootstrap finished, so the entrance never flashes its end state. */
+html:not(.is-ready) .hud {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------- the plates */
+
+.hud-status {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-4);
+}
+
+.hud-plates {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.hud-plates > i {
+  position: absolute;
+  display: block;
+}
+
+/* Back plate: electric blue at half the major angle, peeking out below the front plate. */
+.hud-plate-back {
+  inset: 10px -80px -4px 24px;
+  background: linear-gradient(100deg, var(--deep) 35%, var(--blue));
+  clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%);
+  rotate: -4deg;
+  transform-origin: 0 100%;
+}
+
+/* Front plate: night glass with an ice hairline on top, leaning at -8deg, bleeding off
+   the right edge of the screen. */
+.hud-plate-front {
+  inset: 0 -80px 0 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 26%, transparent) 0 1px, transparent 1px),
+    linear-gradient(100deg, color-mix(in srgb, var(--ink) 94%, transparent), color-mix(in srgb, var(--night) 96%, transparent) 55%);
+  clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--ink) 50%, transparent);
+}
+
+/* Leaning divider between the tools and the calendar. */
+.hud-plate-divider {
+  top: 12px;
+  bottom: 12px;
+  left: calc(var(--hud-pad-left) + var(--hud-tools-w) + var(--hud-gap) / 2 - 6px);
+  width: 12px;
+  background: linear-gradient(90deg, transparent calc(50% - 0.5px), color-mix(in srgb, var(--ice) 22%, transparent) calc(50% - 0.5px) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  transform: skewX(-8deg);
+}
+
+/* Cyan rule along the bottom edge, offset to read as a separate layer. */
+.hud-plate-line {
+  left: 18px;
+  right: -80px;
+  bottom: -6px;
+  height: 3px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cyan) 20%, transparent), var(--cyan) 30%);
+  clip-path: polygon(1px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Small red notch on the leading edge: the one red accent in the HUD. */
+.hud-plate-notch {
+  left: -8px;
+  bottom: -6px;
+  width: 30px;
+  height: 9px;
+  background: var(--red);
+  clip-path: polygon(2px 0, 100% 0, calc(100% - 2px) 100%, 0 100%);
+}
+
+/* Idle glint: a narrow highlight crossing the plate every few seconds. */
+.hud-plate-glint {
+  inset: 0;
+  overflow: hidden;
+  clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.hud-plate-glint::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 46px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ice) 12%, transparent), transparent);
+  transform: translateX(-80px) skewX(-8deg);
+  opacity: 0;
+}
+
+.hud.is-idle .hud-plate-glint::before {
+  animation: hud-glint 9s var(--ease-in) 1.2s infinite;
+}
+
+.hud.is-idle .hud-plate-back {
+  animation: hud-drift 7s ease-in-out infinite alternate;
+}
+
+@keyframes hud-glint {
+  0%, 82% { transform: translateX(-80px) skewX(-8deg); opacity: 0; }
+  84% { opacity: 1; }
+  100% { transform: translateX(520px) skewX(-8deg); opacity: 0; }
+}
+
+@keyframes hud-drift {
+  from { translate: 0 0; }
+  to { translate: -3px 1px; }
+}
+
+/* --------------------------------------------------------------- calendar */
+
+.hud-calendar {
+  all: unset;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: var(--hud-row-1) var(--hud-row-2);
+  column-gap: var(--s-2);
+  row-gap: var(--hud-row-gap);
+  align-items: end;
+  justify-content: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Focus ring: a slanted 2px frame (outer path, then the inner path in reverse = a hole). */
+.hud-calendar::after {
+  content: "";
+  position: absolute;
+  inset: -6px -8px -6px -14px;
+  background: var(--cyan);
+  clip-path: polygon(
+    14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%, 14px 0,
+    16.5px 2px, 2.5px calc(100% - 2px), calc(100% - 16.5px) calc(100% - 2px), calc(100% - 2.5px) 2px, 16.5px 2px
+  );
+  opacity: 0;
+  transition: opacity var(--dur-1) var(--ease-out);
+  pointer-events: none;
+}
+
+.hud-calendar:focus-visible::after {
+  opacity: 1;
+}
+
+.hud-date {
+  display: block;
+  overflow: hidden;
+  padding-right: 0.08em; /* room for the italic overhang */
   line-height: 1;
-  cursor: pointer;
-  clip-path: polygon(0 0, 88% 0, 100% 30%, 86% 100%, 0 100%, 10% 50%);
-  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
-.help-toggle:hover,
-.help-toggle:focus-visible,
-.reset-toggle:hover,
-.reset-toggle:focus-visible {
-  transform: translateY(-1px);
-  background: rgba(70, 216, 255, 0.2);
-  box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.28),
-    0 0 24px rgba(70, 216, 255, 0.18),
-    inset 0 0 0 1px rgba(70, 216, 255, 0.26);
-  outline: none;
-}
-
-.reset-toggle {
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 1rem;
-  font-weight: 900;
-}
-
-.reset-toggle:active {
-  transform: translateY(0) scale(0.96);
-}
-
-.audio-controls {
+.hud-date-inner {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 6px 10px;
-  background: rgba(2, 7, 19, 0.58);
-  box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.24),
-    inset 0 0 0 1px rgba(247, 251, 255, 0.16);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  clip-path: polygon(0 0, 96% 0, 100% 32%, 94% 100%, 0 100%, 5% 50%);
+  align-items: baseline;
+  font-size: 3.25rem;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+  text-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 65%, transparent);
 }
 
-.audio-toggle {
-  min-height: 34px;
-  padding: 0 13px;
-  border: 0;
-  color: rgba(247, 251, 255, 0.76);
-  background: rgba(255, 255, 255, 0.08);
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 0.64rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+.hud-slash {
+  margin: 0 0.02em;
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+.hud-weekday {
+  position: relative;
+  align-self: start;
+  margin-top: 5px;
+  padding: 3px 12px 2px 11px;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  cursor: pointer;
-  clip-path: polygon(0 0, 94% 0, 100% 36%, 92% 100%, 0 100%, 7% 50%);
-  transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+  isolation: isolate;
 }
 
-.audio-toggle:hover,
-.audio-toggle:focus-visible {
+.hud-weekday::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--paper);
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+/* Saturday reads blue, Sunday red, like a printed calendar. */
+.hud-weekday[data-day="6"] {
   color: var(--paper);
-  background: rgba(70, 216, 255, 0.18);
-  transform: translateY(-1px);
-  outline: none;
 }
 
-.audio-toggle.is-on {
+.hud-weekday[data-day="6"]::before {
+  background: var(--blue);
+}
+
+.hud-weekday[data-day="0"] {
   color: var(--paper);
-  background: rgba(4, 85, 255, 0.68);
-  box-shadow: 0 0 28px rgba(70, 216, 255, 0.2);
 }
 
-.volume-control {
+.hud-weekday[data-day="0"]::before {
+  background: var(--red);
+}
+
+.hud-tod {
+  position: relative;
+  grid-column: 1;
+  align-self: stretch;
   display: flex;
   align-items: center;
-  gap: 7px;
-  color: rgba(247, 251, 255, 0.58);
-  font-size: 0.58rem;
-  font-weight: 900;
+  padding: 0 var(--s-4) 0 var(--s-3);
+  margin-left: -10px;
+  isolation: isolate;
+}
+
+.hud-tod::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--blue);
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.hud-tod-text {
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hud-time {
+  grid-column: 2;
+  align-self: center;
+  display: flex;
+  align-items: baseline;
+  font-size: 1.375rem;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+}
+
+.hud-colon {
+  margin: 0 1px;
+  color: var(--cyan);
+}
+
+.hud.is-idle .hud-colon {
+  animation: hud-colon 4s ease-in-out infinite;
+}
+
+@keyframes hud-colon {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Dark Hour: the time-of-day band turns to blood. */
+.hud.is-darkhour .hud-tod::before {
+  background: var(--red);
+}
+
+/* ------------------------------------------------------------------- moon */
+
+.hud-moon {
+  display: grid;
+  grid-template-rows: var(--hud-row-1) var(--hud-row-2);
+  row-gap: var(--hud-row-gap);
+  justify-items: center;
+  align-items: center;
+}
+
+.hud-moon-icon {
+  width: 50px;
+  height: 50px;
+  overflow: visible;
+}
+
+.hud-moon-icon .moon-halo {
+  fill: var(--gold);
+  opacity: 0.1;
+}
+
+.hud.is-idle .hud-moon-icon .moon-halo {
+  animation: hud-moon-glow 6s ease-in-out infinite alternate;
+}
+
+@keyframes hud-moon-glow {
+  from { opacity: 0.06; }
+  to { opacity: 0.16; }
+}
+
+/* The unlit side keeps a faint earthshine so a new moon still reads as a sphere. */
+.hud-moon-icon .moon-disc {
+  fill: url(#hud-moon-shade);
+}
+
+.hud-moon-icon .moon-shade-hi {
+  stop-color: color-mix(in srgb, var(--ice) 26%, var(--night));
+}
+
+.hud-moon-icon .moon-shade-lo {
+  stop-color: var(--ink);
+}
+
+.hud-moon-icon .moon-lit {
+  fill: var(--gold);
+}
+
+.hud-moon-icon .moon-maria circle {
+  fill: var(--ink);
+  opacity: 0.13;
+}
+
+.hud-moon-icon .moon-rim {
+  fill: none;
+  stroke: var(--ice);
+  stroke-opacity: 0.32;
+  stroke-width: 1;
+}
+
+.hud-moon-caption {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  min-width: 64px;
+  font-size: 0.6875rem;
+  line-height: 1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  user-select: none;
+  white-space: nowrap;
+}
+
+.hud-moon-top {
+  font-weight: 800;
+  font-style: italic;
+  color: var(--paper);
+}
+
+.hud-moon-bottom {
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.hud-moon-caption.is-single .hud-moon-bottom {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ tools */
+
+.hud-tools {
+  display: grid;
+  grid-template-columns: repeat(3, var(--hud-tool));
+  grid-auto-rows: var(--hud-tool);
+  gap: var(--hud-tool-gap);
+}
+
+/* Row 1: lo-fi, hints, reset. Row 2: volume (two cells) + SFX, shifted along the lean. */
+.hud-volume {
+  grid-column: 1 / span 2;
+  grid-row: 2;
+  translate: calc(-1 * var(--hud-lean)) 0;
+}
+
+.sfx-toggle {
+  grid-column: 3;
+  grid-row: 2;
+  translate: calc(-1 * var(--hud-lean)) 0;
+}
+
+.hud-tool {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  color: var(--paper);
+  background: none;
+  cursor: pointer;
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+  --flash: 0;
+}
+
+/* The plate is a pseudo-element so the button itself is never clipped (focus ring, tooltip). */
+.hud-tool::before,
+.hud-volume::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 30%, transparent) 0 1px, transparent 1px),
+    linear-gradient(160deg, color-mix(in srgb, var(--deep) 70%, var(--night)), color-mix(in srgb, var(--deep) 30%, var(--abyss)));
+  clip-path: polygon(var(--hud-lean) 0, 100% 0, calc(100% - var(--hud-lean)) 100%, 0 100%);
+  transition: background-color var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+
+/* Focus ring: same shape, drawn inside the plate. */
+.hud-tool::after,
+.hud-volume::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--cyan);
+  clip-path: polygon(
+    var(--hud-lean) 0, 100% 0, calc(100% - var(--hud-lean)) 100%, 0 100%, var(--hud-lean) 0,
+    calc(var(--hud-lean) + 2.5px) 2px, 2.5px calc(100% - 2px), calc(100% - var(--hud-lean) - 2.5px) calc(100% - 2px), calc(100% - 2.5px) 2px, calc(var(--hud-lean) + 2.5px) 2px
+  );
+  opacity: calc(var(--flash, 0) * 0.9);
+  pointer-events: none;
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+
+.hud-tool:focus-visible,
+.hud-volume:has(:focus-visible) {
+  outline: none;
+}
+
+.hud-tool:focus-visible::after,
+.hud-volume:has(:focus-visible)::after {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .hud-tool:hover::before {
+    background-color: var(--deep);
+    background-image:
+      linear-gradient(180deg, color-mix(in srgb, var(--cyan) 50%, transparent) 0 1px, transparent 1px),
+      linear-gradient(160deg, var(--deep), color-mix(in srgb, var(--blue) 40%, var(--night)));
+  }
+
+  .hud-tool:hover .hud-icon,
+  .hud-tool:hover .hud-glyph {
+    color: var(--cyan);
+  }
+}
+
+.hud-tool:active::before {
+  transform: scale(0.94);
+}
+
+.hud-glyph {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.hud-icon {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+  color: var(--paper);
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.reset-icon .reset-arc {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: butt;
+}
+
+.reset-icon .reset-head {
+  fill: currentColor;
+}
+
+.sfx-icon .sfx-body {
+  fill: currentColor;
+}
+
+.sfx-icon .sfx-wave,
+.sfx-icon .sfx-x {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: butt;
+}
+
+.sfx-icon .sfx-x {
+  display: none;
+  stroke: var(--hot);
+}
+
+.sfx-toggle.is-muted .sfx-wave {
+  display: none;
+}
+
+.sfx-toggle.is-muted .sfx-x {
+  display: inline;
+}
+
+.sfx-toggle.is-muted .sfx-body {
+  opacity: 0.6;
+}
+
+/* Lo-fi: mini equalizer. Off = flat bars, on = an electric blue plate. */
+.hud-eq {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+
+.hud-eq i {
+  display: block;
+  width: 3px;
+  height: 16px;
+  background: color-mix(in srgb, var(--ice) 70%, transparent);
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* Resting shape (off): a static waveform glyph. Mirrored in hud.js (EQ_REST). */
+.hud-eq i:nth-child(1) { transform: scaleY(0.4); }
+.hud-eq i:nth-child(2) { transform: scaleY(0.9); }
+.hud-eq i:nth-child(3) { transform: scaleY(0.6); }
+.hud-eq i:nth-child(4) { transform: scaleY(1); }
+.hud-eq i:nth-child(5) { transform: scaleY(0.45); }
+
+.audio-toggle.is-on::before {
+  background: linear-gradient(160deg, var(--blue), var(--deep));
+}
+
+.audio-toggle.is-on .hud-eq i {
+  background: var(--paper);
+}
+
+.audio-toggle.is-on .hud-eq i:nth-child(odd) {
+  background: var(--cyan);
+}
+
+/* Volume: a custom range input on its own plate. */
+.hud-volume {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 calc(var(--hud-lean) + var(--s-2)) 0 calc(var(--hud-lean) + var(--s-2));
+  isolation: isolate;
 }
 
 .volume-slider {
-  width: 94px;
-  accent-color: var(--cyan);
+  --vol: 92%;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  background: transparent;
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
+.volume-slider:focus {
+  outline: none;
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background:
+    linear-gradient(90deg, var(--cyan) 0 var(--vol), color-mix(in srgb, var(--paper) 20%, transparent) var(--vol) 100%);
+}
+
+.volume-slider::-webkit-slider-thumb {
+  width: 9px;
+  height: 18px;
+  margin-top: -7px;
+  border: 0;
+  background: var(--paper);
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+.volume-slider:hover::-webkit-slider-thumb,
+.volume-slider:focus-visible::-webkit-slider-thumb {
+  transform: scaleY(1.15);
+  background: var(--cyan);
+}
+
+.volume-slider::-moz-range-track {
+  height: 4px;
+  border: 0;
+  background: color-mix(in srgb, var(--paper) 20%, transparent);
+}
+
+.volume-slider::-moz-range-progress {
+  height: 4px;
+  background: var(--cyan);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 9px;
+  height: 18px;
+  border: 0;
+  border-radius: 0;
+  background: var(--paper);
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+/* ---------------------------------------------------------------- tooltip */
+
+.hud-tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  padding: 5px 10px 4px;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -4px);
+  transition: opacity var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+
+.hud-tip.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ----------------------------------------------------------------- mobile */
+
 @media (max-width: 920px) {
-  .top-tools {
+  .hud {
+    --hud-row-1: 38px;
+    --hud-row-2: 22px;
+    --hud-row-gap: 5px;
+    --hud-tool: 44px;
+    --hud-tool-gap: 4px;
+    --hud-lean: 6px; /* 44px * tan(8deg) */
+
     position: relative;
     top: auto;
     right: auto;
-    width: min(calc(100% - 2 * clamp(18px, 5vw, 36px)), 360px);
-    margin: 18px clamp(18px, 5vw, 36px) 0;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--s-3);
+    padding: var(--s-3) clamp(var(--s-4), 5vw, 36px) var(--s-4);
+    isolation: isolate;
   }
 
-  .help-toggle,
-  .reset-toggle {
-    flex: 0 0 42px;
+  /* The bar itself: a full-bleed plate with a bottom edge at half the major angle. */
+  .hud::before,
+  .hud::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    pointer-events: none;
   }
 
-  .audio-controls {
-    flex: 1 1 auto;
+  .hud::before {
+    top: 0;
+    bottom: -10px;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--ink) 92%, transparent), color-mix(in srgb, var(--night) 90%, transparent));
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 100vw * 0.0699), 0 100%);
+  }
+
+  /* Cyan rule following the slanted bottom edge. */
+  .hud::after {
+    bottom: -10px;
+    height: calc(100vw * 0.0699 + 2px);
+    background: linear-gradient(90deg, var(--cyan), color-mix(in srgb, var(--cyan) 20%, transparent));
+    clip-path: polygon(0 calc(100% - 2px), 100% 0, 100% 2px, 0 100%);
+  }
+
+  .hud-status {
+    order: 1;
+    display: grid;
+    grid-template-columns: auto;
+    justify-content: start;
+    row-gap: var(--s-2);
+    padding: 0;
+  }
+
+  .hud-plates {
+    display: none;
+  }
+
+  .hud-tools {
+    order: 2;
+    grid-template-columns: repeat(3, var(--hud-tool));
+  }
+
+  .hud-date-inner {
+    font-size: 2.6rem;
+  }
+
+  .hud-weekday {
+    margin-top: 3px;
+    padding: 3px 9px 2px 8px;
+    font-size: 0.9375rem;
+  }
+
+  .hud-tod {
+    margin-left: -6px;
+    padding: 0 var(--s-3) 0 var(--s-2);
+  }
+
+  .hud-tod-text {
+    font-size: var(--fs-xs);
+    letter-spacing: 0.14em;
+  }
+
+  .hud-time {
+    font-size: 1.125rem;
+  }
+
+  /* Moon: a single line under the calendar. */
+  .hud-moon {
+    grid-template-columns: auto auto;
+    grid-template-rows: none;
+    column-gap: var(--s-2);
+    justify-content: start;
+    justify-items: start;
+  }
+
+  .hud-moon-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .hud-moon-icon .moon-halo {
+    display: none;
+  }
+
+  .hud-moon-caption {
+    display: flex;
+    gap: 0.45em;
     min-width: 0;
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
   }
 
-  .audio-toggle {
-    min-height: 34px;
-    padding: 0 12px;
-    font-size: 0.6rem;
-    transform: none;
-  }
-
-  .audio-toggle:hover,
-  .audio-toggle:focus-visible {
-    transform: none;
-  }
-
-  .volume-slider {
-    width: min(34vw, 96px);
+  .hud-tip {
+    display: none;
   }
 }
 
-@media (max-width: 620px) {
-  .top-tools {
-    width: auto;
-    gap: 8px;
+@media (max-width: 359px) {
+  .hud {
+    --hud-tool: 44px;
+    --hud-tool-gap: 2px;
+    gap: var(--s-2);
   }
 
-  .audio-controls {
-    width: 100%;
-    justify-content: space-between;
-    gap: 8px;
+  .hud-date-inner {
+    font-size: 2.2rem;
   }
 
-  .help-toggle,
-  .reset-toggle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .volume-control {
-    gap: 5px;
-  }
-
-  .volume-slider {
-    width: 82px;
+  .hud-moon-bottom {
+    display: none;
   }
 }
