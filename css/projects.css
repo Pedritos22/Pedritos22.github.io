@@ -1,9 +1,583 @@
-/* Projects section (GitHub repos). Owner: audio/projects workstream (D). */
+/* Projects section: the "request board" of GitHub repositories.
+   Owner: audio/projects workstream (D). Self-contained under .projects / .project-card.
+   Plates are parallelograms drawn by a skewed ::before (exactly -4deg, the half major
+   angle), so the content stays upright and crisp and focus rings sit inside the shape. */
 
-.projects-placeholder {
+.projects {
+  --pc-skew: calc(var(--tilt-major) / 2);
+  --pc-plate: color-mix(in srgb, var(--night) 88%, transparent);
+  --pc-plate-2: color-mix(in srgb, var(--deep) 62%, transparent);
+  --pc-edge: color-mix(in srgb, var(--cyan) 72%, transparent);
+  --pc-hair: color-mix(in srgb, var(--ice) 14%, transparent);
+
+  position: relative;
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.projects-icon {
+  flex: none;
+  width: 0.72em;
+  height: 0.72em;
+}
+
+/* ------------------------------------------------------------------ top bar */
+
+.projects__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-4);
+  min-height: 32px;
+}
+
+/* Paragraph rules are written as `.projects p.x` so they win over generic card
+   paragraph styles (e.g. `.content-card p`) without !important. */
+.projects p.projects__count {
+  max-width: none;
   margin: 0;
   color: var(--text-3);
-  font-size: var(--fs-sm);
+  font: italic 600 var(--fs-sm) / 1.1 var(--font-hud);
   letter-spacing: 0.16em;
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.projects__count b {
+  color: var(--paper);
+  font-weight: 800;
+}
+
+.projects__stale {
+  margin-left: var(--s-3);
+  padding: 2px var(--s-2);
+  color: var(--ink);
+  background: var(--gold);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.projects__all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  padding: 0 var(--s-1);
+  color: var(--cyan);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.projects__all .projects-icon {
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.projects__all:hover,
+.projects__all:focus-visible {
+  color: var(--paper);
+  outline: none;
+}
+
+.projects__all:focus-visible {
+  box-shadow: inset 0 -2px 0 var(--cyan);
+}
+
+.projects__all:hover .projects-icon,
+.projects__all:focus-visible .projects-icon {
+  transform: translate(2px, -2px);
+}
+
+/* --------------------------------------------------------------------- list */
+
+.projects__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3);
+  margin: 0;
+  padding: var(--s-1) 0;
+  list-style: none;
+}
+
+@container (min-width: 520px) {
+  .projects__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop: capped by projects.js when the board would run off-screen. */
+.projects__list.is-scrollable {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--s-2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--pc-edge) transparent;
+  /* Mask colours only define opacity; black = fully visible. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+}
+
+.projects__list.is-scrollable.is-end {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* --------------------------------------------------------------------- card */
+
+.project-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--s-4) var(--s-5) var(--s-4) calc(var(--s-5) + 2px);
+  color: var(--paper);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+/* The plate: a parallelogram with a cyan leading edge. */
+.project-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--s-2);
+  z-index: -1;
+  background:
+    linear-gradient(180deg, var(--pc-hair), transparent 34%),
+    linear-gradient(135deg, var(--pc-plate), var(--pc-plate-2));
+  box-shadow:
+    inset 3px 0 0 var(--pc-edge),
+    inset 0 0 0 1px color-mix(in srgb, var(--ice) 8%, transparent);
+  transform: skewX(var(--pc-skew));
+  transition:
+    box-shadow var(--dur-1) var(--ease-out),
+    background-color var(--dur-1) var(--ease-out);
+}
+
+/* A thin diagonal glint across the top-right corner. */
+.project-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: var(--s-2);
+  z-index: -1;
+  width: 38%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cyan) 55%, transparent));
+  transform: skewX(var(--pc-skew));
+  opacity: 0.7;
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+
+.project-card:not(.project-card--skeleton):hover,
+.project-card:not(.project-card--skeleton):focus-within {
+  transform: translateY(-3px);
+}
+
+.project-card:not(.project-card--skeleton):hover::before,
+.project-card:not(.project-card--skeleton):focus-within::before {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 18%, transparent), transparent 40%),
+    linear-gradient(135deg, color-mix(in srgb, var(--deep) 92%, transparent), color-mix(in srgb, var(--blue) 46%, transparent));
+  box-shadow:
+    inset 5px 0 0 var(--cyan),
+    inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+}
+
+.project-card:hover::after,
+.project-card:focus-within::after {
+  opacity: 1;
+}
+
+.project-card.is-featured::before {
+  box-shadow:
+    inset 3px 0 0 var(--gold),
+    inset 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+/* Keyboard focus: a ring drawn inside the plate's own shape (wins over hover/featured). */
+.project-card.is-kb-focus:not(.project-card--skeleton)::before,
+.project-card:not(.project-card--skeleton):has(:focus-visible)::before {
+  box-shadow:
+    inset 5px 0 0 var(--cyan),
+    inset 0 0 0 2px var(--cyan);
+}
+
+.project-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font: italic 800 var(--fs-xs) / 1.1 var(--font-hud);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.project-card__no {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.project-card__tag {
+  padding: 1px var(--s-2);
+  color: var(--ink);
+  background: var(--gold);
+  letter-spacing: 0.14em;
+}
+
+.project-card__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.project-card__diamond {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: var(--lang, var(--blue-soft));
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.project-card__name {
+  margin: var(--s-2) 0 var(--s-2);
+  font: italic 800 var(--fs-xl) / 0.95 var(--font-hud);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+@container (min-width: 520px) {
+  .project-card__name {
+    font-size: calc(var(--fs-lg) * 1.2);
+  }
+}
+
+.project-card__name a {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  max-width: 100%;
+  min-height: 32px;
+  padding-top: var(--s-1);
+  color: var(--paper);
+  text-decoration: none;
+  outline: none;
+  transition: color var(--dur-1) var(--ease-out);
+}
+
+.project-card__label {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.project-card__name .projects-icon {
+  margin-top: 0.12em;
+  color: var(--cyan);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.project-card__name a:hover,
+.project-card__name a:focus-visible {
+  color: var(--cyan);
+}
+
+.project-card__name a:hover .projects-icon,
+.project-card__name a:focus-visible .projects-icon {
+  transform: translate(2px, -2px);
+}
+
+
+.projects p.project-card__desc {
+  display: -webkit-box;
+  max-width: none;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.projects p.project-card__desc.is-empty {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.project-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  margin-top: auto;
+  padding-top: var(--s-3);
+  color: var(--text-3);
+  font: italic 600 var(--fs-sm) / 1.1 var(--font-hud);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.project-card__meta:empty {
+  display: none;
+}
+
+.project-card__stars {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-icon--star {
+  color: var(--gold);
+}
+
+.project-card__time {
+  color: var(--text-3);
+}
+
+.project-card__live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 28px;
+  margin-left: auto;
+  padding: 0 var(--s-3);
+  color: var(--paper);
+  background: color-mix(in srgb, var(--blue) 70%, transparent);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  transition: background-color var(--dur-1) var(--ease-out);
+}
+
+.project-card__live:hover,
+.project-card__live:focus-visible {
+  background: var(--hot);
+  outline: none;
+}
+
+.project-card__live:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+/* ----------------------------------------------------------------- skeleton */
+
+.project-card--skeleton {
+  gap: var(--s-2);
+  min-height: 168px;
+  pointer-events: none;
+}
+
+.projects-sk {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  height: 12px;
+  background: color-mix(in srgb, var(--ice) 9%, transparent);
+  transform: skewX(var(--pc-skew));
+}
+
+.projects-sk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ice) 16%, transparent), transparent);
+  transform: translateX(-100%);
+  animation: projects-shimmer 1.4s var(--ease-in) infinite;
+}
+
+.projects-sk--head { width: 34%; height: 10px; }
+.projects-sk--name { width: 72%; height: 22px; margin: var(--s-1) 0 var(--s-2); }
+.projects-sk--line { width: 96%; }
+.projects-sk--short { width: 58%; }
+.projects-sk--meta { width: 44%; height: 10px; margin-top: auto; }
+.projects-sk--bar { width: 168px; height: 12px; }
+
+@keyframes projects-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projects-sk::after {
+    animation: none;
+    transform: none;
+    opacity: 0.4;
+  }
+
+  .project-card,
+  .project-card:not(.project-card--skeleton):hover,
+  .project-card:not(.project-card--skeleton):focus-within {
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------- error / empty plate */
+
+.projects-notice {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-2) var(--s-4);
+  align-items: center;
+  overflow: hidden;
+  padding: var(--s-5) var(--s-6);
+}
+
+.projects-notice::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--s-2);
+  z-index: -2;
+  background:
+    repeating-linear-gradient(-82deg, transparent 0 14px, color-mix(in srgb, var(--ice) 4%, transparent) 14px 15px),
+    linear-gradient(135deg, var(--pc-plate), var(--pc-plate-2));
+  box-shadow:
+    inset 3px 0 0 var(--red),
+    inset 0 0 0 1px color-mix(in srgb, var(--ice) 8%, transparent);
+  transform: skewX(var(--pc-skew));
+}
+
+.projects-notice--empty::before {
+  box-shadow:
+    inset 3px 0 0 var(--cyan),
+    inset 0 0 0 1px color-mix(in srgb, var(--ice) 8%, transparent);
+}
+
+.projects-notice__mark {
+  position: absolute;
+  right: var(--s-4);
+  bottom: calc(var(--s-2) * -1);
+  z-index: -1;
+  color: color-mix(in srgb, var(--paper) 5%, transparent);
+  font: 400 var(--fs-3xl) / 0.86 var(--font-display);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.projects-notice__glyph {
+  grid-row: span 3;
+  align-self: start;
+  width: 48px;
+  height: 48px;
+  color: var(--cyan);
+}
+
+.projects p.projects-notice__title {
+  max-width: none;
+  margin: 0;
+  color: var(--paper);
+  font: italic 800 var(--fs-xl) / 0.95 var(--font-hud);
+  text-transform: uppercase;
+}
+
+.projects p.projects-notice__text {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+.projects-cta {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  margin-top: var(--s-2);
+  padding: 0 var(--s-6) 0 var(--s-5);
+  color: var(--paper);
+  background: var(--blue);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  transition:
+    background-color var(--dur-1) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.projects-cta:hover,
+.projects-cta:focus-visible {
+  background: var(--hot);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.projects-cta:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+@container (max-width: 420px) {
+  .projects-notice {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--s-5);
+  }
+
+  .projects-notice__glyph {
+    grid-row: auto;
+    width: 40px;
+    height: 40px;
+  }
+
+  .projects p.projects__count {
+    letter-spacing: 0.1em;
+  }
+}
+
+/* Touch: comfortable targets. */
+@media (pointer: coarse) {
+  .projects__all,
+  .project-card__live {
+    min-height: 44px;
+  }
+
+  /* A 44px target without uneven space under one-line names. */
+  .project-card__name {
+    margin: var(--s-1) 0;
+  }
+
+  .project-card__name a {
+    align-items: center;
+    min-height: 44px;
+    padding-top: 0;
+  }
+
+  .project-card__name .projects-icon {
+    margin-top: 0;
+  }
+}
+
+/* Dark Hour keeps the same structure; tokens already turn green. */
+html[data-darkhour] .project-card.is-featured::before {
+  box-shadow:
+    inset 3px 0 0 var(--gold),
+    inset 0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent);
 }
