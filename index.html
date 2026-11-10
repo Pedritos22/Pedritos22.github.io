@@ -63,6 +63,21 @@
   <!-- Background layers (canvas, skyline, butterflies) are mounted here by js/background.js & co. -->
   <div class="fx-root" aria-hidden="true"></div>
 
+  <!-- HUD: date/moon/time + tools + audio controls (js/hud.js) -->
+  <header class="hud">
+    <div class="top-tools" aria-label="Site tools">
+      <button class="help-toggle" type="button" aria-expanded="false" aria-controls="hint-panel" title="Easter egg hints">?</button>
+      <button class="reset-toggle" type="button" title="Reset easter eggs" aria-label="Reset easter eggs">↺</button>
+      <div class="audio-controls" aria-label="Lo-fi controls">
+        <button class="audio-toggle" type="button" aria-pressed="false">Lo-fi: off</button>
+        <label class="volume-control">
+          Vol
+          <input class="volume-slider" type="range" min="0" max="100" value="92" aria-label="Lo-fi volume" />
+        </label>
+      </div>
+    </div>
+  </header>
+
   <main class="shell">
     <section class="identity" aria-labelledby="site-title">
       <p class="status-line">Cracow, Poland / Computer Science</p>
@@ -72,18 +87,6 @@
           <span>Molendys</span>
         </button>
       </h1>
-
-      <div class="top-tools" aria-label="Site tools">
-        <button class="help-toggle" type="button" aria-expanded="false" aria-controls="hint-panel" title="Easter egg hints">?</button>
-        <button class="reset-toggle" type="button" title="Reset easter eggs" aria-label="Reset easter eggs">↺</button>
-        <div class="audio-controls" aria-label="Lo-fi controls">
-          <button class="audio-toggle" type="button" aria-pressed="false">Lo-fi: off</button>
-          <label class="volume-control">
-            Vol
-            <input class="volume-slider" type="range" min="0" max="100" value="92" aria-label="Lo-fi volume" />
-          </label>
-        </div>
-      </div>
 
       <nav class="menu" aria-label="Profile sections">
         <button class="menu-item" type="button" data-code="01" data-section="about"><span class="menu-label">About</span></button>
