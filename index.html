@@ -122,49 +122,64 @@
     </div>
   </header>
 
-  <main class="shell">
+  <main class="shell" id="main">
     <section class="identity" aria-labelledby="site-title">
-      <p class="status-line">Cracow, Poland / Computer Science</p>
+      <p class="status-line"><span class="status-rule" aria-hidden="true"></span><span>Cracow, Poland</span><span class="status-sep" aria-hidden="true">/</span><span>Computer Science</span></p>
       <h1 id="site-title" class="nameplate">
-        <button class="name-button" type="button" aria-label="Pietro Molendys – back to profile start">
-          <span>Pietro</span>
-          <span>Molendys</span>
+        <button class="name-button" type="button" aria-label="Pietro Molendys, back to the welcome card">
+          <span class="name-first" data-text="Pietro">Pietro</span>
+          <span class="name-last" data-text="Molendys">Molendys</span>
         </button>
       </h1>
 
       <nav class="menu" aria-label="Profile sections">
-        <button class="menu-item" type="button" data-code="01" data-section="about"><span class="menu-label">About</span></button>
-        <button class="menu-item" type="button" data-code="02" data-section="education"><span class="menu-label">Education</span></button>
-        <button class="menu-item" type="button" data-code="03" data-section="skills"><span class="menu-label">Skills</span></button>
-        <button class="menu-item" type="button" data-code="04" data-section="projects"><span class="menu-label">Projects</span></button>
-        <button class="menu-item" type="button" data-code="05" data-section="contact"><span class="menu-label">Contact</span></button>
+        <span class="menu-marker" aria-hidden="true"></span>
+        <span class="menu-cursor" aria-hidden="true"></span>
+        <button class="menu-item" type="button" data-code="01" data-section="about"><span class="menu-code" aria-hidden="true">01</span><span class="menu-label"><span class="menu-text">About</span></span><span class="menu-remains" aria-hidden="true"><span>About</span><span>About</span></span></button>
+        <button class="menu-item" type="button" data-code="02" data-section="education"><span class="menu-code" aria-hidden="true">02</span><span class="menu-label"><span class="menu-text">Education</span></span><span class="menu-remains" aria-hidden="true"><span>Education</span><span>Education</span></span></button>
+        <button class="menu-item" type="button" data-code="03" data-section="skills"><span class="menu-code" aria-hidden="true">03</span><span class="menu-label"><span class="menu-text">Skills</span></span><span class="menu-remains" aria-hidden="true"><span>Skills</span><span>Skills</span></span></button>
+        <button class="menu-item" type="button" data-code="04" data-section="projects"><span class="menu-code" aria-hidden="true">04</span><span class="menu-label"><span class="menu-text">Projects</span></span><span class="menu-remains" aria-hidden="true"><span>Projects</span><span>Projects</span></span></button>
+        <button class="menu-item" type="button" data-code="05" data-section="contact"><span class="menu-code" aria-hidden="true">05</span><span class="menu-label"><span class="menu-text">Contact</span></span><span class="menu-remains" aria-hidden="true"><span>Contact</span><span>Contact</span></span></button>
       </nav>
+
+      <a class="scroll-cue" href="#section-home"><span>Scroll</span><span class="scroll-cue-line" aria-hidden="true"></span></a>
     </section>
 
-    <section class="panel-wrap" aria-live="polite">
+    <section class="panel-wrap" aria-label="Profile card">
       <!-- Clock/moon emblem, rendered by js/emblem.js -->
       <div class="emblem-mount" aria-hidden="true"></div>
 
-      <article class="content-card" data-section="Welcome">
-        <p class="section-kicker">Profile 00</p>
-        <h2>Welcome to my page!</h2>
-        <p>Glad to have you here. Feel free to explore it, fiddle around, and get to know me better!</p>
-        <ul class="detail-list">
-          <li><span>Fun-fact 1</span><strong>I can talk fluently in at least 3 languages.</strong></li>
-          <li><span>Fun-fact 2</span><strong>My favourite board game is Mahjong.</strong></li>
-          <li><span>Fun-fact 3</span><strong>My favourite beverage is Estathé.</strong></li>
-        </ul>
-      </article>
+      <div class="card-stage">
+        <article class="content-card" data-section="Welcome" aria-labelledby="card-title">
+          <p class="section-kicker">Profile 00</p>
+          <h2 id="card-title">Welcome to my page!</h2>
+          <p class="card-lead">Glad to have you here! Feel free to explore, fiddle around and get to know me better.</p>
+          <div class="card-body">
+            <ul class="detail-list detail-list--facts" role="list">
+              <li class="row"><span class="row-label">Fun fact 01</span><strong class="row-value">I speak at least three languages fluently.</strong></li>
+              <li class="row"><span class="row-label">Fun fact 02</span><strong class="row-value">My favourite board game is Mahjong.</strong></li>
+              <li class="row"><span class="row-label">Fun fact 03</span><strong class="row-value">My favourite drink is Estathé.</strong></li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <p class="visually-hidden" aria-live="polite" data-section-announcer></p>
 
       <div class="mobile-section-stack" aria-label="All profile sections"></div>
     </section>
   </main>
 
   <noscript>
+    <style>
+      .shell, .meta-bar { visibility: visible !important; animation: none !important; }
+      .menu, .scroll-cue { display: none !important; }
+      @media (max-width: 920px) { .panel-wrap > .card-stage { display: block !important; } }
+    </style>
     <section class="noscript-note">
-      <p>This site is best with JavaScript enabled. Reach me at
-        <a href="mailto:molendyspietro@gmail.com">molendyspietro@gmail.com</a>,
-        <a href="https://github.com/pedritos22">GitHub</a> or
+      <p>This site works best with JavaScript enabled. You can reach me at
+        <a href="mailto:molendyspietro@gmail.com">molendyspietro@gmail.com</a>, on
+        <a href="https://github.com/pedritos22">GitHub</a> or on
         <a href="https://linkedin.com/in/pietro-molendys-b1324231b">LinkedIn</a>.</p>
     </section>
   </noscript>
@@ -246,9 +261,9 @@
     </section>
   </dialog>
 
-  <footer class="meta-bar" aria-label="Site metadata">
-    <span>"Nothing in life is to be feared. It is only to be understood." - Maria Skłodowska-Curie</span>
-    <span>2026 / PM</span>
+  <footer class="meta-bar">
+    <p class="meta-quote"><q>Nothing in life is to be feared. It is only to be understood.</q> <span class="meta-author">Maria Skłodowska-Curie</span></p>
+    <p class="meta-sign"><span>2026</span><span class="meta-sep" aria-hidden="true">/</span><span>PM</span></p>
   </footer>
 </body>
 </html>

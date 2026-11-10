@@ -1,240 +1,1308 @@
-/* Content card and everything inside it. Owner: menu/panel workstream (B). */
+/* Content card and everything inside it. Owner: menu/panel workstream (B).
+
+   Card anatomy (sections.js builds it):
+     .content-card            the glass target; flex column, unclipped so focus rings show
+       .card-back             offset hard plate (cyan), same silhouette
+       .card-plate            clipped main plate: hairlines, watermark word, big number
+       .section-kicker, h2, .card-lead, .card-body   swapped on every section change
+       .card-pager            pips + "01 / 05"
+       .card-wipe             transition bands (wipe-train) clipped to the silhouette
+   Silhouette: the top edge rises at 2deg, the right edge leans at 4deg, both computed from
+   the stage size (container units) so the angles stay true at every card size. */
+
+.card-stage {
+  container: stage / size;
+}
 
 .content-card {
+  --back: var(--s-3);
+  --pad-x: clamp(var(--s-5), 4.2cqw, var(--s-7));
+  /* tan(2deg) and tan(4deg) */
+  --edge-t: calc((100cqw - var(--back)) * 0.0349);
+  --edge-r: calc((100cqh - var(--back)) * 0.0699);
+  --shape: polygon(0 var(--edge-t), 100% 0, calc(100% - var(--edge-r)) 100%, 0 100%);
   position: relative;
-  width: min(100%, 620px);
-  min-height: 390px;
-  padding: clamp(24px, 3.4vw, 40px);
-  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  padding:
+    calc(var(--edge-t) + clamp(var(--s-5), 6cqh, var(--s-7)))
+    calc(var(--edge-r) + var(--pad-x))
+    var(--s-8)
+    var(--pad-x);
   color: var(--paper);
-  background:
-    linear-gradient(135deg, rgba(2, 7, 19, 0.92), rgba(3, 41, 110, 0.78)),
-    linear-gradient(90deg, rgba(70, 216, 255, 0.07), transparent 58%);
-  border: 0;
-  clip-path: polygon(0 4%, 92% 0, 99.4% 12%, 96% 99.2%, 5% 95%);
-  box-shadow:
-    0 34px 86px rgba(0, 0, 0, 0.38),
-    inset 0 0 0 1px rgba(70, 216, 255, 0.08);
-  overflow: hidden;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  isolation: isolate;
 }
 
-.content-card::before {
-  content: attr(data-section);
+/* Desktop: the card fills the stage (minus the back plate offset). Two classes of
+   specificity so glass.css (.glass-fracture { position: relative }) cannot undo it. */
+.card-stage > .content-card {
   position: absolute;
-  right: -7px;
-  top: -23px;
-  color: rgba(255, 255, 255, 0.055);
-  font-family: "Anton", Impact, sans-serif;
-  font-size: clamp(78px, 12vw, 156px);
+  inset: 0 var(--back) var(--back) 0;
+}
+
+/* ---------------------------------------------------------------- plates */
+
+.card-back,
+.card-plate {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--shape);
+  pointer-events: none;
+}
+
+.card-back {
+  z-index: -2;
+  top: var(--back);
+  left: var(--back);
+  right: calc(var(--back) * -1);
+  bottom: calc(var(--back) * -1);
+  background:
+    linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--blue) 60%, transparent)),
+    color-mix(in srgb, var(--cyan) 88%, transparent);
+}
+
+.card-plate {
+  z-index: -1;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--cyan) 9%, transparent), transparent 22%),
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--blue) 26%, transparent), transparent 60%),
+    linear-gradient(165deg, color-mix(in srgb, var(--night) 96%, transparent), color-mix(in srgb, var(--abyss) 97%, transparent) 58%, color-mix(in srgb, var(--ink) 97%, transparent));
+}
+
+.card-hair {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+/* Inner hairline parallel to the 2deg top edge. */
+.card-hair--top {
+  left: 0;
+  right: 0;
+  top: calc(var(--edge-t) + var(--s-2));
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cyan) 70%, transparent), color-mix(in srgb, var(--cyan) 12%, transparent) 70%, transparent);
+  transform: rotate(-2deg);
+  transform-origin: 0 0;
+}
+
+/* A long -8deg diagonal through the right third (rotate(8deg) leans like the wipes). */
+.card-hair--cross {
+  top: -10%;
+  bottom: -10%;
+  left: 86%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--line) 20%, var(--line) 80%, transparent);
+  transform: rotate(8deg);
+}
+
+.card-watermark {
+  position: absolute;
+  right: calc(var(--edge-r) - 0.04em);
+  top: calc(var(--edge-t) + 0.02em);
+  color: color-mix(in srgb, var(--paper) 4.5%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(5.5rem, 21cqh, 10.5rem);
+  line-height: 0.86;
   letter-spacing: 0;
   text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-8deg);
+  transform-origin: 100% 0;
 }
 
-.content-card::after {
-  content: "";
+.card-num {
   position: absolute;
-  inset: auto 0 0 auto;
-  width: 64%;
-  height: 6px;
-  background: linear-gradient(90deg, transparent, rgba(70, 216, 255, 0.28), rgba(126, 202, 255, 0.72));
-  clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%);
+  right: calc(var(--edge-r) + var(--s-5));
+  bottom: calc(var(--s-4) * -1);
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 24cqh, 11rem);
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
+
+/* ----------------------------------------------------------------- pager */
+
+.card-pager {
+  position: absolute;
+  left: var(--pad-x);
+  bottom: var(--s-5);
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  color: var(--text-3);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.2em;
+  pointer-events: none;
+}
+
+.pager-pips {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.pager-pips i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%; /* true circle */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 55%, transparent);
+  transition: background-color var(--dur-2) linear;
+}
+
+.pager-pips i.is-on {
+  background: var(--cyan);
+}
+
+.pager-count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.pager-count b {
+  color: var(--paper);
+  font-weight: 800;
+}
+
+.pager-count::before {
+  content: "";
+  width: var(--s-7);
+  height: 1px;
+  margin-right: var(--s-3);
+  align-self: center;
+  background: var(--line);
+}
+
+/* --------------------------------------------------------------- content */
 
 .section-kicker {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0 0 18px;
+  gap: var(--s-3);
+  flex: none;
+  margin: 0 0 var(--s-3);
   color: var(--cyan);
-  font-size: 0.76rem;
-  font-weight: 900;
+  font-family: var(--font-hud);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.1;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .section-kicker::before {
   content: "";
-  width: 18px;
-  height: 18px;
+  flex: none;
+  width: 12px;
+  height: 12px;
   background: var(--red);
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
 .content-card h2 {
-  position: relative;
-  margin: 0 0 18px;
+  flex: none;
+  max-width: 15ch;
+  margin: 0 0 var(--s-4);
   color: var(--paper);
-  font-family: "Anton", Impact, sans-serif;
-  font-size: clamp(40px, 5.6vw, 72px);
-  line-height: 0.9;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, min(7.2cqw, 10cqh), 4.6rem);
+  font-weight: 400;
+  line-height: 0.88;
   letter-spacing: 0;
   text-transform: uppercase;
+  text-wrap: balance;
 }
 
-.content-card p {
-  position: relative;
-  max-width: 54ch;
-  margin: 0;
-  color: rgba(247, 251, 255, 0.8);
-  font-size: clamp(0.98rem, 1.4vw, 1.08rem);
-  line-height: 1.72;
+.content-card[data-kind="archive"] h2 {
+  max-width: 18ch;
+  font-size: clamp(2.2rem, min(6.4cqw, 7.4cqh), 4rem);
 }
+
+/* Short stages: tighten the vertical rhythm so every section fits without scrolling. */
+@container stage (max-height: 600px) {
+  .content-card {
+    padding-top: calc(var(--edge-t) + var(--s-5));
+    padding-bottom: calc(var(--s-7) + var(--s-1));
+  }
+
+  .card-pager {
+    bottom: var(--s-4);
+  }
+
+  .content-card > .card-lead {
+    margin-bottom: var(--s-4);
+  }
+
+  .content-card h2 {
+    margin-bottom: var(--s-3);
+  }
+}
+
+.split-word {
+  white-space: nowrap;
+}
+
+.content-card > .card-lead {
+  flex: none;
+  max-width: 56ch;
+  margin: 0 0 var(--s-5);
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.65;
+}
+
+/* Scrolls only when a section does not fit (short screens, Projects). */
+.card-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(var(--s-3) * -1);
+  padding: var(--s-1) var(--s-3) var(--s-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--cyan) 50%, transparent) transparent;
+  container: cardbody / size;
+}
+
+.card-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.card-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--cyan) 50%, transparent);
+}
+
+/* Mask colours only carry alpha: #000 = fully visible. */
+.card-body.is-overflowing {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - var(--s-6)), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - var(--s-6)), transparent);
+}
+
+/* ------------------------------------------------------------- data rows */
 
 .detail-list {
   position: relative;
   display: grid;
-  gap: 10px;
-  margin: 28px 0 0;
+  gap: var(--s-2);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.detail-list li {
+.detail-list > li {
+  --row-h: 60px;
   display: grid;
-  grid-template-columns: 92px 1fr;
-  gap: 14px;
-  align-items: baseline;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.075);
-  border-left: 4px solid rgba(70, 216, 255, 0.78);
-  clip-path: polygon(0 0, 98% 0, 100% 48%, 97% 100%, 0 100%);
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: var(--s-4);
+  row-gap: 2px;
+  align-items: center;
+  min-height: var(--row-h);
+  padding: var(--s-2) var(--s-6) var(--s-2) var(--s-3);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--blue) 20%, transparent), color-mix(in srgb, var(--paper) 4%, transparent) 64%, color-mix(in srgb, var(--paper) 2%, transparent));
+  box-shadow: inset 3px 0 0 var(--cyan);
+  /* Right end leans at -8deg: 60px * tan(8deg) ~ 8px. */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 
-.detail-list span {
-  color: rgba(126, 202, 255, 0.92);
-  font-size: 0.72rem;
-  font-weight: 900;
+.row-glyph {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 10%, transparent);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.glyph {
+  width: 22px;
+  height: 22px;
+}
+
+.row-label {
+  align-self: end;
+  color: var(--cyan);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.1;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
-.detail-list strong,
-.detail-list a {
+.row-value {
+  align-self: start;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  min-width: 0;
   color: var(--paper);
-  font-size: 0.96rem;
-  font-weight: 800;
-  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-.detail-list a:hover,
-.detail-list a:focus-visible {
+/* Rows without a glyph (static HTML before JS). */
+.detail-list > li:not(:has(.row-glyph)) {
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: var(--s-5);
+}
+
+.swatches {
+  display: inline-flex;
+  gap: var(--s-1);
+}
+
+.swatch {
+  width: 22px;
+  height: 14px;
+  clip-path: polygon(2px 0, 100% 0, calc(100% - 2px) 100%, 0 100%);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* Literal swatches of the owner's favourite colours: they must not follow Dark Hour tokens. */
+.swatch--blue {
+  background: #0455ff;
+}
+
+.swatch--navy {
+  background: #0b1f4d;
+}
+
+/* --------------------------------------------------- education: archive */
+
+.detail-list--record {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-list--record > li {
+  --row-h: 72px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-items: start;
+  padding: var(--s-3) var(--s-5) var(--s-3) var(--s-4);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+.detail-list--record .row-glyph {
+  display: none;
+}
+
+.detail-list--record .row-value {
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+
+.archive-cal {
+  position: relative;
+  margin-top: var(--s-5);
+}
+
+.archive-caption {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-3);
+  color: var(--text-3);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.archive-caption::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Desk-calendar binding: rings over the grid (true circles). */
+.cal-rings {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: 0;
+}
+
+.cal-rings i {
+  justify-self: center;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 50%; /* true circle */
+  background: var(--abyss);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ice) 70%, transparent);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--line);
+  border-top: 3px solid var(--blue);
+}
+
+.cal-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 92px;
+  padding: var(--s-3) var(--s-3) var(--s-3);
+  background: color-mix(in srgb, var(--abyss) 94%, transparent);
+}
+
+.cal-num {
+  color: var(--blue-soft);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xl);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-cell:first-child .cal-num {
   color: var(--cyan);
+}
+
+.cal-label {
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.3;
+  hyphens: manual;
+}
+
+/* ------------------------------------------------------- skills: arcana */
+
+.arcana-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(150px, 1fr);
+  gap: var(--s-4) var(--s-5);
+  height: 100%;
+  margin: 0;
+  padding: var(--s-2) 0 var(--s-1);
+  list-style: none;
+}
+
+.arcana-slot {
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
+
+.skill.arcana {
+  position: relative;
+  display: block;
+  height: 100%;
+  aspect-ratio: 5 / 7;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  perspective: 800px;
+  container: arcana / size;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.skill.arcana:focus {
   outline: none;
 }
 
-.skill-grid {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 28px;
+.skill.arcana:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: var(--s-1);
 }
 
-.skill {
-  min-height: 104px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 0;
-  box-shadow: inset 0 0 0 1px rgba(70, 216, 255, 0.07);
-  clip-path: polygon(0 0, 92% 0, 99.2% 16%, 96% 99.2%, 0 100%);
-  transform: translateZ(0);
-}
-
-.skill b {
+.arcana-inner {
+  position: absolute;
+  inset: 0;
   display: block;
-  margin-bottom: 9px;
+  transform-style: preserve-3d;
+  /* Rest pose: the counter angle. */
+  transform: rotate(var(--tilt-minor));
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+.arcana-slot:nth-child(even) .arcana-inner {
+  transform: rotate(-4deg);
+}
+
+.skill.arcana.is-flipped .arcana-inner,
+.skill.arcana:focus-visible .arcana-inner {
+  transform: translateY(-4px) rotateY(180deg);
+}
+
+@media (hover: hover) {
+  .skill.arcana:hover .arcana-inner {
+    transform: translateY(-4px) rotateY(180deg);
+  }
+}
+
+.arcana-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-3) var(--s-2);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--blue) 20%, transparent), transparent 40%),
+    linear-gradient(170deg, var(--night), var(--abyss));
+  /* Double frame: gold hairline, gap, cyan hairline. */
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--gold) 60%, transparent),
+    inset 0 0 0 4px var(--abyss),
+    inset 0 0 0 5px color-mix(in srgb, var(--cyan) 26%, transparent),
+    6px 6px 0 color-mix(in srgb, var(--ink) 70%, transparent);
+}
+
+/* Corner diamonds. */
+.arcana-face::before,
+.arcana-face::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: var(--gold);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.arcana-face::before {
+  left: 7px;
+  top: 7px;
+}
+
+.arcana-face::after {
+  right: 7px;
+  bottom: 7px;
+}
+
+.arcana-numeral {
+  color: var(--gold);
+  font-family: var(--font-hud);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.16em;
+}
+
+.arcana-sigil {
+  display: grid;
+  place-items: center;
+  width: 76%;
+  aspect-ratio: 1;
+  color: var(--ice);
+}
+
+.sigil {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  stroke-width: 1.5;
+}
+
+.sigil .sg-dash {
+  opacity: 0.6;
+}
+
+.sigil .sg-tick {
+  opacity: 0.7;
+}
+
+.sigil .sg-dot {
+  fill: var(--abyss);
+  stroke: var(--cyan);
+}
+
+.arcana-name {
+  width: 100%;
+  padding-top: var(--s-2);
+  border-top: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
   color: var(--paper);
-  font-size: 1rem;
-  letter-spacing: 0.04em;
+  font-family: var(--font-hud);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.skill span {
-  display: block;
-  color: rgba(247, 251, 255, 0.66);
-  font-size: 0.9rem;
-  line-height: 1.48;
+.arcana-back {
+  justify-content: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-3);
+  overflow: hidden;
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--blue) 34%, transparent), transparent 60%),
+    linear-gradient(170deg, var(--deep), var(--abyss));
 }
 
-.actions {
-  position: relative;
+.arcana-back-head {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 30px;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  color: var(--gold);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.action-link {
+.arcana-desc {
+  position: relative;
+  z-index: 1;
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  hyphens: auto;
+}
+
+.arcana-ghost {
+  position: absolute;
+  right: -18%;
+  bottom: -18%;
+  width: 80%;
+  aspect-ratio: 1;
+  color: color-mix(in srgb, var(--cyan) 14%, transparent);
+  pointer-events: none;
+}
+
+/* Landscape cards when the body is too short for portrait ones. */
+@container cardbody (max-height: 330px) {
+  .arcana-grid {
+    grid-auto-rows: minmax(96px, 1fr);
+  }
+
+  .skill.arcana {
+    width: 100%;
+    aspect-ratio: auto;
+  }
+}
+
+@container arcana (min-aspect-ratio: 1 / 1) {
+  .arcana-front {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: center;
+    justify-items: start;
+    column-gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+  }
+
+  .arcana-front .arcana-sigil {
+    grid-row: 1 / span 2;
+    width: auto;
+    height: 100%;
+    max-height: 60px;
+  }
+
+  .arcana-front .arcana-numeral {
+    align-self: end;
+  }
+
+  .arcana-front .arcana-name {
+    align-self: start;
+    width: auto;
+    max-width: 100%;
+    border-top: 0;
+    font-size: var(--fs-sm);
+    letter-spacing: 0.06em;
+    text-align: left;
+  }
+}
+
+/* Tall stages: give short sections more presence. */
+@container stage (min-height: 620px) {
+  .detail-list--facts > li,
+  .detail-list--profile > li {
+    --row-h: 72px;
+  }
+
+  .detail-list--facts .row-value,
+  .detail-list--profile .row-value {
+    font-size: var(--fs-lg);
+  }
+
+  .detail-list--facts,
+  .detail-list--profile {
+    gap: var(--s-3);
+  }
+}
+
+/* Very short card bodies (about 1024x640): smaller arcana plates and contact rows. */
+@container cardbody (max-height: 230px) {
+  .arcana-grid {
+    grid-auto-rows: minmax(76px, 1fr);
+    gap: var(--s-3) var(--s-4);
+  }
+
+  .detail-list--links > li {
+    --row-h: 52px;
+  }
+
+  .link-main {
+    padding-block: var(--s-2);
+  }
+
+  .actions {
+    margin-top: var(--s-3);
+  }
+
+  .action-link {
+    min-height: 44px;
+  }
+}
+
+@container arcana (max-height: 90px) {
+  .arcana-front .arcana-sigil {
+    max-height: 48px;
+  }
+}
+
+/* Short card bodies: compact archive. */
+@container cardbody (max-height: 250px) {
+  .detail-list--record > li {
+    --row-h: 56px;
+    padding-block: var(--s-2);
+  }
+
+  .archive-cal {
+    margin-top: var(--s-4);
+  }
+
+  .cal-cell {
+    min-height: 64px;
+    gap: var(--s-2);
+    padding-block: var(--s-2);
+  }
+
+  .cal-num {
+    font-size: var(--fs-lg);
+  }
+}
+
+/* ------------------------------------------------------------ contact */
+
+.detail-list--links > li {
+  --row-h: 64px;
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+}
+
+.link-main {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--s-4);
+  row-gap: 2px;
+  align-items: center;
+  min-width: 0;
+  padding: var(--s-3) var(--s-5) var(--s-3) var(--s-3);
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+  transition: background-color var(--dur-1) linear;
+}
+
+.link-main .row-glyph {
+  transition: background-color var(--dur-1) linear, color var(--dur-1) linear;
+}
+
+.link-main .row-glyph {
+  grid-column: 1;
+}
+
+.link-main .row-label,
+.link-main .row-value {
+  grid-column: 2;
+}
+
+.link-main .row-value {
+  display: block;
+  overflow-wrap: break-word;
+}
+
+.link-ext {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  transition: translate var(--dur-1) var(--ease-out), color var(--dur-1) linear;
+}
+
+.link-ext .glyph {
+  width: 18px;
+  height: 18px;
+}
+
+.link-main:hover,
+.link-main:focus-visible {
+  background: color-mix(in srgb, var(--cyan) 10%, transparent);
+}
+
+.link-main:hover .row-glyph,
+.link-main:focus-visible .row-glyph {
+  color: var(--ink);
+  background: var(--cyan);
+}
+
+.link-main:hover .link-ext,
+.link-main:focus-visible .link-ext {
+  color: var(--cyan);
+  translate: 2px -2px;
+}
+
+/* Focus ring drawn inside the clipped row. */
+.link-main:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+.copy-btn {
+  position: relative;
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: var(--s-2);
+  min-width: 112px;
   min-height: 44px;
-  padding: 0 22px;
+  margin: var(--s-2) var(--s-5) var(--s-2) 0;
+  padding: 0 var(--s-4);
+  align-self: center;
+  border: 0;
+  color: var(--paper);
+  background: color-mix(in srgb, var(--paper) 10%, transparent);
+  font-family: var(--font-hud);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: background-color var(--dur-1) linear, color var(--dur-1) linear;
+}
+
+.copy-btn .glyph {
+  width: 16px;
+  height: 16px;
+}
+
+.copy-glyph {
+  display: grid;
+}
+
+.copy-glyph--done {
+  display: none;
+}
+
+.copy-btn:hover,
+.copy-btn:focus-visible {
+  background: color-mix(in srgb, var(--cyan) 22%, transparent);
+  outline: none;
+}
+
+.copy-btn:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+.copy-btn.is-copied {
+  color: var(--ink);
+  background: var(--cyan);
+}
+
+.copy-btn.is-copied .copy-glyph--idle {
+  display: none;
+}
+
+.copy-btn.is-copied .copy-glyph--done {
+  display: grid;
+}
+
+.copy-btn.is-failed {
+  color: var(--paper);
+  background: color-mix(in srgb, var(--red) 70%, transparent);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+}
+
+.action-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 var(--s-6);
   color: var(--paper);
   background: var(--blue);
-  font-size: 0.82rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
+  font-family: var(--font-hud);
+  font-size: var(--fs-md);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-decoration: none;
   text-transform: uppercase;
-  clip-path: polygon(0 0, 92% 0, 100% 36%, 92% 100%, 0 100%, 7% 50%);
-  transition: transform 160ms ease, background 160ms ease;
+  /* Both ends lean at -8deg: 48px * tan(8deg) ~ 7px. */
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  transition: background-color var(--dur-1) linear, color var(--dur-1) linear;
+}
+
+.action-link > span {
+  display: block;
+  transition: translate var(--dur-1) var(--ease-out);
+}
+
+.action-link.secondary {
+  background: color-mix(in srgb, var(--paper) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--paper) 22%, transparent);
 }
 
 .action-link:hover,
 .action-link:focus-visible {
-  transform: translateY(-2px);
+  color: var(--ink);
   background: var(--hot);
   outline: none;
 }
 
-.action-link.secondary {
-  background: rgba(255, 255, 255, 0.12);
-  border: 0;
-  box-shadow: inset 0 0 0 1px rgba(247, 251, 255, 0.14);
+.action-link.secondary:hover,
+.action-link.secondary:focus-visible {
+  color: var(--paper);
+  background: color-mix(in srgb, var(--cyan) 22%, transparent);
 }
 
-/* Container for sections with a custom render() hook (Projects). */
+.action-link:hover > span,
+.action-link:focus-visible > span {
+  translate: 3px 0;
+}
+
+/* Focus ring inside the clip. */
+.action-link:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 4px var(--ink);
+}
+
+.action-link.secondary:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+/* --------------------------------------------- projects: render hook room */
+
+/* Desktop: a compact header (kicker row, then title and lead side by side, no pager) so
+   the board below gets the height. projects.js caps its own list against the viewport
+   (innerHeight - 72px), which lands inside this card's bottom padding, so the body must
+   not clip or scroll it a second time. */
+.card-stage > .content-card[data-kind="custom"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  column-gap: var(--s-6);
+  padding-top: calc(var(--edge-t) + var(--s-5));
+  padding-bottom: var(--s-4);
+}
+
+.card-stage > .content-card[data-kind="custom"] > .section-kicker {
+  grid-column: 1 / -1;
+  margin-bottom: var(--s-2);
+}
+
+.card-stage > .content-card[data-kind="custom"] h2 {
+  align-self: end;
+  max-width: none;
+  margin: 0;
+  font-size: clamp(2.1rem, min(5.4cqw, 7cqh), 3.4rem);
+  white-space: nowrap;
+}
+
+.card-stage > .content-card[data-kind="custom"] > .card-lead {
+  align-self: end;
+  max-width: 36ch;
+  margin: 0 0 0.2em;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.card-stage > .content-card[data-kind="custom"] > .card-body {
+  grid-column: 1 / -1;
+  margin-top: var(--s-4);
+  margin-right: calc(var(--s-3) * -1 - var(--edge-r) / 2);
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.card-stage > .content-card[data-kind="custom"] .card-pager {
+  display: none;
+}
+
 .section-custom {
   position: relative;
-  margin-top: 28px;
+  min-height: 120px;
 }
+
+/* -------------------------------------------------------------- the wipe */
+
+.card-wipe {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  overflow: hidden;
+  clip-path: var(--shape);
+  pointer-events: none;
+}
+
+.wipe-train {
+  position: absolute;
+  left: 0;
+  top: calc(var(--wipe-bleed, 24px) * -1);
+  bottom: calc(var(--wipe-bleed, 24px) * -1);
+  display: flex;
+  will-change: transform;
+}
+
+.wipe-train[data-dir="-1"] {
+  flex-direction: row-reverse;
+}
+
+.wb {
+  position: relative;
+  flex: none;
+  height: 100%;
+}
+
+/* Widths are mirrored in trainGeometry() in sections.js. */
+.wb-streak { width: 4px; background: var(--paper); }
+.wb-gap { width: 10px; }
+.wb-cyan { width: 18px; background: var(--cyan); }
+.wb-blue { width: 40px; background: var(--blue); }
+.wb-edge { width: 3px; background: var(--cyan); }
+
+.wb-navy {
+  width: var(--navy-w, 800px);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--blue) 34%, transparent), transparent 16%, transparent 84%, color-mix(in srgb, var(--cyan) 18%, transparent)),
+    linear-gradient(180deg, color-mix(in srgb, var(--deep) 70%, var(--night)), var(--abyss));
+}
+
+.wb-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  color: color-mix(in srgb, var(--cyan) 6%, transparent);
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--cyan) 70%, transparent);
+  font-family: var(--font-display);
+  font-size: 15rem;
+  line-height: 0.86;
+  letter-spacing: -0.01em;
+}
+
+/* ------------------------------------------------------------------ mobile */
 
 @media (max-width: 920px) {
-  .content-card {
+  .mobile-section-stack .content-card {
+    --back: var(--s-2);
+    --pad-x: clamp(var(--s-4), 5vw, var(--s-6));
+    --edge-t: 14px;
+    --edge-r: 0px;
+    position: relative;
+    inset: auto;
+    margin: 0 var(--back) var(--back) 0;
+    padding: calc(var(--edge-t) + var(--s-6)) var(--pad-x) var(--s-7);
+    scroll-margin-top: var(--s-4);
+  }
+
+  .mobile-section-stack .card-watermark {
+    font-size: clamp(4.5rem, 24vw, 8rem);
+  }
+
+  .mobile-section-stack .card-num {
+    font-size: clamp(5rem, 30vw, 9rem);
+    bottom: calc(var(--s-3) * -1);
+  }
+
+  .mobile-section-stack .content-card h2 {
+    font-size: clamp(2.4rem, 11vw, 3.6rem);
+  }
+
+  .mobile-section-stack .card-body {
+    flex: none;
+    overflow: visible;
+    container-type: inline-size;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-section-stack .card-body.is-overflowing {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .mobile-section-stack .arcana-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    height: auto;
+    gap: var(--s-5) var(--s-4);
+  }
+
+  .mobile-section-stack .skill.arcana {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    aspect-ratio: 5 / 7;
+  }
+
+  .mobile-section-stack .detail-list--record {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mobile-section-stack .detail-list--record > li {
+    --row-h: 60px;
     min-height: 0;
-    padding: clamp(22px, 5vw, 34px);
-    clip-path: polygon(0 2.5%, 94% 0, 99.2% 8.5%, 97% 99%, 4% 97%);
   }
 
-  .content-card::before {
-    top: -14px;
-    right: -4px;
-    font-size: clamp(72px, 24vw, 136px);
+  .mobile-section-stack .cal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .skill-grid {
-    grid-template-columns: 1fr;
+  .mobile-section-stack .cal-rings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mobile-section-stack .cal-rings i:nth-child(n + 3) {
+    display: none;
+  }
+
+  .mobile-section-stack .cal-cell:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-section-stack .cal-cell {
+    min-height: 84px;
+  }
+
+  .mobile-section-stack .detail-list--links > li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mobile-section-stack .copy-btn {
+    margin: 0 var(--s-4) var(--s-3) calc(40px + var(--s-3) * 2);
+    align-self: flex-start;
+  }
+
+  .mobile-section-stack .actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mobile-section-stack .action-link {
+    width: 100%;
+    padding: 0 var(--s-4);
+  }
+
+  .mobile-section-stack .action-link.primary {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-section-stack .link-main {
+    padding-right: var(--s-4);
+    column-gap: var(--s-3);
+  }
+
+  .mobile-section-stack .link-main .row-value {
+    font-size: var(--fs-sm);
+  }
+
+  .mobile-section-stack .card-body[data-kind="custom"] {
+    margin-right: 0;
   }
 }
 
-@media (max-width: 620px) {
-  .content-card {
-    padding: 24px 18px 28px;
+/* -------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .arcana-inner,
+  .arcana-slot:nth-child(even) .arcana-inner,
+  .skill.arcana.is-flipped .arcana-inner,
+  .skill.arcana:focus-visible .arcana-inner,
+  .skill.arcana:hover .arcana-inner {
+    transform: none;
   }
 
-  .detail-list li {
-    grid-template-columns: 1fr;
-    gap: 5px;
+  .arcana-back {
+    transform: none;
+    opacity: 0;
   }
 
-  .actions {
-    display: grid;
+  .skill.arcana.is-flipped .arcana-back,
+  .skill.arcana:focus-visible .arcana-back {
+    opacity: 1;
   }
 
-  .action-link {
-    width: 100%;
+  @media (hover: hover) {
+    .skill.arcana:hover .arcana-back {
+      opacity: 1;
+    }
   }
 }

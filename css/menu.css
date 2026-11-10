@@ -1,219 +1,349 @@
 /* Nameplate and main menu. Owner: menu/panel workstream (B).
-   Drag states of the nameplate live in overlays.css (C). */
+   Drag states of the nameplate (.is-hold-ready, .is-dragging, .is-dropped) live in
+   overlays.css (C). Never put a transform, filter or contain on .nameplate or its
+   ancestors: the dragged name is position: fixed and must stay relative to the viewport.
+
+   GSAP animates `transform` on the name lines and menu items (entrance); hover and
+   active states use the individual `translate` / `scale` properties instead, so CSS
+   transitions never fight the GSAP tweens. */
+
+.identity {
+  --name-size: clamp(3.4rem, min(8.4vw, 10.6vh), 7.45rem);
+  --item-size: clamp(2.75rem, min(6vw, 8.2vh), 5.9rem);
+}
+
+/* ------------------------------------------------------------- nameplate */
 
 .nameplate {
   margin: 0;
-  display: grid;
-  gap: 0;
-  font-family: "Anton", Impact, sans-serif;
-  font-size: clamp(54px, 9.5vw, 126px);
-  line-height: 0.78;
+  /* Reserve the lockup's height so the menu never jumps when the name is picked up. */
+  min-height: calc(var(--name-size) * 1.8);
+  font-family: var(--font-display);
+  font-size: var(--name-size);
+  font-weight: 400;
+  line-height: 0.86;
   letter-spacing: 0;
   text-transform: uppercase;
-  text-shadow: 0 12px 0 rgba(0, 0, 0, 0.2);
 }
 
 .name-button {
   all: unset;
+  position: relative;
   display: grid;
-  gap: 0;
+  justify-items: start;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.name-button > span {
+  display: block;
+  white-space: nowrap;
+  transition: translate var(--dur-2) var(--ease-out), color var(--dur-1) linear;
+}
+
+/* PIETRO: solid paper with a hard navy extrusion. */
+.name-first {
+  color: var(--paper);
+  text-shadow: 0.04em 0.04em 0 var(--deep);
+}
+
+/* MOLENDYS: offset one step right, outlined, over a solid electric-blue offset copy. */
+.name-last {
+  position: relative;
+  isolation: isolate;
+  margin-left: 0.62em;
+  margin-top: 0.04em;
+  color: transparent;
+  -webkit-text-stroke: max(1.5px, 0.014em) var(--paper);
+}
+
+.name-last::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  color: var(--blue);
+  -webkit-text-stroke: 0;
+  translate: 0.07em 0.07em;
+  transition: translate var(--dur-2) var(--ease-out), color var(--dur-1) linear;
+}
+
+/* A short red bar leans in front of the second line. */
+.name-last::after {
+  content: "";
+  position: absolute;
+  right: calc(100% + 0.12em);
+  top: 0.38em;
+  width: 0.5em;
+  height: 0.09em;
+  background: var(--red);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 0.012em) 100%, 0 100%);
+  transition: translate var(--dur-2) var(--ease-out);
+}
+
+.name-button:hover .name-first,
+.name-button:focus-visible .name-first {
+  translate: -0.03em 0;
+}
+
+.name-button:hover .name-last,
+.name-button:focus-visible .name-last {
+  translate: 0.04em 0;
+  -webkit-text-stroke-color: var(--cyan);
+}
+
+.name-button:hover .name-last::before,
+.name-button:focus-visible .name-last::before {
+  translate: 0.1em 0.1em;
+}
+
+.name-button:hover .name-last::after,
+.name-button:focus-visible .name-last::after {
+  translate: -0.08em 0;
 }
 
 .name-button:focus-visible {
   outline: 2px solid var(--cyan);
-  outline-offset: 8px;
-  border-radius: 8px;
+  outline-offset: var(--s-3);
 }
 
-.name-button:hover span:last-child,
-.name-button:focus-visible span:last-child {
-  color: var(--cyan);
-}
-
-.nameplate span:first-child {
-  color: var(--paper);
-  transform: translateX(-0.02em);
-}
-
-.nameplate span:last-child {
-  color: var(--blue-soft);
-  -webkit-text-stroke: 1px rgba(247, 251, 255, 0.22);
-}
+/* ------------------------------------------------------------------ menu */
 
 .menu {
+  position: relative;
   display: grid;
-  gap: clamp(2px, 1vw, 9px);
-  width: min(100%, 650px);
+  justify-items: start;
+  row-gap: clamp(0px, 0.6vh, var(--s-2));
+  width: fit-content;
+  max-width: 100%;
+  padding-left: var(--s-7);
+  /* The whole list leans on the counter diagonal. */
+  transform: rotate(-4deg);
+  transform-origin: 0 50%;
+}
+
+/* Shared plates. Their left edge sits 64px left of the nav (BLEED in menu.js). */
+.menu-cursor,
+.menu-marker {
+  position: absolute;
+  left: -64px;
+  top: 0;
+  width: calc(100% + 128px);
+  height: var(--plate-h, 80px);
+  pointer-events: none;
+  clip-path: polygon(0 0, 0 0, 0 0, 0 0);
+  will-change: transform, clip-path;
+}
+
+.menu-marker {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--cyan) 70%, transparent) 0 2px, transparent 2px),
+    var(--blue);
+}
+
+.menu-cursor {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--paper) 70%, transparent) 0 2px, transparent 2px),
+    linear-gradient(100deg, var(--hot) 55%, color-mix(in srgb, var(--hot) 78%, var(--red)));
 }
 
 .menu-item {
-  --item-size: clamp(50px, 7vw, 96px);
+  --indent: 0;
+  --menu-push: 14px; /* ACTIVE_PUSH in menu.js */
+  --menu-scale: 1.03; /* ACTIVE_SCALE in menu.js */
   position: relative;
-  min-height: calc(var(--item-size) * 0.86);
-  width: fit-content;
-  max-width: 100%;
+  display: block;
+  margin: 0 0 0 calc(var(--indent) * var(--item-size));
+  padding: 0;
   border: 0;
-  padding: 0 20px 0 0;
-  background: transparent;
-  color: rgba(79, 159, 255, 0.72);
-  font-family: "Bebas Neue", Impact, sans-serif;
+  background: none;
+  color: color-mix(in srgb, var(--blue-soft) 82%, transparent);
+  font-family: var(--font-menu);
   font-size: var(--item-size);
-  line-height: 0.86;
-  letter-spacing: 0.02em;
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0.01em;
   text-align: left;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
-  isolation: isolate;
-  opacity: 0;
-  transform: translateX(-42px);
-  animation: slide-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  transition: color 140ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: 0 50%;
+  transition:
+    color var(--dur-1) linear,
+    text-shadow var(--dur-1) linear,
+    translate var(--dur-2) var(--ease-out),
+    scale var(--dur-2) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
 }
+
+.menu-item:nth-of-type(2) { --indent: 0.5; }
+.menu-item:nth-of-type(3) { --indent: 0.14; }
+.menu-item:nth-of-type(4) { --indent: 0.64; }
+.menu-item:nth-of-type(5) { --indent: 0.3; }
 
 .menu-label {
-  display: inline-block;
+  position: relative;
+  display: block;
+  padding: 0.06em 0 0;
 }
 
-.menu-item:nth-child(1) {
-  margin-left: clamp(3px, 2.5vw, 30px);
+.menu-text {
+  display: block;
 }
 
-.menu-item:nth-child(2) {
-  margin-left: clamp(18px, 5vw, 62px);
-  animation-delay: 80ms;
+.menu-char {
+  will-change: transform;
 }
 
-.menu-item:nth-child(3) {
-  margin-left: clamp(4px, 2.5vw, 30px);
-  animation-delay: 160ms;
-}
-
-.menu-item:nth-child(4) {
-  margin-left: clamp(28px, 6vw, 74px);
-  animation-delay: 240ms;
-}
-
-.menu-item:nth-child(5) {
-  margin-left: clamp(10px, 3.5vw, 44px);
-  animation-delay: 320ms;
-}
-
-.menu-item::before {
-  content: "";
+.menu-code {
   position: absolute;
-  left: -32px;
+  right: calc(100% + var(--s-4));
   top: 50%;
-  z-index: -1;
-  width: calc(100% + 74px);
-  height: 88%;
-  transform: translateY(-50%) scaleX(0);
-  transform-origin: left center;
-  background: linear-gradient(90deg, var(--hot), #ff9dab);
-  clip-path: polygon(0 10%, 88% 0, 100% 44%, 92% 100%, 4% 92%);
-  box-shadow: 0 18px 42px rgba(255, 108, 142, 0.22);
-  transition: transform 210ms cubic-bezier(0.22, 1, 0.36, 1);
+  translate: 0 -50%;
+  padding: 2px var(--s-2);
+  color: var(--text-3);
+  font-family: var(--font-hud);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  isolation: isolate;
+  transition: color var(--dur-1) linear;
 }
 
-.menu-item::after {
-  content: attr(data-code);
-  position: absolute;
-  left: -52px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.22);
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+/* Hover / focus: the hot cursor plate sits behind the label (menu.js toggles .is-cursor). */
+.menu-item.is-cursor {
+  color: var(--paper);
+  text-shadow: 0.045em 0.045em 0 var(--ink);
 }
 
+.menu-item.is-cursor .menu-code {
+  color: var(--hot);
+}
+
+/* Active: paper type, hard navy shadow, pushed right, a red code tag and the blue marker. */
 .menu-item.is-active {
   color: var(--paper);
-  transform: translateX(14px);
+  text-shadow: 0.05em 0.05em 0 var(--night);
+  translate: var(--menu-push) 0;
+  scale: var(--menu-scale);
+}
+
+.menu-item.is-active.is-cursor {
+  text-shadow: 0.05em 0.05em 0 var(--ink);
+}
+
+.menu-item.is-active .menu-code {
+  color: var(--paper);
+}
+
+.menu-item.is-active .menu-code::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--red);
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.menu-item:focus {
   outline: none;
 }
 
-.menu-item:hover:not(.is-active) {
-  color: rgba(247, 251, 255, 0.86);
+/* Keyboard focus also gets a cyan rule under the label, in case the pointer took the cursor away. */
+.menu-item:focus-visible .menu-label::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.04em;
+  height: 3px;
+  background: var(--cyan);
 }
 
-.menu-item:focus-visible:not(.is-active) {
-  color: var(--cyan);
-  outline: 2px solid rgba(70, 216, 255, 0.72);
-  outline-offset: 6px;
+/* Broken by the glass easter egg (shatter.js sets disabled + .is-shattered). The real
+   label falls away; the cracked outline left behind stays until reset. */
+.menu-remains {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  padding-top: 0.06em;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--blue-soft) 55%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-2) linear;
 }
 
-.menu-item.is-active::before {
-  transform: translateY(-50%) scaleX(1);
+.menu-remains > span {
+  display: block;
 }
 
-/* Disabled by the glass easter egg (shatter.js adds .is-shattered + disabled). */
+.menu-remains > span:first-child {
+  clip-path: polygon(0 0, 47% 0, 42% 30%, 50% 54%, 44% 78%, 48% 100%, 0 100%);
+}
+
+.menu-remains > span:last-child {
+  position: absolute;
+  inset: 0.06em 0 0;
+  clip-path: polygon(47% 0, 100% 0, 100% 100%, 48% 100%, 44% 78%, 50% 54%, 42% 30%);
+  translate: 0.08em 0.1em;
+  rotate: 2deg;
+}
+
 .menu-item:disabled,
 .menu-item.is-shattered {
   cursor: not-allowed;
-  opacity: 0.24;
-  transform: none !important;
+  color: color-mix(in srgb, var(--blue-soft) 30%, transparent);
+  text-shadow: none;
+  translate: none;
+  scale: none;
 }
 
-.menu-item:disabled::before,
-.menu-item.is-shattered::before {
-  transform: translateY(-50%) scaleX(0) !important;
+.menu-item:disabled .menu-remains,
+.menu-item.is-shattered .menu-remains {
+  opacity: 1;
 }
 
-@keyframes slide-in {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.menu-item:disabled .menu-code,
+.menu-item.is-shattered .menu-code {
+  color: color-mix(in srgb, var(--red) 80%, transparent);
+  text-decoration: line-through;
 }
+
+.menu-item:disabled .menu-code::before,
+.menu-item.is-shattered .menu-code::before {
+  content: none;
+}
+
+/* ---------------------------------------------------------------- mobile */
 
 @media (max-width: 920px) {
+  .identity {
+    --name-size: clamp(3.4rem, 16.5vw, 6rem);
+    --item-size: clamp(2.9rem, 13vw, 4.6rem);
+  }
+
   .menu {
-    display: grid;
-    gap: clamp(2px, 1.6vw, 8px);
-    width: min(100%, 650px);
-    overflow: visible;
-    padding: 4px 0 10px;
+    row-gap: var(--s-1);
+    padding-left: var(--s-6);
   }
 
   .menu-item {
-    --item-size: clamp(48px, 13vw, 76px);
-    width: fit-content;
-    max-width: 100%;
-    min-height: calc(var(--item-size) * 0.86);
-    padding-right: 12px;
-    opacity: 1;
-    transform: none;
-    animation: none;
+    min-height: 44px;
   }
 
-  .menu-item:nth-child(n) {
-    margin-left: 0;
-    animation-delay: 0ms;
-  }
+  .menu-item:nth-of-type(2) { --indent: 0.32; }
+  .menu-item:nth-of-type(3) { --indent: 0.08; }
+  .menu-item:nth-of-type(4) { --indent: 0.4; }
+  .menu-item:nth-of-type(5) { --indent: 0.18; }
 
-  .menu-item::after {
-    display: none;
-  }
-
-  .menu-item::before {
-    left: -10px;
-    width: calc(100% + 24px);
-    height: 78%;
-  }
-
-  .menu-item.is-active {
-    transform: none;
-  }
-}
-
-@media (max-width: 620px) {
-  .nameplate {
-    font-size: clamp(54px, 18vw, 82px);
-  }
-
-  .menu {
-    gap: 4px;
+  .menu-code {
+    right: calc(100% + var(--s-2));
+    font-size: var(--fs-xs);
   }
 }
