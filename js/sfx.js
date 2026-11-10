@@ -147,7 +147,11 @@ function buildBus(c, destination) {
   compressor.release.value = 0.18;
   master.gain.value = muted ? 0 : MASTER_LEVEL;
 
+  // Decoded mp3 samples enter at unity gain (their own trims live in SAMPLES).
+  const sample = c.createGain();
+
   dry.connect(shelf);
+  sample.connect(shelf);
   verb.connect(convolver);
   convolver.connect(wet);
   wet.connect(shelf);
@@ -155,7 +159,7 @@ function buildBus(c, destination) {
   compressor.connect(master);
   master.connect(destination);
 
-  return { c, dry, verb, master };
+  return { c, dry, verb, sample, master };
 }
 
 function ensureBus() {
@@ -540,7 +544,7 @@ function playSample(entry, { rate = 1 } = {}) {
     source.playbackRate.value = rate;
     amp.gain.value = entry.gain;
     source.connect(amp);
-    amp.connect(b.dry);
+    amp.connect(b.sample);
     source.start();
     cleanup(source, [source, amp]);
     return {

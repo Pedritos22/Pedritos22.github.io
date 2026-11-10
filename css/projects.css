@@ -9,6 +9,9 @@
   --pc-plate-2: color-mix(in srgb, var(--deep) 62%, transparent);
   --pc-edge: color-mix(in srgb, var(--cyan) 72%, transparent);
   --pc-hair: color-mix(in srgb, var(--ice) 14%, transparent);
+  --pc-lit-bg:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 18%, transparent), transparent 40%),
+    linear-gradient(135deg, color-mix(in srgb, var(--deep) 92%, transparent), color-mix(in srgb, var(--blue) 46%, transparent));
 
   position: relative;
   container-type: inline-size;
@@ -138,20 +141,24 @@
   padding: var(--s-4) var(--s-5) var(--s-4) calc(var(--s-5) + 2px);
   color: var(--paper);
   transition: transform var(--dur-2) var(--ease-out);
+
+  /* Plate state, reassigned by the featured / lit / keyboard-focus rules below. */
+  --pc-bg:
+    linear-gradient(180deg, var(--pc-hair), transparent 34%),
+    linear-gradient(135deg, var(--pc-plate), var(--pc-plate-2));
+  --pc-accent: var(--pc-edge);
+  --pc-accent-w: 3px;
+  --pc-ring: inset 0 0 0 1px color-mix(in srgb, var(--ice) 8%, transparent);
 }
 
-/* The plate: a parallelogram with a cyan leading edge. */
+/* The plate: a parallelogram with a leading edge. */
 .project-card::before {
   content: "";
   position: absolute;
   inset: 0 var(--s-2);
   z-index: -1;
-  background:
-    linear-gradient(180deg, var(--pc-hair), transparent 34%),
-    linear-gradient(135deg, var(--pc-plate), var(--pc-plate-2));
-  box-shadow:
-    inset 3px 0 0 var(--pc-edge),
-    inset 0 0 0 1px color-mix(in srgb, var(--ice) 8%, transparent);
+  background: var(--pc-bg);
+  box-shadow: inset var(--pc-accent-w) 0 0 var(--pc-accent), var(--pc-ring);
   transform: skewX(var(--pc-skew));
   transition:
     box-shadow var(--dur-1) var(--ease-out),
@@ -173,38 +180,45 @@
   transition: opacity var(--dur-1) var(--ease-out);
 }
 
-.project-card:not(.project-card--skeleton):hover,
+.project-card.is-featured {
+  --pc-accent: var(--gold);
+  --pc-ring: inset 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+/* Lit: focus inside the card (any input), or hover on devices that really hover
+   (a tap must not leave a card stuck in its hover state). */
 .project-card:not(.project-card--skeleton):focus-within {
+  --pc-bg: var(--pc-lit-bg);
+  --pc-accent: var(--cyan);
+  --pc-accent-w: 5px;
+  --pc-ring: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
   transform: translateY(-3px);
 }
 
-.project-card:not(.project-card--skeleton):hover::before,
-.project-card:not(.project-card--skeleton):focus-within::before {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--ice) 18%, transparent), transparent 40%),
-    linear-gradient(135deg, color-mix(in srgb, var(--deep) 92%, transparent), color-mix(in srgb, var(--blue) 46%, transparent));
-  box-shadow:
-    inset 5px 0 0 var(--cyan),
-    inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
-}
-
-.project-card:hover::after,
 .project-card:focus-within::after {
   opacity: 1;
 }
 
-.project-card.is-featured::before {
-  box-shadow:
-    inset 3px 0 0 var(--gold),
-    inset 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent);
+@media (hover: hover) {
+  .project-card:not(.project-card--skeleton):hover {
+    --pc-bg: var(--pc-lit-bg);
+    --pc-accent: var(--cyan);
+    --pc-accent-w: 5px;
+    --pc-ring: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+    transform: translateY(-3px);
+  }
+
+  .project-card:hover::after {
+    opacity: 1;
+  }
 }
 
-/* Keyboard focus: a ring drawn inside the plate's own shape (wins over hover/featured). */
-.project-card.is-kb-focus:not(.project-card--skeleton)::before,
-.project-card:not(.project-card--skeleton):has(:focus-visible)::before {
-  box-shadow:
-    inset 5px 0 0 var(--cyan),
-    inset 0 0 0 2px var(--cyan);
+/* Keyboard focus: a ring drawn inside the plate's own shape (wins over all of the above). */
+.project-card.is-kb-focus:not(.project-card--skeleton),
+.project-card:not(.project-card--skeleton):has(:focus-visible) {
+  --pc-accent: var(--cyan);
+  --pc-accent-w: 5px;
+  --pc-ring: inset 0 0 0 2px var(--cyan);
 }
 
 .project-card__head {
@@ -575,9 +589,4 @@
   }
 }
 
-/* Dark Hour keeps the same structure; tokens already turn green. */
-html[data-darkhour] .project-card.is-featured::before {
-  box-shadow:
-    inset 3px 0 0 var(--gold),
-    inset 0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent);
-}
+/* Dark Hour needs no overrides: every colour above comes from tokens that turn green. */
