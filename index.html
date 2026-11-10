@@ -27,6 +27,21 @@
   <link rel="preload" href="assets/fonts/bebas-neue-400-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/inter-400-900-latin.woff2" as="font" type="font/woff2" crossorigin />
 
+  <!-- Cover the page before first paint when the intro will play (css/overlays.css, js/intro.js). -->
+  <script>
+    (function () {
+      var root = document.documentElement;
+      try {
+        var q = new URLSearchParams(location.search);
+        if (q.has("nointro")) return;
+        if (q.has("intro") || !sessionStorage.getItem("p3:intro-seen")) {
+          root.classList.add("intro-pending");
+          setTimeout(function () { root.classList.remove("intro-pending"); }, 4000);
+        }
+      } catch (e) {}
+    })();
+  </script>
+
   <link rel="stylesheet" href="css/fonts.css" />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/effects.css" />
