@@ -281,7 +281,14 @@ js/sfx.js             sound effects API
 js/lofi.js            generative lo-fi engine API
 js/projects.js        GitHub projects section
 js/proc/*             seeded RNG, noise, Voronoi
+js/fx/*               atmosphere helpers: water shader, moon/dial/city/butterfly art, slash, palette (tokens for canvas/GLSL), pointer
+js/glyphs.js          small line icons used in card rows
+404.html + css/404.css  standalone not-found page (absolute paths; served by GitHub Pages for any missing URL)
+assets/og-image.png   social preview, rendered from the live page (1200x630)
 ```
+
+QA-only URL flags (harmless in production): `?moonphase=0..1` (emblem), `?moon=0..1` and
+`?hudtime=HH:MM` (HUD), `?fxbench` (shader timing hooks).
 
 ### Contracts
 - **Events:** `EVT` in `core.js`. Payloads are documented there.
