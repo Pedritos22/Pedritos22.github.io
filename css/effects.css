@@ -153,10 +153,11 @@ html[data-darkhour] body::after {
   will-change: transform;
 }
 
+/* Centred on the wrapper so the mirrored (right-to-left) band keeps the same geometry. */
 .fx-sweep__inner {
   position: absolute;
   top: -16vh;
-  left: -26vw;
+  left: -14vw;
   width: 28vw;
   height: 132vh;
   transform: rotate(var(--tilt-major));
@@ -283,6 +284,12 @@ html[data-darkhour] body::after {
   pointer-events: none;
   overflow: hidden;
   contain: strict;
+}
+
+.bfly-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
 }
 
 .bfly {

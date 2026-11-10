@@ -312,6 +312,14 @@ export function init() {
   const seed = daySeed("butterflies");
   noise = createNoise(seed);
   species = Array.from({ length: SPECIES }, (_, i) => butterflySpecies(seed + i * 7919, `bfly-${i}`));
+  // Shared gradients: a zero-size (not display:none) SVG, so every wing copy can use them.
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  defs.setAttribute("class", "bfly-defs");
+  defs.setAttribute("width", "0");
+  defs.setAttribute("height", "0");
+  defs.setAttribute("focusable", "false");
+  defs.innerHTML = `<defs>${species.map((kind) => kind.defs).join("")}</defs>`;
+  layer.append(defs);
 
   afterIntro(enable);
   on(EVT.SECTION_WILL_CHANGE, pauseForTransition);

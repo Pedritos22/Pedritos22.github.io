@@ -5,7 +5,8 @@ import { createRng } from "../proc/rng.js";
 const f = (n) => Number(n.toFixed(2));
 
 /**
- * One species from a seed. Returns { wing, body } SVG markup.
+ * One species from a seed. Returns { defs, wing, body } markup.
+ * `defs` (gradients) is mounted once per page so wing copies never duplicate ids.
  * The wing is the RIGHT wing in a 0..50 x -40..40 box with the root at (0, 0);
  * the left wing is the same SVG mirrored in CSS.
  */
@@ -70,9 +71,7 @@ export function butterflySpecies(seed, uid) {
   const grad = `${uid}-g`;
   const glow = `${uid}-glow`;
   const deepStop = rng.chance(0.5) ? "var(--deep)" : "var(--blue)";
-  const wing = `
-<svg viewBox="-2 -40 52 80" aria-hidden="true" focusable="false">
-  <defs>
+  const defs = `
     <linearGradient id="${grad}" x1="0" y1="0" x2="1" y2="-0.6">
       <stop offset="0" style="stop-color: ${deepStop}" stop-opacity="0.95"/>
       <stop offset="0.55" style="stop-color: var(--blue-soft)" stop-opacity="0.85"/>
@@ -81,8 +80,9 @@ export function butterflySpecies(seed, uid) {
     <radialGradient id="${glow}" cx="0.3" cy="0.45" r="0.6">
       <stop offset="0" style="stop-color: var(--cyan)" stop-opacity="0.5"/>
       <stop offset="1" style="stop-color: var(--cyan)" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
+    </radialGradient>`;
+  const wing = `
+<svg viewBox="-2 -40 52 80" aria-hidden="true" focusable="false">
   <ellipse cx="18" cy="-4" rx="30" ry="34" fill="url(#${glow})"/>
   <path d="${hind}" fill="url(#${grad})" fill-opacity="0.8" style="stroke: var(--cyan)" stroke-width="1" stroke-opacity="0.8"/>
   <path d="${fore}" fill="url(#${grad})" style="stroke: var(--ice)" stroke-width="1.1" stroke-opacity="0.9"/>
@@ -98,5 +98,5 @@ export function butterflySpecies(seed, uid) {
   <path d="M-0.6 -11Q-3 -14 -3.6 -13.6M0.6 -11Q3 -14 3.6 -13.6" fill="none" style="stroke: var(--ice)" stroke-width="0.5"/>
 </svg>`;
 
-  return { wing, body };
+  return { defs, wing, body };
 }

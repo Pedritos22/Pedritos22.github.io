@@ -10,7 +10,7 @@ import { gsap, DUR, EASE } from "./motion.js";
 import { lofi } from "./lofi.js";
 import { VERTEX, FRAGMENT } from "./fx/water-shader.js";
 import { pointer, installPointer, damp } from "./fx/pointer.js";
-import { initSlash } from "./fx/slash.js";
+import { initSlash, sweepPath, SWEEP_DURATION, SWEEP_EDGE } from "./fx/slash.js";
 
 const MAX_PIXELS = 1_100_000; // hard cap on the internal buffer (4K screens)
 const DEFAULT_MOON = [0.84, 0.82];
@@ -31,7 +31,7 @@ const fx = {
   dark: 0,
   pulse: 0,
   flash: 0,
-  sweep: 0,
+  sweep: -1,
   dir: 1,
   kick: 0
 };
@@ -201,11 +201,23 @@ function startLoop() {
 
 /* ------------------------------------------------------------------- effects */
 
+/**
+ * Section change: a band of light rides just behind the DOM sweep's crisp edge
+ * (same path, duration and easing as js/fx/slash.js), plus a short caustic flare.
+ */
 function onSectionWillChange(detail = {}) {
   if (reduced || !gl) return;
   gsap.killTweensOf(fx, "flash,sweep");
-  fx.dir = (detail.direction ?? 1) >= 0 ? 1 : -1;
-  gsap.fromTo(fx, { sweep: 0 }, { sweep: 1, duration: DUR.panel * 1.15, ease: EASE.snap, overwrite: false });
+  const dir = (detail.direction ?? 1) >= 0 ? 1 : -1;
+  const vw = window.innerWidth;
+  const path = sweepPath(dir);
+  const lead = dir * (SWEEP_EDGE - 0.035);
+  fx.dir = dir;
+  gsap.fromTo(
+    fx,
+    { sweep: path.from / vw + lead },
+    { sweep: path.to / vw + lead, duration: SWEEP_DURATION, ease: EASE.snap, overwrite: false }
+  );
   gsap.fromTo(fx, { flash: 1 }, { flash: 0, duration: DUR.panel * 1.7, ease: "power2.in", overwrite: false });
 }
 

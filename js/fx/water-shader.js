@@ -24,8 +24,8 @@ uniform vec2 uMoon;    // emblem centre, 0..1 (GL space, y up)
 uniform float uDark;   // 0..1 Dark Hour mix
 uniform float uPulse;  // 0..1 low-frequency music energy
 uniform float uFlash;  // 0..1 section-change sweep amplitude
-uniform float uSweep;  // 0..1 sweep band position
-uniform float uDir;    // +1 left->right, -1 right->left
+uniform float uSweep;  // sweep band centre: screen x fraction at mid-height
+uniform float uDir;    // +1 left->right, -1 right->left (trail side)
 uniform float uKick;   // 0..1 global light kick (glass break)
 
 const vec3 INK = ${glsl(NORMAL.ink)};
@@ -159,10 +159,10 @@ void main() {
 
   // ---- section-change sweep: a crisp diagonal band of light
   float s = dot(p, NORMAL_AXIS);
-  float span = aspect * 0.5 + 0.35;
-  float center = mix(-span, span, uDir > 0.0 ? uSweep : 1.0 - uSweep);
-  float band = s - center;
-  float sweep = exp(-band * band * 90.0) * 0.9 + exp(-band * band * 9.0) * 0.25;
+  float band = s - (uSweep - 0.5) * aspect * NORMAL_AXIS.x;
+  // A tight core plus a softer wake on the trailing side.
+  float wake = band * uDir < 0.0 ? 9.0 : 40.0;
+  float sweep = exp(-band * band * 90.0) * 0.9 + exp(-band * band * wake) * 0.3;
   vec3 sweepCol = mix(mix(CYAN, ICE, 0.5), DH_GLOW, uDark);
   col += sweepCol * sweep * uFlash * 0.32;
   col += moonTint * uKick * 0.05;
