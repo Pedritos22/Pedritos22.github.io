@@ -273,7 +273,7 @@
   display: block;
   padding-top: 0.06em;
   color: transparent;
-  -webkit-text-stroke: 1px color-mix(in srgb, var(--blue-soft) 42%, transparent);
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--blue-soft) 55%, transparent);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--dur-2) linear;

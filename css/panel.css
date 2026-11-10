@@ -285,6 +285,7 @@
   background: color-mix(in srgb, var(--cyan) 50%, transparent);
 }
 
+/* Mask colours only carry alpha: #000 = fully visible. */
 .card-body.is-overflowing {
   -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - var(--s-6)), transparent);
   mask-image: linear-gradient(180deg, #000 calc(100% - var(--s-6)), transparent);
@@ -777,6 +778,36 @@
   .detail-list--facts,
   .detail-list--profile {
     gap: var(--s-3);
+  }
+}
+
+/* Very short card bodies (about 1024x640): smaller arcana plates and contact rows. */
+@container cardbody (max-height: 230px) {
+  .arcana-grid {
+    grid-auto-rows: minmax(76px, 1fr);
+    gap: var(--s-3) var(--s-4);
+  }
+
+  .detail-list--links > li {
+    --row-h: 52px;
+  }
+
+  .link-main {
+    padding-block: var(--s-2);
+  }
+
+  .actions {
+    margin-top: var(--s-3);
+  }
+
+  .action-link {
+    min-height: 44px;
+  }
+}
+
+@container arcana (max-height: 90px) {
+  .arcana-front .arcana-sigil {
+    max-height: 48px;
   }
 }
 
