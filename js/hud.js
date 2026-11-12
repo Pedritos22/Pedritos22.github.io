@@ -1,7 +1,8 @@
 // HUD: in-game calendar (date, weekday, time of day, live clock, moon phase) and the
 // tool cluster (lo-fi + EQ, hints, reset, volume, SFX mute).
 // Owner: HUD/overlays workstream (C). Audio logic lives behind the lofi/sfx APIs (D).
-import { EVT, emit, on, state, params, afterIntro, moonPhase, prefersReducedMotion, onReducedMotionChange, isMobileLayout, rafLoop, clamp } from "./core.js";
+import { EVT, emit, on, state, params, afterIntro, moonPhase, prefersReducedMotion, onReducedMotionChange, isMobileLayout, rafLoop, clamp, now as worldNow, timeShift } from "./core.js";
+import { formatShift } from "./time-math.js";
 import { gsap, DUR, EASE, STAGGER } from "./motion.js";
 import { sfx } from "./sfx.js";
 import { lofi } from "./lofi.js";
@@ -18,9 +19,9 @@ let minuteTimer = 0;
 
 /* ------------------------------------------------------------------ clock */
 
-/** QA overrides: ?hudtime=HH:MM and ?moon=0..1 (phase). */
+/** World time (the time dial can shift it). QA overrides: ?hudtime=HH:MM and ?moon=0..1 (phase). */
 function now() {
-  const date = new Date();
+  const date = worldNow();
   const forced = params.get("hudtime");
   if (forced && /^\d{1,2}:\d{2}$/.test(forced)) {
     const [h, m] = forced.split(":").map(Number);
@@ -30,7 +31,7 @@ function now() {
 }
 
 /** Time-of-day label for the HUD. */
-export function timeOfDay(date = new Date(), darkhour = state.darkhour) {
+export function timeOfDay(date = worldNow(), darkhour = state.darkhour) {
   const h = date.getHours();
   if (darkhour) return "Dark Hour";
   if (h < 5) return "Late Night";
@@ -115,9 +116,15 @@ function renderCalendar() {
   els.mm.textContent = mm;
   if (els.tod.textContent !== tod) els.tod.textContent = tod;
   hud.classList.toggle("is-darkhour", state.darkhour);
+  // Time dial: the clock shows where the world is, with a small shift tag.
+  const shift = timeShift();
+  const shifted = Math.abs(shift) >= 60000;
+  hud.classList.toggle("is-shifted", shifted);
+  els.time.dataset.shift = shifted ? (shift > 0 ? "ahead" : "back") : "";
+  els.shift.textContent = shifted ? formatShift(shift) : "";
   els.calendar.setAttribute(
     "aria-label",
-    `${WEEKDAYS_LONG[date.getDay()]} ${date.getDate()} ${MONTHS_LONG[date.getMonth()]}, ${hh}:${mm}, ${tod}`
+    `${WEEKDAYS_LONG[date.getDay()]} ${date.getDate()} ${MONTHS_LONG[date.getMonth()]}, ${hh}:${mm}, ${tod}${shifted ? `, time shifted ${formatShift(shift)}` : ""}`
   );
   renderMoon(date);
 }
@@ -304,6 +311,7 @@ export function init() {
     weekdayPlate: q(".hud-weekday"),
     tod: q(".hud-tod-text"),
     time: q(".hud-time"),
+    shift: q(".hud-shift"),
     hh: q(".hud-hh"),
     mm: q(".hud-mm"),
     moon: q(".hud-moon"),
@@ -327,6 +335,12 @@ export function init() {
     scheduleMinute();
   });
   on(EVT.DARKHOUR, renderCalendar);
+  // The time dial fires on every pointer move: render at most once per frame.
+  let timeFrame = 0;
+  on(EVT.TIME, () => {
+    cancelAnimationFrame(timeFrame);
+    timeFrame = requestAnimationFrame(renderCalendar);
+  });
 
   // Knocking on the clock: three knocks open the hidden hour.
   els.calendar.addEventListener("click", () => {

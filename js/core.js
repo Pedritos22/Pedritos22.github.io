@@ -18,7 +18,8 @@ export const EVT = Object.freeze({
   GLASS_CRACK: "glass:crack",               // {element, stage: 1 | 2 | 3}
   GLASS_BREAK: "glass:break",               // {element, x, y}
   OBJECTION: "objection",                   // {}
-  RESET: "reset"                            // {}  user pressed the reset button
+  RESET: "reset",                           // {}  user pressed the reset button
+  TIME: "time"                              // {date, virtual, transient}  the time dial moved the clock
 });
 
 const bus = new EventTarget();
@@ -110,6 +111,35 @@ export function daySeed(label = "") {
   return hashString(`${base}:${label}`);
 }
 
+/* ------------------------------------------------------------ virtual time */
+
+// The time dial (js/timedial.js) can move the whole world to another time. Everything that
+// shows or reacts to the clock reads now() instead of new Date(). The shift is an offset,
+// so a dialled time keeps ticking.
+let timeOffset = null; // ms added to the real clock, or null for real time
+
+/** The world's current time: real, or shifted by the time dial. */
+export function now() {
+  return timeOffset === null ? new Date() : new Date(Date.now() + timeOffset);
+}
+
+/** Milliseconds the world is shifted from the real clock (0 when real). */
+export function timeShift() {
+  return timeOffset ?? 0;
+}
+
+export const isVirtualTime = () => timeOffset !== null;
+
+/**
+ * Move the world to `date` (null returns to real time) and emit EVT.TIME.
+ * `transient`: an in-between step (the dial springing back); listeners with side effects
+ * (the Dark Hour) wait for the final, non-transient event.
+ */
+export function setVirtualTime(date, { transient = false } = {}) {
+  timeOffset = date ? date.getTime() - Date.now() : null;
+  emit(EVT.TIME, { date: now(), virtual: timeOffset !== null, transient });
+}
+
 /* -------------------------------------------------------------- moon phase */
 
 const SYNODIC_MONTH = 29.530588853;
@@ -124,7 +154,7 @@ const PHASE_NAMES = [
  * phase: 0 = new, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter.
  * illumination: lit fraction 0..1. waxing: true while growing toward full.
  */
-export function moonPhase(date = new Date()) {
+export function moonPhase(date = now()) {
   const days = (date.getTime() - KNOWN_NEW_MOON) / 86400000;
   const age = ((days % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
   const phase = age / SYNODIC_MONTH;
@@ -159,8 +189,25 @@ export function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-/** requestAnimationFrame loop that pauses while the tab is hidden. Returns stop(). */
-export function rafLoop(tick) {
+/* ----------------------------------------------------------- scene pause */
+
+// While an opaque overlay covers the page (Debug Battle, Night Session), the scenery
+// loops (shader, skyline, butterflies, HUD equalizer) skip their frames. Nested overlays
+// each hold their own pause.
+let scenePauses = 0;
+
+/** Hold (true) or release (false) a pause of the scenery loops. */
+export function pauseScene(paused) {
+  scenePauses = Math.max(0, scenePauses + (paused ? 1 : -1));
+}
+
+export const isScenePaused = () => scenePauses > 0;
+
+/**
+ * requestAnimationFrame loop that pauses while the tab is hidden (and, unless `always`,
+ * while the scene is paused under an overlay). Returns stop().
+ */
+export function rafLoop(tick, { always = false } = {}) {
   let frame = 0;
   let last = performance.now();
   let running = true;
@@ -169,7 +216,7 @@ export function rafLoop(tick) {
     if (!running) return;
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
-    tick(dt, now / 1000);
+    if (always || scenePauses === 0) tick(dt, now / 1000);
     frame = requestAnimationFrame(step);
   };
 

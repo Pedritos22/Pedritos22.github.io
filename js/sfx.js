@@ -474,6 +474,52 @@ const RECIPES = {
     noiseBurst(c, b, t, { peak: 0.05, attack: 0.001, decay: 0.035, freq: 2400, q: 1.2, send: 0.4 });
   },
 
+  /** Debug Battle: a hit lands. `kind`: "normal" | "crit" | "weak" | "resist". */
+  hit(c, b, t, kind = "normal") {
+    const heavy = kind === "weak" || kind === "crit";
+    // Body: a short thump with a falling pitch, plus a bright snap of noise.
+    partial(c, b, t, { freq: heavy ? 180 : 150, glideTo: 55, glideTime: 0.12, peak: heavy ? 0.22 : 0.16, attack: 0.002, decay: 0.16, send: 0.1 });
+    noiseBurst(c, b, t, { peak: heavy ? 0.3 : 0.2, attack: 0.001, decay: 0.06, filter: "bandpass", freq: 2600, q: 0.7, send: 0.15 });
+    noiseBurst(c, b, t + 0.004, { peak: 0.14, attack: 0.001, decay: 0.12, filter: "lowpass", freq: 900, q: 0.6, send: 0.08 });
+    if (kind === "resist") {
+      // A dull clank: the blow glances off.
+      partial(c, b, t + 0.01, { freq: 2380, peak: 0.03, attack: 0.001, decay: 0.09, type: "triangle", send: 0.3 });
+      partial(c, b, t + 0.01, { freq: 3570, peak: 0.016, attack: 0.001, decay: 0.06, send: 0.3 });
+    }
+    if (kind === "weak") {
+      // Rising chirp + sparkle: you found it.
+      partial(c, b, t + 0.05, { freq: 880, glideTo: 1760, glideTime: 0.14, peak: 0.06, attack: 0.004, decay: 0.22, send: 0.35 });
+      partial(c, b, t + 0.05, { freq: 1320, glideTo: 2640, glideTime: 0.14, peak: 0.025, attack: 0.004, decay: 0.18, send: 0.35 });
+      for (let i = 0; i < 4; i += 1) {
+        partial(c, b, t + 0.12 + i * rand(0.02, 0.035), {
+          freq: rand(4200, 7600), peak: rand(0.008, 0.014), attack: 0.001, decay: rand(0.05, 0.1), pan: rand(-0.6, 0.6), send: 0.5
+        });
+      }
+    }
+    if (kind === "crit") {
+      partial(c, b, t + 0.03, { freq: 1975.5, peak: 0.05, attack: 0.002, decay: 0.3, send: 0.4 });
+    }
+  },
+
+  /** Debug Battle: the player takes a hit (a descending buzz). */
+  hurt(c, b, t) {
+    partial(c, b, t, { freq: 320, glideTo: 140, glideTime: 0.2, peak: 0.07, attack: 0.004, decay: 0.24, type: "sawtooth", send: 0.12 });
+    noiseBurst(c, b, t, { peak: 0.12, attack: 0.002, decay: 0.08, filter: "lowpass", freq: 700, q: 0.8, send: 0.05 });
+  },
+
+  /** Debug Battle: the finishing blow (a swept stab and a bright chord). */
+  finisher(c, b, t) {
+    noiseBurst(c, b, t, {
+      peak: 0.22, attack: 0.02, decay: 0.3, filter: "bandpass", q: 0.9,
+      sweep: [600, 5200], sweepTime: 0.22, pan: -0.5, panTo: 0.5, send: 0.3
+    });
+    partial(c, b, t + 0.16, { freq: 140, glideTo: 50, glideTime: 0.2, peak: 0.24, attack: 0.002, decay: 0.3, send: 0.1 });
+    [659.3, 830.6, 987.8, 1318.5].forEach((freq, i) => {
+      partial(c, b, t + 0.18 + i * 0.012, { freq, peak: 0.05, attack: 0.004, decay: 0.7, send: 0.45 });
+      partial(c, b, t + 0.18 + i * 0.012, { freq: freq * 2, peak: 0.012, attack: 0.003, decay: 0.4, send: 0.45 });
+    });
+  },
+
   /** Soft two-note chime. */
   toast(c, b, t) {
     [[1046.5, t], [1568, t + 0.07]].forEach(([freq, at]) => {
@@ -660,6 +706,12 @@ export const sfx = {
   bell: safe(() => synth("bell")),
   /** Toast notification. */
   toast: safe(() => synth("toast")),
+  /** Debug Battle hit: "normal" | "crit" | "weak" | "resist". */
+  hit: safe((kind = "normal") => synth("hit", kind)),
+  /** Debug Battle: the player takes damage. */
+  hurt: safe(() => synth("hurt")),
+  /** Debug Battle: finishing blow. */
+  finisher: safe(() => synth("finisher")),
 
   setMuted: safe((value) => {
     muted = Boolean(value);

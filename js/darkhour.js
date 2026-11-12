@@ -2,7 +2,7 @@
 // to 00:59 local time, forced by ?darkhour, toggled by knocking on the HUD clock three
 // times. Entering and leaving play a green flash + tint sweep across the screen.
 // Owner: HUD/overlays workstream (C).
-import { EVT, emit, on, flags, state, prefersReducedMotion } from "./core.js";
+import { EVT, emit, on, flags, state, prefersReducedMotion, now as worldNow } from "./core.js";
 import { gsap, EASE } from "./motion.js";
 import { sfx } from "./sfx.js";
 
@@ -16,7 +16,8 @@ let knocks = [];
 let sweep = null;
 let sweepTl = null;
 
-const isScheduledNow = (date = new Date()) => date.getHours() === 0;
+// The world clock: real time, or wherever the time dial has moved it.
+const isScheduledNow = (date = worldNow()) => date.getHours() === 0;
 
 function apply(active, { animate = true } = {}) {
   const next = Boolean(active);
@@ -118,5 +119,9 @@ export function init() {
     manual = null;
     knocks = [];
     resolve();
+  });
+  // Dialling the clock into (or out of) the hidden hour opens (or closes) it.
+  on(EVT.TIME, ({ transient }) => {
+    if (!transient) checkClock();
   });
 }

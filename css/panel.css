@@ -127,6 +127,20 @@
 
 /* ----------------------------------------------------------------- pager */
 
+/* Card action (section.action in content.js): in the footer strip, right of the pager. */
+.card-action {
+  position: absolute;
+  right: calc(var(--edge-r) + var(--pad-x));
+  bottom: var(--s-3);
+  z-index: 2;
+}
+
+.card-action .action-link {
+  min-height: 44px;
+  border: 0;
+  cursor: pointer;
+}
+
 .card-pager {
   position: absolute;
   left: var(--pad-x);
@@ -246,6 +260,13 @@
   .content-card h2 {
     margin-bottom: var(--s-3);
   }
+}
+
+/* Title letters for the reveal (markup from splitTitleMarkup() in sections.js). */
+.split-word,
+.split-char {
+  position: relative;
+  display: inline-block;
 }
 
 .split-word {
@@ -808,6 +829,9 @@
 .sigil .sg-dot {
   fill: var(--abyss);
   stroke: var(--cyan);
+  /* The draw-in scales each dot from its own centre. */
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .arcana-name {
@@ -1315,6 +1339,11 @@
 /* ------------------------------------------------------------------ mobile */
 
 @media (max-width: 920px) {
+  .mobile-section-stack .card-action {
+    position: static;
+    margin-top: var(--s-5);
+  }
+
   .mobile-section-stack .content-card {
     --back: var(--s-2);
     --pad-x: clamp(var(--s-4), 5vw, var(--s-6));

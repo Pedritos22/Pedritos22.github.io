@@ -122,7 +122,7 @@ export function moonSvg({ phase = 0.5, R = 200, variant = "normal", uid = "m" } 
   const rimColor = dark ? rgb(DARK.glow) : rgb(NORMAL.ice);
 
   const svg = `
-<svg viewBox="-500 -500 1000 1000" aria-hidden="true" focusable="false">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-500 -500 1000 1000" aria-hidden="true" focusable="false">
   <defs>
     <radialGradient id="${ids.lit}" cx="${0.5 + lightSide}" cy="0.38" r="0.85">${litFill}</radialGradient>
     <radialGradient id="${ids.shade}" cx="0.6" cy="0.35" r="0.8">${shadeFill}</radialGradient>

@@ -531,6 +531,33 @@ html.intro-pending::before {
   color: var(--paper);
 }
 
+/* A request you can start from the list (Night Session). */
+.hint-action {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: var(--s-3);
+  padding: 0 var(--s-5);
+  color: var(--ink);
+  background: var(--cyan);
+  font-family: var(--font-hud);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: background-color var(--dur-1) linear;
+}
+
+.hint-action:hover,
+.hint-action:focus-visible {
+  background: var(--hot);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
 /* The last request is the secret one: it gets the gold pip. */
 .hint--secret::before {
   background:

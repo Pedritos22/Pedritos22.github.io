@@ -3,8 +3,9 @@
 // (window twinkle at ~8 fps, beacon blinks in CSS, parallax transforms).
 import {
   EVT, on, state, flags, daySeed, prefersReducedMotion, onReducedMotionChange,
-  isMobileLayout, onLayoutChange, rafLoop, clamp
+  isMobileLayout, onLayoutChange, rafLoop, clamp, now as worldNow
 } from "./core.js";
+import { hourOf, windowShare, windowLit } from "./time-math.js";
 import { gsap, EASE } from "./motion.js";
 import { createNoise } from "./proc/noise.js";
 import { LAYERS, generateLayer, paintBuildings, paintWindows, generateTower, paintTower } from "./fx/city-art.js";
@@ -24,6 +25,9 @@ let lightsTween = null;
 let towerTween = null;
 let twinkleClock = 0;
 let time = 0;
+let share = windowShare(hourOf(worldNow())); // lit share of windows at the world's hour
+let quietUntil = 0; // performance.now() ms: no window redraws while a section transition runs
+const QUIET_MS = 1000; // a full wipe + cascade
 
 function dprFor() {
   return Math.min(window.devicePixelRatio || 1, 2);
@@ -84,7 +88,7 @@ function build() {
     const lights = sizeCanvas(makeCanvas("sky-lights"));
     paintBuildings(build, data, recipe, H, dpr, false);
     paintBuildings(buildDark, data, recipe, H, dpr, true);
-    paintWindows(lights, data, H, dpr, null);
+    paintWindows(lights, data, H, dpr, steadyBrightness);
 
     // The tower stands behind the far layer.
     if (index === 0) el.append(...buildTower(width, H, data.margin, dpr));
@@ -143,13 +147,32 @@ function buildTower(width, H, margin, dpr) {
 
 /* ------------------------------------------------------------------ motion */
 
+/** Stable 0..1 rank per window: windows go dark in rank order as the night gets late. */
+const rankOf = (win) => (win.phase * 7.31) % 1;
+
+/** Without twinkle (first paint, reduced motion, ?nofx): base light times the hour. */
+function steadyBrightness(win) {
+  return win.base * windowLit(rankOf(win), share);
+}
+
 function brightnessAt(t) {
   return (win) => {
+    const lit = windowLit(rankOf(win), share);
+    if (lit <= 0) return 0;
     const n = noise.noise2(t * win.speed, win.phase);
     // Mostly steady with slow breathing; a few dip out entirely for a while.
     const level = n < -0.55 ? 0 : 0.72 + 0.28 * n;
-    return win.base * level;
+    return win.base * level * lit;
   };
+}
+
+/** Follow the world clock (real minutes, or the time dial): repaint when the share moves. */
+function updateShare(force = false) {
+  const next = windowShare(hourOf(worldNow()));
+  if (!force && Math.abs(next - share) < 0.004) return;
+  share = next;
+  if (stopLoop) twinkleClock = TWINKLE_STEP; // the running twinkle repaints next frame
+  else layers.forEach((layer) => paintWindows(layer.lights, layer.data, layer.H, layer.dpr, steadyBrightness));
 }
 
 function tick(dt) {
@@ -165,7 +188,8 @@ function tick(dt) {
   });
 
   twinkleClock += dt;
-  if (twinkleClock >= TWINKLE_STEP && !darkActive) {
+  // One hero per moment: the twinkle repaints whole canvases, so it waits out transitions.
+  if (twinkleClock >= TWINKLE_STEP && !darkActive && performance.now() >= quietUntil) {
     twinkleClock = 0;
     const fn = brightnessAt(time);
     layers.forEach((layer) => paintWindows(layer.lights, layer.data, layer.H, layer.dpr, fn));
@@ -265,6 +289,15 @@ export function init() {
   on(EVT.DARKHOUR, ({ active }) => {
     if (Boolean(active) !== darkActive) applyDark(Boolean(active), true);
   });
+  on(EVT.SECTION_WILL_CHANGE, () => {
+    quietUntil = performance.now() + QUIET_MS;
+  });
+  let timeFrame = 0;
+  on(EVT.TIME, () => {
+    cancelAnimationFrame(timeFrame);
+    timeFrame = requestAnimationFrame(() => updateShare());
+  });
+  window.setInterval(() => updateShare(), 60000);
   onReducedMotionChange((value) => {
     reduced = value;
     startLoop();

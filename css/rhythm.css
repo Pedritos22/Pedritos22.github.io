@@ -1,0 +1,634 @@
+/* Night Session (js/rhythm.js): a full-screen <dialog>. The highway is a band of four lanes
+   leaning at the major angle; notes (canvas) ride it right to left into the hit line. */
+
+.session {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--paper);
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--font-hud);
+}
+
+.session::backdrop {
+  background: transparent;
+}
+
+.session__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 70% 40%, color-mix(in srgb, var(--deep) 45%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ink) 96%, transparent), color-mix(in srgb, var(--abyss) 97%, transparent));
+}
+
+.session__stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "head" "track" "pads" "panel";
+  height: 100%;
+  padding: var(--s-6) clamp(var(--s-5), 5vw, var(--s-9)) var(--s-7);
+}
+
+/* ------------------------------------------------------------------- head */
+
+.session__head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+}
+
+.session__kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0;
+  color: var(--cyan);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.session__kicker::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--red);
+  rotate: 45deg;
+}
+
+.session__bar {
+  padding: 3px 10px 2px 12px;
+  color: var(--ink);
+  background: var(--paper);
+  font-variant-numeric: tabular-nums;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.session__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+.session__score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin: 0 0 0 auto;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.session__score b {
+  min-width: 6ch;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-style: normal;
+  letter-spacing: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.session__quit {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--dur-1) linear;
+}
+
+.session__quit:hover,
+.session__quit:focus-visible {
+  color: var(--paper);
+  box-shadow: inset 0 -2px 0 var(--hot);
+}
+
+.session__key {
+  padding: 2px 6px;
+  color: var(--ink);
+  background: var(--text-2);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+}
+
+/* ---------------------------------------------------------------- highway */
+
+.session__track {
+  grid-area: track;
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  opacity: 0.35;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+
+.session__track.is-live {
+  opacity: 1;
+}
+
+.session__highway {
+  --lane-h: clamp(48px, 8vh, 72px);
+  position: relative;
+  width: 112vw;
+  height: calc(var(--lane-h) * 4);
+  rotate: var(--tilt-major);
+  will-change: transform;
+}
+
+.session__lanes {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  background: color-mix(in srgb, var(--night) 80%, transparent);
+  box-shadow:
+    inset 0 2px 0 color-mix(in srgb, var(--cyan) 55%, transparent),
+    inset 0 -2px 0 color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+
+.session__lane {
+  border-bottom: 1px solid var(--line);
+}
+
+.session__lane:nth-child(even) {
+  background: color-mix(in srgb, var(--deep) 30%, transparent);
+}
+
+.session__lane:last-child {
+  border-bottom: 0;
+}
+
+.session__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hit line at 14% (max 140px) of the highway: rhythm.js uses the same x. */
+.session__hitline {
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  left: min(140px, 14%);
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--paper);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 70%, transparent);
+}
+
+.session__caps {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(min(140px, 14%) - 92px);
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  width: 64px;
+}
+
+.session__cap {
+  display: grid;
+  place-items: center;
+  margin: 6px 0;
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--paper) 24%, transparent);
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  line-height: 1;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: background-color var(--dur-1) linear, color var(--dur-1) linear;
+}
+
+.session__cap.is-down {
+  color: var(--ink);
+  background: var(--hot);
+  transition: none;
+}
+
+.session__judge {
+  position: absolute;
+  left: 18%;
+  top: calc(50% - var(--s-9) * 2.2);
+  margin: 0;
+  padding: 4px 16px 2px 18px;
+  color: var(--ink);
+  background: var(--paper);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  rotate: var(--tilt-major);
+  opacity: 0;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.session__judge[data-kind="perfect"] { background: var(--gold); }
+.session__judge[data-kind="great"] { background: var(--cyan); }
+.session__judge[data-kind="miss"] { color: var(--paper); background: var(--red); }
+
+.session__combo {
+  position: absolute;
+  right: 6%;
+  top: calc(50% + var(--s-9) * 1.6);
+  display: grid;
+  justify-items: end;
+  margin: 0;
+  opacity: 0;
+  rotate: var(--tilt-major);
+  transition: opacity var(--dur-2) linear;
+}
+
+.session__combo.is-on {
+  opacity: 1;
+}
+
+.session__combo b {
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  line-height: 0.86;
+  text-shadow: 4px 4px 0 var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.session__combo span {
+  color: var(--cyan);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.session__status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  margin: 0;
+  padding: var(--s-2) var(--s-5);
+  color: var(--paper);
+  background: color-mix(in srgb, var(--ink) 80%, transparent);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: center;
+  rotate: var(--tilt-major);
+}
+
+.session__status[hidden],
+.session__status:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------------- pads */
+
+/* Touch screens: four big pads under the highway (keys elsewhere). */
+.session__pads {
+  grid-area: pads;
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+
+.session__track.is-live ~ .session__pads {
+  display: grid;
+}
+
+@media (pointer: fine) {
+  .session__track.is-live ~ .session__pads {
+    display: none;
+  }
+}
+
+.session__pad {
+  all: unset;
+  display: grid;
+  place-items: center;
+  min-height: 64px;
+  color: var(--paper);
+  background: color-mix(in srgb, var(--deep) 70%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.session__pad:active {
+  color: var(--ink);
+  background: var(--hot);
+}
+
+.session__pad:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+/* ----------------------------------------------------------- intro/result */
+
+.session__intro,
+.session__result {
+  grid-area: panel;
+  justify-self: start;
+  width: min(100%, 640px);
+  margin-top: var(--s-5);
+  padding: var(--s-5) var(--s-7) var(--s-5) var(--s-6);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--night) 96%, transparent), color-mix(in srgb, var(--deep) 70%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 0 100%);
+}
+
+.session__intro[hidden],
+.session__result[hidden] {
+  display: none;
+}
+
+.session__lede {
+  max-width: 56ch;
+  margin: 0 0 var(--s-4);
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.65;
+}
+
+.session__lede kbd {
+  padding: 1px 6px;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--font-hud);
+  font-weight: 800;
+}
+
+.session__difficulty {
+  display: flex;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-4);
+  padding: 0;
+  border: 0;
+}
+
+.session__difficulty legend {
+  float: left;
+  margin-right: var(--s-4);
+  padding: 0;
+  align-self: center;
+  color: var(--cyan);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 44px;
+}
+
+.session__difficulty label {
+  position: relative;
+  cursor: pointer;
+}
+
+.session__difficulty input {
+  position: absolute;
+  opacity: 0;
+}
+
+.session__difficulty span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--s-5);
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: background-color var(--dur-1) linear, color var(--dur-1) linear;
+}
+
+.session__difficulty input:checked + span {
+  color: var(--ink);
+  background: var(--cyan);
+}
+
+.session__difficulty label:hover span {
+  color: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--cyan);
+}
+
+.session__difficulty input:checked + span,
+.session__difficulty label:hover input:checked + span {
+  color: var(--ink);
+}
+
+.session__difficulty input:focus-visible + span {
+  box-shadow: inset 0 0 0 2px var(--hot);
+}
+
+.session__offset {
+  display: grid;
+  gap: var(--s-1);
+  max-width: 360px;
+  margin-bottom: var(--s-5);
+  color: var(--cyan);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.session__offset b {
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+.session__offset input {
+  width: 100%;
+  min-height: 32px;
+  accent-color: var(--cyan);
+}
+
+.session__offset small {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.session__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.session .action-link {
+  border: 0;
+  cursor: pointer;
+}
+
+.session__result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "rank kicker"
+    "rank title"
+    "rank stats"
+    "actions actions";
+  column-gap: var(--s-6);
+}
+
+.session__result > .session__actions {
+  grid-area: actions;
+  margin-top: var(--s-5);
+}
+
+.session__result-kicker {
+  grid-area: kicker;
+  margin: 0;
+  color: var(--cyan);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.session__rank {
+  grid-area: rank;
+  align-self: center;
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: var(--fs-mega);
+  line-height: 0.8;
+  rotate: var(--tilt-major);
+  text-shadow: 6px 6px 0 var(--ink);
+}
+
+.session__result-title {
+  grid-area: title;
+  margin: var(--s-2) 0 var(--s-3);
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.session__stats {
+  grid-area: stats;
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.session__stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-5);
+  padding: var(--s-1) 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.session__stats b {
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- mobile */
+
+@media (max-width: 920px) {
+  .session__stage {
+    padding: var(--s-4) var(--s-4) var(--s-5);
+    overflow-y: auto;
+  }
+
+  .session__head {
+    flex-wrap: wrap;
+    gap: var(--s-3);
+  }
+
+  .session__title {
+    display: none;
+  }
+
+  .session__highway {
+    --lane-h: 52px;
+  }
+
+  /* The pads below are the keys here. */
+  .session__caps {
+    display: none;
+  }
+
+  .session__intro,
+  .session__result {
+    padding: var(--s-5);
+  }
+
+  .session__result {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "kicker" "rank" "title" "stats" "actions";
+  }
+
+  .session__rank {
+    font-size: var(--fs-3xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session__track,
+  .session__combo {
+    transition: none;
+  }
+}

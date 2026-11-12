@@ -13,9 +13,12 @@
 //   ~220ms   the navy body covers the card: content swap, SECTION_CHANGED.
 //   ~240ms+  the train exits; the trailing bands uncover the new content while it cascades in
 //            (kicker, title letters, lead, rows/cards, watermark, number).
-// Interrupting: the running timeline is killed. A train that had not covered the card yet is
-// parked over it (the next train removes it when that one covers); a train that was already
-// leaving finishes leaving. Split text is reverted and inline styles are cleared every time.
+// The train, the cascade and the sigils are Web Animations (compositor-driven), so the swap
+// on the covered frame cannot stall them; card content comes from pre-parsed templates with
+// the title already split into letters.
+// Interrupting: the running animations are cancelled. A train that had not covered the card
+// yet is parked over it (the next train removes it when that one covers); a train that was
+// already leaving finishes leaving. The title goes back to plain text every time.
 import { HOME, SECTIONS, SECTION_MAP, ROMAN } from "./content.js";
 import {
   EVT,
@@ -28,7 +31,7 @@ import {
   prefersReducedMotion,
   escapeHtml as esc
 } from "./core.js";
-import { gsap, SplitText, DUR, EASE, STAGGER } from "./motion.js";
+import { gsap, DUR, EASE, STAGGER, animate, enterFrom, allFinished, hasWaapi } from "./motion.js";
 import { makeFracturable } from "./shatter.js";
 import { renderSigil } from "./sigils.js";
 import { glyph } from "./glyphs.js";
@@ -50,10 +53,12 @@ let announcer = null;
 let mobileStack = null;
 
 let target = HOME.id; // last requested section on desktop
-let tl = null; // running transition / entrance timeline
-let swapped = false; // has the running transition swapped the content yet?
-let split = null; // SplitText instance on the title while it animates in
-let currentTrain = null;
+let tl = null; // GSAP timeline of the entrance or the reduced-motion crossfade
+let run = null; // running wipe: { train, swapped }
+let token = 0; // bumped by every transition and interruption; stale callbacks compare it
+let reveal = []; // WAAPI animations of the running content reveal (desktop card)
+let cardSize = null; // border box of the desktop card, kept by a ResizeObserver
+const templates = new Map(); // section id -> <template> of its desktop card content
 let entrancePending = false;
 let mobileBuilt = false;
 let mobileObserver = null;
@@ -121,6 +126,13 @@ function arcanaMarkup(section) {
       </li>`;
     })
     .join("")}</ul>`;
+}
+
+/** Optional card action (section.action = [label, data-attribute]), in the card's footer strip. */
+function actionMarkup(section) {
+  if (!section.action) return "";
+  const [label, hook] = section.action;
+  return `<div class="card-action"><button class="action-link" type="button" data-${esc(hook)}><span>${esc(label)}</span></button></div>`;
 }
 
 /** Escaped text with soft break opportunities after "/" and before "@" (long URLs on phones). */
@@ -202,12 +214,54 @@ function bodyMarkup(section) {
   }
 }
 
+/**
+ * Title split into words and letters for the reveal, already in the markup so no runtime
+ * splitting (and its layout pass) lands on the swap frame. Screen readers get the plain
+ * text; unsplitTitles() restores it once the letters have landed (kerning comes back).
+ */
+function splitTitleMarkup(text) {
+  const words = String(text)
+    .split(/(\s+)/)
+    .map((part) => {
+      if (!part) return "";
+      if (/^\s+$/.test(part)) return " ";
+      const letters = Array.from(part).map((letter) => `<span class="split-char">${esc(letter)}</span>`).join("");
+      return `<span class="split-word">${letters}</span>`;
+    })
+    .join("");
+  return `<span class="visually-hidden">${esc(text)}</span><span class="split-text" aria-hidden="true">${words}</span>`;
+}
+
 /** The swappable nodes: kicker, title, lead and body. */
-function contentMarkup(section, titleId) {
+function contentMarkup(section, titleId, { splitTitle = false } = {}) {
+  const title = splitTitle
+    ? `<h2 id="${titleId}" data-split>${splitTitleMarkup(section.title)}</h2>`
+    : `<h2 id="${titleId}">${esc(section.title)}</h2>`;
   return `<p class="section-kicker">${esc(section.label)}</p>
-    <h2 id="${titleId}">${esc(section.title)}</h2>
+    ${title}
     <p class="card-lead">${esc(section.copy)}</p>
-    <div class="card-body" data-kind="${esc(section.kind)}">${bodyMarkup(section)}</div>`;
+    <div class="card-body" data-kind="${esc(section.kind)}">${bodyMarkup(section)}</div>
+    ${actionMarkup(section)}`;
+}
+
+/** Put split titles back to plain text (one text node: proper kerning, clean copy/paste). */
+function unsplitTitles(root) {
+  root?.querySelectorAll("h2[data-split]").forEach((title) => {
+    const text = title.querySelector(".visually-hidden")?.textContent ?? title.textContent;
+    title.textContent = text;
+    title.removeAttribute("data-split");
+  });
+}
+
+/** Desktop card content for a section, parsed once and cloned on every visit. */
+function contentFragment(section) {
+  let template = templates.get(section.id);
+  if (!template) {
+    template = document.createElement("template");
+    template.innerHTML = contentMarkup(section, "card-title", { splitTitle: true });
+    templates.set(section.id, template);
+  }
+  return template.content.cloneNode(true);
 }
 
 /** Persistent decoration: back plate + main plate with watermark, number and hairlines. */
@@ -320,22 +374,24 @@ function hydrate(root) {
 
 function contentNodes() {
   if (!card) return [];
-  return Array.from(card.querySelectorAll(":scope > .section-kicker, :scope > h2, :scope > .card-lead, :scope > .card-body"));
+  return Array.from(card.querySelectorAll(":scope > .section-kicker, :scope > h2, :scope > .card-lead, :scope > .card-body, :scope > .card-action"));
 }
 
 function revealTargets(root) {
   const body = root.querySelector(".card-body");
+  const action = root.querySelector(".card-action");
   return {
     kicker: root.querySelector(".section-kicker"),
     title: root.querySelector("h2"),
     lead: root.querySelector(".card-lead"),
-    items: body
-      ? Array.from(
-          body.querySelectorAll(
+    items: [
+      ...(body
+        ? body.querySelectorAll(
             ".detail-list > li, .archive-caption, .cal-rings, .cal-cell, .arcana-slot, .actions > *, .section-custom, .quick-start__label, .quick-start__grid > li"
           )
-        )
-      : [],
+        : []),
+      ...(action ? [action] : [])
+    ],
     sigils: body ? Array.from(body.querySelectorAll(".arcana-front .sigil")) : []
   };
 }
@@ -358,18 +414,18 @@ function updateOverflow(root = card) {
   });
 }
 
+/**
+ * Swap the card content (runs on the covered frame, so it stays lean: a cloned fragment,
+ * no layout reads; updateOverflow() waits for the end of the transition).
+ */
 function swapContent(section) {
-  revertSplit();
-  const old = contentNodes();
-  old.forEach((node) => {
+  contentNodes().forEach((node) => {
     gsap.killTweensOf(node);
     gsap.killTweensOf(node.querySelectorAll("*"));
     node.remove();
   });
 
-  const template = document.createElement("template");
-  template.innerHTML = contentMarkup(section, "card-title");
-  card.insertBefore(template.content, pager);
+  card.insertBefore(contentFragment(section), pager);
 
   card.dataset.section = section.stamp;
   card.dataset.kind = section.kind;
@@ -381,7 +437,6 @@ function swapContent(section) {
   hydrate(card);
   const body = card.querySelector(".card-body");
   if (body) body.scrollTop = 0;
-  updateOverflow();
 
   const from = state.section;
   state.section = section.id;
@@ -389,142 +444,100 @@ function swapContent(section) {
   emit(EVT.SECTION_CHANGED, { from, to: section.id, index });
 }
 
-function revertSplit() {
-  if (split) {
-    split.revert();
-    split = null;
-  }
+function cancelReveal() {
+  reveal.forEach((animation) => animation.cancel());
+  reveal = [];
 }
 
 /** Snap every animated element to its resting state and drop inline styles. */
 function cleanupReveal() {
-  revertSplit();
+  cancelReveal();
   if (!card) return;
-  const { kicker, title, lead, items, sigils } = revealTargets(card);
-  const nodes = [kicker, title, lead, ...items, watermark, numberEl, backPlate, card].filter(Boolean);
+  unsplitTitles(card);
+  const nodes = [...contentNodes(), watermark, numberEl, backPlate, card].filter(Boolean);
   gsap.killTweensOf(nodes);
   gsap.set(nodes, { clearProps: "transform,opacity,visibility,clipPath" });
-  sigils.forEach(resetSigil);
-}
-
-/** Sigil parts carry no inline styles at rest; drop whatever a draw-in left behind. */
-function resetSigil(svg) {
-  const parts = svg.querySelectorAll(".sg-draw, .sg-dot, .sg-dash");
-  gsap.killTweensOf(parts);
-  parts.forEach((part) => {
-    part.removeAttribute("style");
-    delete part._gsap;
-  });
 }
 
 /* ================================================== desktop: animation */
 
 /** Draw every sigil in, all cards in parallel (a short offset per card). */
-function drawSigils(sigils) {
-  const draw = gsap.timeline();
+function drawSigils(sigils, delay) {
+  const animations = [];
   sigils.forEach((svg, i) => {
-    const at = i * STAGGER;
+    const at = delay + i * STAGGER;
     const strokes = svg.querySelectorAll(".sg-draw");
+    const strokeStep = strokes.length > 1 ? 0.16 / (strokes.length - 1) : 0;
+    strokes.forEach((stroke, j) => {
+      animations.push(
+        animate(
+          stroke,
+          [
+            { strokeDasharray: "1 1", strokeDashoffset: 1 },
+            { strokeDasharray: "1 1", strokeDashoffset: 0 }
+          ],
+          { duration: DUR.panel, delay: at + j * strokeStep, ease: "power2InOut" }
+        )
+      );
+    });
+    svg.querySelectorAll(".sg-dash").forEach((dash) => {
+      animations.push(enterFrom(dash, {}, { duration: DUR.ui, delay: at + 0.12 }));
+    });
     const dots = svg.querySelectorAll(".sg-dot");
-    const dashes = svg.querySelectorAll(".sg-dash");
-    if (strokes.length) {
-      draw.fromTo(
-        strokes,
-        { strokeDasharray: "1 1", strokeDashoffset: 1 },
-        {
-          strokeDashoffset: 0,
-          duration: DUR.panel,
-          ease: "power2.inOut",
-          stagger: { amount: 0.16 },
-          clearProps: "strokeDasharray,strokeDashoffset"
-        },
-        at
-      );
-    }
-    if (dashes.length) draw.from(dashes, { opacity: 0, duration: DUR.ui, ease: EASE.out, clearProps: "opacity" }, at + 0.12);
-    if (dots.length) {
-      draw.from(
-        dots,
-        {
-          opacity: 0,
-          scale: 0,
-          transformOrigin: "50% 50%",
-          duration: DUR.ui,
-          ease: EASE.spring,
-          stagger: { amount: 0.1 },
-          clearProps: "opacity,transform,transformOrigin"
-        },
-        at + 0.3
-      );
-    }
+    const dotStep = dots.length > 1 ? 0.1 / (dots.length - 1) : 0;
+    dots.forEach((dot, j) => {
+      animations.push(enterFrom(dot, { scale: 0 }, { duration: DUR.ui, delay: at + 0.3 + j * dotStep, ease: "spring" }));
+    });
   });
-  return draw;
+  return animations;
 }
 
-/** Cascade the content of `root` in. Returns a timeline (from-tweens render immediately). */
-function buildReveal(root, { direction = 1, splitTitle = true } = {}) {
+/**
+ * Cascade the content of `root` in: kicker, title letters, lead, rows/cards, sigils.
+ * Web Animations that start `delay` seconds from now; returns them (already hiding the
+ * targets, like GSAP from-tweens).
+ */
+function startReveal(root, { direction = 1, delay = 0 } = {}) {
   const { kicker, title, lead, items, sigils } = revealTargets(root);
-  const reveal = gsap.timeline();
+  const animations = [];
+  const at = (offset) => ({ duration: DUR.panel, delay: delay + offset, ease: "out" });
 
-  if (kicker) reveal.from(kicker, { x: -28 * direction, opacity: 0, duration: DUR.panel, ease: EASE.out }, 0);
+  if (kicker) animations.push(enterFrom(kicker, { x: -28 * direction }, at(0)));
 
   if (title) {
-    if (splitTitle && SplitText) {
-      revertSplit();
-      split = new SplitText(title, { type: "words,chars", wordsClass: "split-word", charsClass: "split-char" });
-      const chars = split.chars;
-      reveal.from(
-        chars,
-        {
-          yPercent: 62,
-          opacity: 0,
-          duration: DUR.panel,
-          ease: EASE.out,
-          stagger: { amount: Math.min(0.22, chars.length * 0.012) }
-        },
-        0.02
-      );
-      reveal.add(revertSplit);
+    const letters = title.querySelectorAll(".split-char");
+    if (letters.length) {
+      const amount = Math.min(0.22, letters.length * 0.012);
+      const step = letters.length > 1 ? amount / (letters.length - 1) : 0;
+      letters.forEach((letter, i) => animations.push(enterFrom(letter, { y: "62%" }, at(0.02 + i * step))));
     } else {
-      reveal.from(title, { y: 18, opacity: 0, duration: DUR.panel, ease: EASE.out }, 0.02);
+      animations.push(enterFrom(title, { y: 18 }, at(0.02)));
     }
   }
 
-  if (lead) reveal.from(lead, { y: 12, opacity: 0, duration: DUR.panel, ease: EASE.out }, 0.08);
-
-  if (items.length) {
-    reveal.from(
-      items,
-      { x: 22 * direction, opacity: 0, duration: DUR.panel, ease: EASE.out, stagger: STAGGER },
-      0.12
-    );
-  }
-
-  if (sigils.length) reveal.add(drawSigils(sigils), 0.22);
-  return reveal;
+  if (lead) animations.push(enterFrom(lead, { y: 12 }, at(0.08)));
+  items.forEach((item, i) => animations.push(enterFrom(item, { x: 22 * direction }, at(0.12 + i * STAGGER))));
+  if (sigils.length) animations.push(...drawSigils(sigils, delay + 0.22));
+  return animations.filter(Boolean);
 }
 
-function watermarkIn(direction) {
-  const group = gsap.timeline();
+/** Watermark slides along its own -8deg baseline; the big number rises. */
+function startWatermark(direction, delay = 0) {
+  const animations = [];
   if (watermark) {
-    // Slide along the watermark's own -8deg baseline.
     const distance = 120 * direction;
-    group.fromTo(
-      watermark,
-      { x: distance * Math.cos(0.1396), y: -distance * Math.sin(0.1396), opacity: 0 },
-      { x: 0, y: 0, opacity: 1, duration: DUR.scene, ease: EASE.out, clearProps: "transform,opacity" },
-      0
+    animations.push(
+      enterFrom(
+        watermark,
+        { x: distance * Math.cos(0.1396), y: -distance * Math.sin(0.1396) },
+        { duration: DUR.scene, delay, ease: "out" }
+      )
     );
   }
   if (numberEl) {
-    group.fromTo(
-      numberEl,
-      { yPercent: 36, opacity: 0 },
-      { yPercent: 0, opacity: 1, duration: DUR.panel, ease: EASE.out, clearProps: "transform,opacity" },
-      0.08
-    );
+    animations.push(enterFrom(numberEl, { y: "36%" }, { duration: DUR.panel, delay: delay + 0.08, ease: "out" }));
   }
-  return group;
+  return animations.filter(Boolean);
 }
 
 /** Geometry of a wipe train for a card of size w x h. */
@@ -548,65 +561,82 @@ function trainGeometry(w, h, direction) {
   return { bleed, navy, length, start, cover, end };
 }
 
+const trainTransform = (x) => `translateX(${Math.round(x * 10) / 10}px) skewX(-8deg)`;
+
+/** Current x of a train, read from its computed (possibly animated) transform. */
+function trainX(train) {
+  try {
+    return new DOMMatrixReadOnly(getComputedStyle(train).transform).e;
+  } catch {
+    return train._geo.cover;
+  }
+}
+
+/** Move a train between two x positions on the compositor; it holds the end position. */
+function moveTrain(train, from, to, { duration, ease, delay = 0 }) {
+  train.style.transform = trainTransform(from);
+  return animate(train, [{ transform: trainTransform(from) }, { transform: trainTransform(to) }], {
+    duration,
+    delay,
+    ease,
+    fill: "both"
+  });
+}
+
 function makeTrain(section, direction) {
-  const w = card.offsetWidth;
-  const h = card.offsetHeight;
+  // The ResizeObserver keeps the size, so the click handler never forces a layout.
+  const w = cardSize?.w ?? card.offsetWidth;
+  const h = cardSize?.h ?? card.offsetHeight;
   const geo = trainGeometry(w, h, direction);
   const train = document.createElement("span");
   train.className = "wipe-train";
   train.dataset.dir = String(direction);
   train.style.setProperty("--navy-w", `${geo.navy}px`);
   train.style.setProperty("--wipe-bleed", `${geo.bleed}px`);
+  train.style.transform = trainTransform(geo.start);
   train.innerHTML = `<i class="wb wb-streak"></i><i class="wb wb-gap"></i><i class="wb wb-cyan"></i><i class="wb wb-blue"></i><i class="wb wb-navy"><span class="wb-label">${esc(section.code)}</span></i><i class="wb wb-edge"></i>`;
   train._geo = geo;
   wipe.appendChild(train);
-  gsap.set(train, { x: geo.start, skewX: -8 });
   return train;
 }
 
 function removeOtherTrains(keep) {
   wipe?.querySelectorAll(".wipe-train").forEach((train) => {
     if (train === keep) return;
-    gsap.killTweensOf(train);
+    train.getAnimations?.().forEach((animation) => animation.cancel());
     train.remove();
   });
 }
 
 function finishTransition() {
   cleanupReveal();
-  if (currentTrain) {
-    gsap.killTweensOf(currentTrain);
-    currentTrain.remove();
-    currentTrain = null;
-  }
+  run?.train.remove();
+  run = null;
   removeOtherTrains(null);
   tl = null;
-  swapped = false;
   updateOverflow();
 }
 
 /** Kill the running transition and leave everything in a clean, resting state. */
 function interruptCurrent() {
-  if (!tl) return;
-  const train = currentTrain;
-  const wasSwapped = swapped;
-  tl.kill();
+  token += 1;
+  if (!tl && !run && !reveal.length) return;
+  const current = run;
+  tl?.kill();
   tl = null;
-  swapped = false;
-  currentTrain = null;
+  run = null;
   cleanupReveal();
-  if (!train) return;
-  gsap.killTweensOf(train);
-  if (!wasSwapped) {
+  if (!current) return;
+  const { train, swapped } = current;
+  const x = trainX(train);
+  train.getAnimations?.().forEach((animation) => animation.cancel());
+  if (!swapped) {
     // Park it over the card; the next train removes it once that one covers the card.
-    gsap.to(train, { x: train._geo.cover, duration: DUR.micro, ease: EASE.out });
+    moveTrain(train, x, train._geo.cover, { duration: DUR.micro, ease: "out" });
   } else {
-    gsap.to(train, {
-      x: train._geo.end,
-      duration: DUR.ui * 0.8,
-      ease: EASE.in,
-      onComplete: () => train.remove()
-    });
+    const leave = moveTrain(train, x, train._geo.end, { duration: DUR.ui * 0.8, ease: "in" });
+    if (leave) leave.finished.then(() => train.remove(), () => {});
+    else train.remove();
   }
 }
 
@@ -615,39 +645,49 @@ function crossfadeTo(section) {
   tl = gsap.timeline({ onComplete: finishTransition });
   tl.to(nodes, { opacity: 0, duration: 0.08, ease: "none" });
   tl.add(() => {
-    swapped = true;
     swapContent(section);
+    unsplitTitles(card); // no letter cascade here
     tl.fromTo(contentNodes(), { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "none" }, tl.time());
   });
 }
+
+// Wipe timing (seconds): cover fast (decelerating into place), swap, then peel off
+// accelerating so the trailing bands sweep the new content in from the direction side.
+// Keep the covered hold short: a long still navy frame reads as lag.
+const COVER_S = 0.18;
+const HOLD_S = 0.02;
+const EXIT_S = 0.3;
 
 function transitionTo(sectionName, direction) {
   const section = SECTION_MAP[sectionName];
   interruptCurrent();
 
-  if (prefersReducedMotion()) {
+  if (prefersReducedMotion() || !hasWaapi) {
     crossfadeTo(section);
     return;
   }
 
+  const id = token;
   const train = makeTrain(section, direction);
-  currentTrain = train;
-  swapped = false;
+  const geo = train._geo;
+  run = { train, swapped: false };
 
-  // Cover fast (decelerating into place), swap, then peel off accelerating so the trailing
-  // bands sweep the new content in from the direction side. Keep the covered hold short:
-  // a long still navy frame reads as lag.
-  tl = gsap.timeline({ onComplete: finishTransition });
-  tl.to(train, { x: train._geo.cover, duration: 0.18, ease: "power2.out" }, 0);
-  tl.add(() => {
-    swapped = true;
-    removeOtherTrains(train);
-    swapContent(section);
-    const now = tl.time();
-    tl.add(buildReveal(card, { direction }), now + 0.06);
-    tl.add(watermarkIn(direction), now + 0.04);
-  }, ">");
-  tl.to(train, { x: train._geo.end, duration: 0.3, ease: "power1.in" }, ">+0.02");
+  const cover = moveTrain(train, geo.start, geo.cover, { duration: COVER_S, ease: "power2Out" });
+  cover.finished.then(
+    () => {
+      if (id !== token) return;
+      run.swapped = true;
+      removeOtherTrains(train);
+      swapContent(section);
+      // All of these run on the compositor: the swap's style and layout work cannot stall them.
+      const exit = moveTrain(train, geo.cover, geo.end, { duration: EXIT_S, delay: HOLD_S, ease: "power1In" });
+      reveal.push(...startWatermark(direction, 0.04), ...startReveal(card, { direction, delay: 0.06 }));
+      allFinished([exit, ...reveal]).then(() => {
+        if (id === token) finishTransition();
+      });
+    },
+    () => {} // cancelled by an interruption
+  );
 }
 
 /** Desktop entrance after the intro: the card is cut in along the diagonal, then content cascades. */
@@ -656,13 +696,17 @@ function playEntrance() {
   entrancePending = false;
   interruptCurrent();
 
-  if (prefersReducedMotion()) {
+  if (prefersReducedMotion() || !hasWaapi) {
     tl = gsap.timeline({ onComplete: finishTransition });
     tl.fromTo(card, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none", clearProps: "opacity" });
     return;
   }
 
-  tl = gsap.timeline({ onComplete: finishTransition, delay: 0.12 });
+  const id = token;
+  const delay = 0.12;
+  const cut = new Promise((resolve) => {
+    tl = gsap.timeline({ delay, onComplete: resolve });
+  });
   tl.fromTo(
     card,
     { clipPath: "polygon(0% -6%, 0% -6%, -16% 106%, -16% 106%)" },
@@ -682,8 +726,10 @@ function playEntrance() {
       DUR.scene - 0.06
     );
   }
-  tl.add(watermarkIn(1), 0.3);
-  tl.add(buildReveal(card, { direction: 1 }), 0.34);
+  reveal.push(...startWatermark(1, delay + 0.3), ...startReveal(card, { direction: 1, delay: delay + 0.34 }));
+  Promise.all([cut, allFinished(reveal)]).then(() => {
+    if (id === token) finishTransition();
+  });
 }
 
 /* ================================================================ mobile */
@@ -696,21 +742,10 @@ function mobileCardMarkup(section) {
 }
 
 function revealMobileCard(element) {
-  const reveal = gsap.timeline({
-    onComplete: () => {
-      const { kicker, title, lead, items, sigils } = revealTargets(element);
-      const plates = element.querySelectorAll(".card-watermark, .card-num");
-      gsap.set([element, kicker, title, lead, ...items, ...plates].filter(Boolean), {
-        clearProps: "transform,opacity,visibility"
-      });
-      sigils.forEach(resetSigil);
-    }
-  });
-  reveal.to(element, { y: 0, opacity: 1, duration: DUR.scene, ease: EASE.out }, 0);
-  const inner = buildReveal(element, { direction: 1, splitTitle: false });
-  reveal.add(inner, 0.12);
+  gsap.to(element, { y: 0, opacity: 1, duration: DUR.scene, ease: EASE.out, clearProps: "transform,opacity" });
+  startReveal(element, { direction: 1, delay: 0.12 });
   const mark = element.querySelector(".card-watermark");
-  if (mark) reveal.from(mark, { x: 60, y: -8, opacity: 0, duration: DUR.scene, ease: EASE.out }, 0.1);
+  if (mark) enterFrom(mark, { x: 60, y: -8 }, { duration: DUR.scene, delay: 0.1, ease: "out" });
 }
 
 function setupMobileReveal() {
@@ -792,7 +827,22 @@ function renderInstant(sectionName) {
   interruptCurrent();
   removeOtherTrains(null);
   swapContent(SECTION_MAP[sectionName] ?? HOME);
+  unsplitTitles(card);
+  updateOverflow();
   target = state.section;
+}
+
+/** Parse every section's card content ahead of time, while the page is idle. */
+function prewarmTemplates() {
+  const idle = window.requestIdleCallback || ((fn) => window.setTimeout(fn, 200));
+  const queue = SECTIONS.slice();
+  const next = (deadline) => {
+    while (queue.length && (!deadline?.timeRemaining || deadline.timeRemaining() > 4)) {
+      contentFragment(queue.shift());
+    }
+    if (queue.length) idle(next, { timeout: 2000 });
+  };
+  idle(next, { timeout: 2000 });
 }
 
 function onResize() {
@@ -807,7 +857,9 @@ export function init() {
   announcer = document.querySelector("[data-section-announcer]");
 
   if (card) {
-    card.innerHTML = `${decoMarkup(HOME)}${contentMarkup(HOME, "card-title")}${pagerMarkup()}<span class="card-wipe" aria-hidden="true"></span>`;
+    // The title arrives split when the entrance will cascade its letters in.
+    const splitTitle = !isMobileLayout() && !prefersReducedMotion();
+    card.innerHTML = `${decoMarkup(HOME)}${contentMarkup(HOME, "card-title", { splitTitle })}${pagerMarkup()}<span class="card-wipe" aria-hidden="true"></span>`;
     card.setAttribute("aria-labelledby", "card-title");
     card.dataset.section = HOME.stamp;
     card.dataset.kind = HOME.kind;
@@ -821,6 +873,13 @@ export function init() {
     state.section = HOME.id;
     target = HOME.id;
 
+    if ("ResizeObserver" in window) {
+      new ResizeObserver(([entry]) => {
+        const box = entry.borderBoxSize?.[0];
+        cardSize = box ? { w: box.inlineSize, h: box.blockSize } : { w: card.offsetWidth, h: card.offsetHeight };
+      }).observe(card);
+    }
+
     if (!isMobileLayout()) {
       entrancePending = true;
       if (prefersReducedMotion()) gsap.set(card, { opacity: 0 });
@@ -831,8 +890,11 @@ export function init() {
   if (isMobileLayout()) buildMobile();
 
   afterIntro(() => {
+    const cascades = entrancePending; // the entrance unsplits the title when it finishes
     playEntrance();
+    if (!cascades) unsplitTitles(card);
     requestAnimationFrame(() => updateOverflow());
+    prewarmTemplates();
   });
   document.fonts?.ready?.then(() => updateOverflow());
   window.addEventListener("resize", onResize, { passive: true });
@@ -847,6 +909,7 @@ export function init() {
     if (entrancePending) {
       entrancePending = false;
       gsap.set(card, { clearProps: "clipPath,opacity" });
+      unsplitTitles(card);
     }
     if (card && state.section !== target) renderInstant(state.section);
     else updateOverflow();

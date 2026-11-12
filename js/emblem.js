@@ -6,7 +6,7 @@
 //   - rings: GSAP snap-rotations to a dial position per section.
 import {
   EVT, on, state, afterIntro, params, prefersReducedMotion, onReducedMotionChange,
-  daySeed, moonPhase, clamp
+  daySeed, moonPhase, clamp, now as worldNow
 } from "./core.js";
 import { gsap, DUR, EASE, STAGGER } from "./motion.js";
 import { moonSvg } from "./fx/moon-art.js";
@@ -35,6 +35,27 @@ let phaseTimer = 0;
 
 /* ------------------------------------------------------------------- build */
 
+/**
+ * Show a moon face as an <img> of its SVG. The disc uses fractal noise and blur filters;
+ * as an image they are rasterized once, instead of on every repaint of the emblem
+ * (Firefox paints inline SVG filters on the CPU).
+ */
+function setMoonFace(face, svg) {
+  const img = new Image();
+  img.className = "emb-moon__img";
+  img.alt = "";
+  img.decoding = "async";
+  img.draggable = false;
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg.trim())}`;
+  // Swap once decoded, so a phase change (the time dial turns days) never flashes empty.
+  const token = (face._token = (face._token ?? 0) + 1);
+  const swap = () => {
+    if (face._token === token) face.replaceChildren(img);
+  };
+  if (!face.firstChild || !img.decode) swap();
+  else img.decode().then(swap, swap);
+}
+
 function layer(className, html = "") {
   const div = document.createElement("div");
   div.className = `emb-layer ${className}`;
@@ -52,6 +73,7 @@ function build() {
   const seed = daySeed("emblem");
   root = document.createElement("div");
   root.className = "emblem";
+  root.setAttribute("aria-hidden", "true"); // decoration; the time dial slider sits beside it
   mount.replaceChildren(root);
 
   parts.halo = layer("emb-halo");
@@ -65,10 +87,10 @@ function build() {
   parts.moon = layer("emb-moon");
   parts.moonDay = document.createElement("div");
   parts.moonDay.className = "emb-moon__face emb-moon__face--day";
-  parts.moonDay.innerHTML = moonSvg({ phase: phaseValue, R: MOON_R, uid: "emb-day" });
+  setMoonFace(parts.moonDay, moonSvg({ phase: phaseValue, R: MOON_R, uid: "emb-day" }));
   parts.moonDark = document.createElement("div");
   parts.moonDark.className = "emb-moon__face emb-moon__face--dark";
-  parts.moonDark.innerHTML = moonSvg({ phase: 0.5, R: MOON_R, variant: "dark", uid: "emb-dark" });
+  setMoonFace(parts.moonDark, moonSvg({ phase: 0.5, R: MOON_R, variant: "dark", uid: "emb-dark" }));
   parts.moon.append(parts.moonDay, parts.moonDark);
 
   ["hour", "minute", "second"].forEach((kind) => {
@@ -86,8 +108,8 @@ function build() {
 
 /* ------------------------------------------------------------------- clock */
 
-/** Seconds elapsed in each hand's revolution, from local wall-clock time. */
-function clockSeconds(now = new Date()) {
+/** Seconds elapsed in each hand's revolution, from the world clock (real or dialled). */
+function clockSeconds(now = worldNow()) {
   const s = now.getSeconds() + now.getMilliseconds() / 1000;
   const m = now.getMinutes() + s / 60;
   const h = (now.getHours() % 12) + m / 60;
@@ -138,7 +160,7 @@ function refreshPhase() {
   const next = currentPhase();
   if (Math.abs(next - phaseValue) < 0.004) return;
   phaseValue = next;
-  parts.moonDay.innerHTML = moonSvg({ phase: phaseValue, R: MOON_R, uid: "emb-day" });
+  setMoonFace(parts.moonDay, moonSvg({ phase: phaseValue, R: MOON_R, uid: "emb-day" }));
 }
 
 /* ---------------------------------------------------------------- entrance */
@@ -237,6 +259,25 @@ function setDark(active, animate = true) {
   }
 }
 
+/* ---------------------------------------------------------------- time dial */
+
+/**
+ * The time dial is being turned: the outer ring follows the hand on the bezel (days), the
+ * dial face gives a small tick on the face (hours). Hands follow the clock via EVT.TIME.
+ */
+export function turnDial(zone, deg) {
+  if (!root || !entered) return;
+  if (zone === "days") gsap.set(parts.outer, { rotation: `+=${deg}` });
+  else if (!reduced) gsap.set(parts.inner, { rotation: `+=${deg * 0.25}` });
+}
+
+/** The emblem's centre and radius on screen (for the time dial's pointer maths). */
+export function dialGeometry() {
+  const rect = mount?.getBoundingClientRect();
+  if (!rect || !rect.width) return null;
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, r: rect.width / 2 };
+}
+
 /* ---------------------------------------------------------------- lifecycle */
 
 export function init() {
@@ -255,6 +296,15 @@ export function init() {
   afterIntro(enter);
 
   on(EVT.SECTION_WILL_CHANGE, onSectionWillChange);
+  // The time dial moved the world clock: hands jump to it, the moon follows the days.
+  let timeFrame = 0;
+  on(EVT.TIME, () => {
+    cancelAnimationFrame(timeFrame);
+    timeFrame = requestAnimationFrame(() => {
+      resyncHands();
+      refreshPhase();
+    });
+  });
   on(EVT.DARKHOUR, ({ active }) => {
     if (Boolean(active) !== darkActive) setDark(Boolean(active), true);
   });

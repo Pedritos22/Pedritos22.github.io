@@ -6,13 +6,13 @@
 // idempotent and instant on re-render (memory cache + localStorage with a 6 h TTL), and
 // it makes at most one network request per page load (concurrent calls share it).
 import { escapeHtml, prefersReducedMotion, isMobileLayout } from "./core.js";
-import { gsap, DUR, EASE, STAGGER } from "./motion.js";
-import { FEATURED_PROJECTS, PROFILE } from "./content.js";
+import { DUR, STAGGER, animate, allFinished } from "./motion.js";
+import { FEATURED_PROJECTS, HIDDEN_PROJECTS, PROFILE } from "./content.js";
 import { sfx } from "./sfx.js";
 
 const USER = "pedritos22";
 const API_URL = `https://api.github.com/users/${USER}/repos?per_page=100&sort=pushed`;
-const CACHE_KEY = "p3:repos:v1";
+const CACHE_KEY = "p3:repos:v2"; // v2: HIDDEN_PROJECTS filtered at fetch time
 const TTL_MS = 6 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 9000;
 const SHOW = 6;
@@ -94,10 +94,13 @@ function writeCache(data) {
   }
 }
 
-/** Keep only what the board shows; drop forks, archived repos and the site itself. */
+const hidden = new Set((Array.isArray(HIDDEN_PROJECTS) ? HIDDEN_PROJECTS : []).map((name) => String(name).toLowerCase()));
+
+/** Keep only what the board shows; drop forks, archived and hidden repos, and the site itself. */
 function normalize(list) {
   return list
     .filter((repo) => repo && !repo.fork && !repo.archived && !/\.github\.io$/i.test(repo.name || ""))
+    .filter((repo) => !hidden.has(String(repo.name || "").toLowerCase()))
     .map((repo) => ({
       name: String(repo.name || ""),
       description: repo.description ? String(repo.description) : "",
@@ -403,25 +406,26 @@ function paintError(root, error, { animate }) {
   reveal(root, root.querySelectorAll(".projects-notice"), animate);
 }
 
-/** Entrance: a quick cascade sliding in along the major diagonal. */
-function reveal(root, items, animate) {
-  if (!items.length || !animate || prefersReducedMotion() || !isVisible(root)) return;
-  gsap.killTweensOf(items);
-  gsap.fromTo(
-    items,
-    { autoAlpha: 0, x: -22, y: 3, clipPath: "inset(-10% 100% -10% -10%)" },
-    {
-      autoAlpha: 1,
-      x: 0,
-      y: 0,
-      clipPath: "inset(-10% 0% -10% -10%)",
-      duration: DUR.panel,
-      ease: EASE.out,
-      stagger: STAGGER,
-      clearProps: "all",
-      onComplete: () => fit(root)
-    }
-  );
+/**
+ * Entrance: a quick cascade sliding in along the major diagonal. Web Animations (no
+ * per-frame JS), so it shares the frames of a section transition without stalling it.
+ */
+function reveal(root, items, shouldAnimate) {
+  if (!items.length || !shouldAnimate || prefersReducedMotion() || !isVisible(root)) return;
+  const animations = Array.from(items, (item, i) => {
+    item.getAnimations?.().forEach((running) => running.cancel());
+    return animate(
+      item,
+      [
+        { opacity: 0, translate: "-22px 3px", clipPath: "inset(-10% 100% -10% -10%)" },
+        { opacity: 1, translate: "0px 0px", clipPath: "inset(-10% 0% -10% -10%)" }
+      ],
+      { duration: DUR.panel, delay: i * STAGGER, ease: "out" }
+    );
+  });
+  allFinished(animations).then(() => {
+    if (root.isConnected) fit(root);
+  });
 }
 
 /**

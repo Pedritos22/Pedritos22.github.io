@@ -12,6 +12,7 @@ const MODULES = [
   "skyline",
   "butterflies",
   "emblem",
+  "timedial",
   // Content + interaction
   "shatter",
   "sections",
@@ -21,9 +22,14 @@ const MODULES = [
   "hints",
   "hud",
   "projects",
+  "battle",
+  "rhythm",
   // Last: the intro emits intro:done once everything above has subscribed.
   "intro"
 ];
+
+// QA only: frame-time probe for section transitions (see js/perfprobe.js).
+if (new URLSearchParams(window.location.search).has("perfprobe")) MODULES.push("perfprobe");
 
 const loaded = await Promise.allSettled(MODULES.map((name) => import(`./${name}.js`)));
 

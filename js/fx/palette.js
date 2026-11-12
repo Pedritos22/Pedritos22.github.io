@@ -13,6 +13,7 @@ export const NORMAL = Object.freeze({
   ice: [191, 233, 255],
   paper: [247, 251, 255],
   red: [217, 9, 45],
+  hot: [255, 108, 142],
   gold: [255, 211, 77]
 });
 
@@ -27,6 +28,7 @@ export const DARK = Object.freeze({
   ice: [191, 233, 255],
   paper: [247, 251, 255],
   red: [163, 0, 31],
+  hot: [255, 64, 96],
   gold: [233, 245, 154],
   sky: [11, 36, 20],
   glow: [168, 255, 96],

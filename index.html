@@ -54,6 +54,8 @@
   <link rel="stylesheet" href="css/hud.css" />
   <link rel="stylesheet" href="css/glass.css" />
   <link rel="stylesheet" href="css/overlays.css" />
+  <link rel="stylesheet" href="css/battle.css" />
+  <link rel="stylesheet" href="css/rhythm.css" />
 
   <script defer src="vendor/gsap/gsap.min.js"></script>
   <script defer src="vendor/gsap/SplitText.min.js"></script>
@@ -116,6 +118,7 @@
         <span class="hud-weekday" aria-hidden="true"><span class="hud-weekday-text">Tue</span></span>
         <span class="hud-tod" aria-hidden="true"><span class="hud-tod-text">After School</span></span>
         <span class="hud-time" aria-hidden="true"><span class="hud-hh">15</span><span class="hud-colon">:</span><span class="hud-mm">42</span></span>
+        <span class="hud-shift" aria-hidden="true"></span>
       </button>
       <div class="hud-moon" role="img" aria-label="Moon phase">
         <svg class="hud-moon-icon" viewBox="-26 -26 52 52" aria-hidden="true" focusable="false"></svg>
@@ -148,8 +151,8 @@
     </section>
 
     <section class="panel-wrap" aria-label="Profile card">
-      <!-- Clock/moon emblem, rendered by js/emblem.js -->
-      <div class="emblem-mount" aria-hidden="true"></div>
+      <!-- Clock/moon emblem, rendered by js/emblem.js; its time dial (a slider) by js/timedial.js -->
+      <div class="emblem-mount"></div>
 
       <div class="card-stage">
         <article class="content-card" data-section="Welcome" aria-labelledby="card-title">
@@ -205,7 +208,7 @@
         <span>Close</span>
       </button>
       <header class="hints-head">
-        <p class="hints-kicker">Side requests <span class="hints-count">07</span></p>
+        <p class="hints-kicker">Side requests <span class="hints-count">10</span></p>
         <h2 id="hint-title">Requests</h2>
         <p class="hints-lede">Nothing here is required. All of it is fun.</p>
       </header>
@@ -257,6 +260,28 @@
           <div class="hint-body">
             <h3>Between days</h3>
             <p>There is an hour hidden between one day and the next. Midnight isn't the only way in. Knock on the clock three times.</p>
+          </div>
+        </li>
+        <li class="hint">
+          <span class="hint-no" aria-hidden="true">08</span>
+          <div class="hint-body">
+            <h3>Turn back the clock</h3>
+            <p>Grab the big moon clock and turn it. The face moves the hours, the outer rings move the days and the moon with them. The <span class="hint-key">&#8634;</span> button brings you back to now.</p>
+          </div>
+        </li>
+        <li class="hint">
+          <span class="hint-no" aria-hidden="true">09</span>
+          <div class="hint-body">
+            <h3>Debug session</h3>
+            <p>The Skills card can run a battle test against real-world bugs. Every bug is weak to one skill. In the Dark Hour, bugs crawl out on their own.</p>
+          </div>
+        </li>
+        <li class="hint">
+          <span class="hint-no" aria-hidden="true">10</span>
+          <div class="hint-body">
+            <h3>Night session</h3>
+            <p>Hold the equalizer button to play along with the lo-fi: kick, snare and melody on <span class="hint-key">D</span> <span class="hint-key">F</span> <span class="hint-key">J</span> <span class="hint-key">K</span>.</p>
+            <button class="hint-action" type="button" data-session>Play now</button>
           </div>
         </li>
       </ol>

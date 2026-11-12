@@ -128,6 +128,19 @@ html:not(.is-ready) .meta-bar {
   min-height: 0;
 }
 
+/* The emblem behind the card is the time dial (js/timedial.js). The column's empty layout
+   boxes let pointer events through to it; the card takes them back. */
+@media (min-width: 921px) {
+  .panel-wrap,
+  .card-stage {
+    pointer-events: none;
+  }
+
+  .card-stage > .content-card {
+    pointer-events: auto;
+  }
+}
+
 .mobile-section-stack {
   display: none;
 }

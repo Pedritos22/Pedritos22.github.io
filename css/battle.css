@@ -1,0 +1,777 @@
+/* Debug Battle (js/battle.js): a full-screen <dialog> over a dimmed scene.
+   Layout: header, battle log, the arena (enemy plate + sprite), then commands (left) and
+   the party plate (right). Plates are parallelograms at the major angle; numbers and stamps
+   pop along it. Tokens only, so the Dark Hour palette applies by itself. */
+
+.battle {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--paper);
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--font-hud);
+}
+
+.battle::backdrop {
+  background: transparent;
+}
+
+.battle__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      98deg,
+      transparent 0 26px,
+      color-mix(in srgb, var(--blue) 7%, transparent) 26px 27px
+    ),
+    linear-gradient(180deg, color-mix(in srgb, var(--ink) 95%, transparent), color-mix(in srgb, var(--abyss) 97%, transparent));
+}
+
+.battle__stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.6fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head head"
+    "log log"
+    "arena arena"
+    "cmds party";
+  gap: var(--s-4) var(--s-7);
+  height: 100%;
+  padding: var(--s-6) clamp(var(--s-5), 5vw, var(--s-9)) var(--s-7);
+}
+
+/* ------------------------------------------------------------------- head */
+
+.battle__head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+}
+
+.battle__kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0;
+  color: var(--cyan);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.battle__kicker::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--red);
+  rotate: 45deg;
+}
+
+.battle__kicker > * {
+  white-space: nowrap;
+}
+
+.battle__wave {
+  padding: 3px 10px 2px 12px;
+  color: var(--ink);
+  background: var(--paper);
+  font-variant-numeric: tabular-nums;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.battle__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+.battle__flee {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 var(--s-4);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--dur-1) linear;
+}
+
+.battle__flee:hover,
+.battle__flee:focus-visible {
+  color: var(--paper);
+  box-shadow: inset 0 -2px 0 var(--hot);
+}
+
+.battle__key {
+  padding: 2px 6px;
+  color: var(--ink);
+  background: var(--text-2);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+}
+
+/* -------------------------------------------------------------------- log */
+
+.battle__log {
+  grid-area: log;
+  justify-self: start;
+  min-height: 1.6em;
+  max-width: min(100%, 72ch);
+  margin: 0;
+  padding: var(--s-2) var(--s-6) var(--s-2) var(--s-4);
+  color: var(--paper);
+  background: color-mix(in srgb, var(--night) 88%, transparent);
+  box-shadow: inset 3px 0 0 var(--cyan);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+/* ------------------------------------------------------------------ arena */
+
+.battle__arena {
+  grid-area: arena;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 0;
+}
+
+.battle__plate {
+  align-self: start;
+  justify-self: end;
+  position: relative;
+  width: min(360px, 100%);
+  margin-right: var(--s-6);
+  padding: var(--s-4) var(--s-6) var(--s-4) var(--s-5);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--deep) 75%, transparent), color-mix(in srgb, var(--night) 90%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+.battle__name {
+  margin: 0 0 var(--s-3);
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.battle__bar {
+  position: relative;
+  height: 10px;
+  background: color-mix(in srgb, var(--ink) 70%, transparent);
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.battle__bar > i {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+.battle__bar--enemy > i {
+  background: linear-gradient(90deg, var(--red), var(--hot));
+}
+
+.battle__bar--focus > i {
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+}
+
+.battle__party.is-low .battle__bar--focus > i {
+  background: linear-gradient(90deg, var(--red), var(--gold));
+}
+
+.battle__hp {
+  margin: var(--s-2) 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.battle__hp b {
+  color: var(--paper);
+  font-weight: 800;
+}
+
+.battle__sprite {
+  position: relative;
+  width: clamp(200px, 38vh, 380px);
+  aspect-ratio: 1;
+  margin-right: clamp(0px, 6vw, var(--s-9));
+}
+
+.bug-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Idle: a slow breath (4 s loop, 4 px). */
+.battle__sprite .bg-figure {
+  animation: battle-breathe 4s ease-in-out infinite;
+}
+
+@keyframes battle-breathe {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+
+.battle__sprite.is-down .bug-sprite {
+  opacity: 0;
+  scale: 0.92;
+  filter: brightness(2);
+  transition: opacity var(--dur-3) var(--ease-in) 0.5s, scale var(--dur-3) var(--ease-in) 0.5s, filter var(--dur-2) linear;
+}
+
+/* Sprite parts (js/fx/bug-art.js). */
+.bg-shadow { fill: color-mix(in srgb, var(--ink) 70%, transparent); }
+.bg-body { fill: var(--deep); stroke: var(--cyan); stroke-width: 2.5; }
+.bg-shell { fill: var(--night); stroke: var(--ice); stroke-width: 2; }
+.bg-seam { fill: none; stroke: color-mix(in srgb, var(--cyan) 55%, transparent); stroke-width: 2; }
+.bg-leg { fill: none; stroke: var(--ice); stroke-width: 3.5; stroke-linecap: square; stroke-linejoin: miter; }
+.bg-eye { fill: var(--hot); }
+.bg-glitch-a { fill: var(--cyan); opacity: 0.7; }
+.bg-glitch-b { fill: var(--hot); opacity: 0.6; }
+.bg-ghost-a { fill: none; stroke: var(--cyan); stroke-width: 2; opacity: 0.55; }
+.bg-ghost-b { fill: none; stroke: var(--hot); stroke-width: 2; opacity: 0.55; }
+.bg-needle { fill: none; stroke: var(--paper); stroke-width: 3; stroke-linecap: square; }
+.bg-void { fill: none; stroke: var(--cyan); stroke-width: 3; stroke-dasharray: 10 7; }
+.bg-noodle { fill: none; stroke: var(--gold); stroke-width: 3; stroke-linecap: round; opacity: 0.8; }
+
+.bg-mark {
+  fill: var(--paper);
+  font-family: var(--font-hud);
+  font-size: 22px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.06em;
+}
+
+.bg-mark--big {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-style: normal;
+  fill: var(--hot);
+}
+
+/* Numbers and stamps pop out of the target. */
+.battle__fx {
+  position: absolute;
+  top: 18%;
+  right: clamp(80px, 14vw, 260px);
+  pointer-events: none;
+}
+
+.battle__num {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  line-height: 0.86;
+  text-shadow: 0 4px 0 var(--ink), 4px 4px 0 var(--ink);
+  rotate: -8deg;
+  white-space: nowrap;
+}
+
+.battle__num--weak { color: var(--hot); }
+.battle__num--crit { color: var(--gold); }
+.battle__num--resist { color: var(--blue-soft); font-size: var(--fs-2xl); }
+.battle__num--hurt { top: -10px; right: var(--s-5); color: var(--hot); font-size: var(--fs-2xl); }
+
+.battle__stamp {
+  position: absolute;
+  top: 74px;
+  right: -12px;
+  padding: 5px 14px 3px 16px;
+  color: var(--ink);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  rotate: -8deg;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.battle__stamp--weak { background: var(--hot); }
+.battle__stamp--resist { background: var(--blue-soft); }
+.battle__stamp--crit { background: var(--gold); }
+.battle__stamp--extra { top: -38px; right: var(--s-4); background: var(--cyan); }
+
+/* --------------------------------------------------------------- commands */
+
+.battle__commands {
+  grid-area: cmds;
+  align-self: end;
+  position: relative;
+  width: min(100%, 520px);
+  padding: var(--s-4) var(--s-6) var(--s-5) var(--s-5);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--night) 94%, transparent), color-mix(in srgb, var(--deep) 60%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 22%, transparent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
+}
+
+.battle__commands-label {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 var(--s-2);
+  color: var(--cyan);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.battle__commands-label span {
+  color: var(--text-3);
+}
+
+.battle__cmd-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.battle__cmd {
+  all: unset;
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 var(--s-4) 0 var(--s-2);
+  color: var(--blue-soft);
+  cursor: pointer;
+  isolation: isolate;
+  transition: color var(--dur-1) linear;
+}
+
+/* The cursor plate: hot, leaning at -8deg, drawn inside the button. */
+.battle__cmd::before {
+  content: "";
+  position: absolute;
+  inset: 2px 0;
+  z-index: -1;
+  background: var(--hot);
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  opacity: 0;
+  translate: -10px 0;
+  transition: opacity var(--dur-1) linear, translate var(--dur-2) var(--ease-out);
+}
+
+.battle__cmd:hover:not([aria-disabled="true"]),
+.battle__cmd:focus-visible {
+  color: var(--ink);
+}
+
+.battle__cmd:hover:not([aria-disabled="true"])::before,
+.battle__cmd:focus-visible::before {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.battle__cmd[aria-disabled="true"] {
+  cursor: default;
+}
+
+.battle__commands.is-locked .battle__cmd {
+  color: var(--text-3);
+}
+
+.battle__commands.is-locked .battle__cmd:focus-visible {
+  color: var(--ink);
+}
+
+.battle__cmd-no {
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.battle__cmd-name {
+  font-family: var(--font-menu);
+  font-size: clamp(1.5rem, 3.4vh, 2.1rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.battle__cmd-tag {
+  padding: 2px 8px 1px 9px;
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.battle__cmd-tag[data-aff="weak"] { color: var(--ink); background: var(--hot); box-shadow: none; }
+.battle__cmd-tag[data-aff="resist"] { color: var(--ink); background: var(--blue-soft); box-shadow: none; }
+.battle__cmd-tag[data-aff="normal"] { color: var(--paper); }
+
+.battle__cmd:hover:not([aria-disabled="true"]) .battle__cmd-tag,
+.battle__cmd:focus-visible .battle__cmd-tag {
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+/* ------------------------------------------------------------------ party */
+
+.battle__party {
+  grid-area: party;
+  align-self: end;
+  justify-self: end;
+  position: relative;
+  width: min(100%, 340px);
+  padding: var(--s-4) var(--s-5) var(--s-4) var(--s-6);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--deep) 70%, transparent), color-mix(in srgb, var(--night) 94%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.battle__party-name {
+  margin: 0 0 var(--s-3);
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+/* ----------------------------------------------------------------- result */
+
+.battle__result {
+  grid-area: cmds;
+  align-self: end;
+  justify-self: start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "rank kicker"
+    "rank title"
+    "rank stats"
+    "actions actions";
+  column-gap: var(--s-6);
+  width: min(100%, 640px);
+  padding: var(--s-5) var(--s-7) var(--s-5) var(--s-6);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--night) 96%, transparent), color-mix(in srgb, var(--deep) 70%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 0 100%);
+}
+
+.battle__result[hidden],
+.battle__commands[hidden] {
+  display: none;
+}
+
+.battle__result-kicker {
+  grid-area: kicker;
+  margin: 0;
+  color: var(--cyan);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.battle__rank {
+  grid-area: rank;
+  align-self: center;
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: var(--fs-mega);
+  line-height: 0.8;
+  rotate: -8deg;
+  text-shadow: 6px 6px 0 var(--ink);
+}
+
+.battle__result[data-outcome="lost"] .battle__rank {
+  color: var(--red);
+}
+
+.battle__result-title {
+  grid-area: title;
+  margin: var(--s-2) 0 var(--s-3);
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 400;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.battle__result-title:focus {
+  outline: none;
+}
+
+.battle__stats {
+  grid-area: stats;
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.battle__stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-5);
+  padding: var(--s-1) 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.battle__stats b {
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+
+.battle__result-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+}
+
+.battle__result .action-link {
+  border: 0;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ burst */
+
+.battle__burst {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.battle__burst.is-on {
+  visibility: visible;
+}
+
+.battle__lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: color-mix(in srgb, var(--paper) 16%, transparent);
+  opacity: 0;
+}
+
+.battle__burst-word {
+  position: relative;
+  margin: 0;
+  padding: var(--s-3) var(--s-9);
+  background: var(--red);
+  rotate: -8deg;
+  opacity: 0;
+  clip-path: polygon(24px 0, 100% 0, calc(100% - 24px) 100%, 0 100%);
+}
+
+.battle__burst-word span {
+  display: block;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: var(--fs-4xl);
+  line-height: 0.9;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 5px 5px 0 var(--ink);
+}
+
+/* ------------------------------------------------------------- crawler */
+
+/* Dark Hour easter egg: a bug crossing the bottom of the screen. */
+.bug-crawler {
+  all: unset;
+  position: fixed;
+  left: 0;
+  bottom: var(--s-6);
+  z-index: calc(var(--z-shell) + 5);
+  width: 52px;
+  height: 52px;
+  cursor: pointer;
+}
+
+.bug-crawler .bug-sprite {
+  rotate: 90deg;
+  animation: crawl-wiggle 0.36s ease-in-out infinite alternate;
+}
+
+.bug-crawler[data-dir="-1"] .bug-sprite {
+  rotate: -90deg;
+}
+
+@keyframes crawl-wiggle {
+  from { translate: 0 -1px; }
+  to { translate: 0 1px; }
+}
+
+.bug-crawler:hover .bug-sprite,
+.bug-crawler:focus-visible .bug-sprite {
+  filter: drop-shadow(0 0 6px var(--hot));
+}
+
+.bug-crawler:focus-visible {
+  box-shadow: 0 0 0 2px var(--cyan);
+}
+
+/* ----------------------------------------------------------------- mobile */
+
+@media (max-width: 920px) {
+  .battle__stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "head"
+      "log"
+      "arena"
+      "party"
+      "cmds";
+    gap: var(--s-3);
+    padding: var(--s-4) var(--s-4) var(--s-5);
+    overflow-y: auto;
+  }
+
+  .battle__title {
+    display: none;
+  }
+
+  .battle__arena {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .battle__plate {
+    justify-self: start;
+    width: 100%;
+    margin: 0;
+  }
+
+  .battle__sprite {
+    width: clamp(104px, 19vh, 160px);
+    margin: 0;
+  }
+
+  .battle__fx {
+    right: 30%;
+  }
+
+  .battle__party {
+    justify-self: stretch;
+    width: auto;
+  }
+
+  .battle__commands {
+    width: 100%;
+  }
+
+  .battle__cmd-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--s-2);
+  }
+
+  .battle__cmd {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--s-2);
+    padding: 0 var(--s-2) 0 var(--s-3);
+  }
+
+  .battle__cmd-no {
+    display: none;
+  }
+
+  .battle__cmd-name {
+    overflow: hidden;
+    font-size: 1.35rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .battle__commands {
+    padding: var(--s-3) var(--s-4) var(--s-4);
+  }
+
+  .battle__commands-label span {
+    display: none;
+  }
+
+  .battle__result {
+    grid-area: cmds;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "kicker" "rank" "title" "stats" "actions";
+    width: 100%;
+    padding: var(--s-5);
+  }
+
+  .battle__rank {
+    font-size: var(--fs-3xl);
+  }
+
+  .battle__burst-word span {
+    font-size: var(--fs-2xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle__sprite .bg-figure,
+  .bug-crawler .bug-sprite {
+    animation: none;
+  }
+
+  .battle__bar > i {
+    transition: none;
+  }
+}

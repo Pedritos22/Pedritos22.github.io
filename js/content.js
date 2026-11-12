@@ -24,8 +24,15 @@ export const PROFILE = {
   year: "2026"
 };
 
-/** Repository names to pin first in the Projects section (exact GitHub repo names). */
-export const FEATURED_PROJECTS = [];
+/**
+ * Public repository names to pin first in the Projects section (exact GitHub repo names).
+ * The board reads the public API, so private repositories never appear; keep their names
+ * out of this file too (it is public).
+ */
+export const FEATURED_PROJECTS = ["OpenGuitar", "City_Bus", "algo-animator", "Mindly", "LajkonikGO"];
+
+/** Public repositories left off the board (the profile README repo, a one-off task). */
+export const HIDDEN_PROJECTS = ["Pedritos22", "zadanieS4A"];
 
 /*
  * Section shape (every key except id/title is optional):
@@ -107,6 +114,8 @@ export const SECTIONS = [
     copy:
       "The skills below are the ones I'm most comfortable with, but I'm always learning new things and expanding my skill set. Check out my GitHub to see some of my projects.",
     kind: "arcana",
+    // Card action: opens the Debug Battle (js/battle.js listens for [data-battle]).
+    action: ["Run a battle test", "battle"],
     skills: [
       ["Java", "Object-oriented programming, data structures and scalable systems"],
       ["Python", "Data analysis, automation and scripting"],

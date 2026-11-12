@@ -450,6 +450,46 @@ html[data-darkhour] body::after {
   overflow: visible;
 }
 
+/* Time dial (js/timedial.js): the whole emblem is a slider. Only the parts not covered by
+   the card or the HUD can be grabbed; a true circle, so its ring is allowed to be round. */
+.time-grip {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow var(--dur-1) var(--ease-out);
+}
+
+.time-grip.is-dragging {
+  cursor: grabbing;
+}
+
+.time-grip:focus {
+  outline: none;
+}
+
+.time-grip:hover {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+
+.time-grip:focus-visible,
+.time-grip.is-dragging {
+  box-shadow:
+    0 0 0 2px var(--cyan),
+    0 0 0 7px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+
+/* The moon disc is an <img> of its SVG (filters rasterized once, see emblem.js). */
+.emb-moon__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
 .emb-ring,
 .emb-moon,
 .emb-pivot,
@@ -573,6 +613,12 @@ html[data-darkhour] body::after {
 
   .emb-numerals {
     display: none;
+  }
+
+  /* Mobile: the emblem is a faint corner moon behind the content; a grab area there would
+     steal scrolls. The dial stays reachable from a keyboard. */
+  .time-grip {
+    pointer-events: none;
   }
 
   .fx-slash {

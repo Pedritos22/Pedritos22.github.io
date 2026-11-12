@@ -177,6 +177,12 @@ Motion is the soul of this site. It must feel **fast, weighted and intentional**
 2. **Cascade at 30–40 ms** (`STAGGER`). A full cascade lasts at most about 400 ms.
 3. **Everything is interruptible.** Use GSAP timelines with `overwrite: "auto"`, and kill
    the previous timeline when a new section is chosen. Rapid clicking must never break layout.
+   **Exception: the section transition** (wipe train, content cascade, sigil draw-in, slash and
+   sweep, Projects cascade) runs on the Web Animations API through `animate()` / `enterFrom()`
+   in `js/motion.js` (`CSS_EASE` mirrors the tokens). Transform and opacity then animate on the
+   compositor, so the content swap on the covered frame cannot stall them (this was the jank in
+   Firefox). Track the returned animations and `cancel()` them to interrupt. Moves use the
+   individual `translate` / `scale` properties, so they stack under an element's own transform.
 4. **Animate only `transform`, `opacity`, `clip-path`** (and `filter` sparingly, never on
    large areas every frame). Never animate layout properties.
 5. **Idle motion is subtle:** loops of 4 s or longer, amplitude of 4 px or 1.5° at most.
@@ -259,9 +265,11 @@ css/overlays.css      objection, hints dialog, toasts, intro, name drag states
 css/glass.css         cracks + shards
 css/effects.css       background canvas, skyline, butterflies, emblem, Dark Hour scenery
 css/projects.css      projects section
+css/battle.css        Debug Battle dialog, sprites, crawler
+css/rhythm.css        Night Session dialog and highway
 js/main.js            imports and init()s every module, each wrapped in try/catch
 js/core.js            event bus (EVT), state, flags, media queries, moonPhase, daySeed, rafLoop
-js/motion.js          gsap + SplitText + CustomEase, DUR, EASE, STAGGER
+js/motion.js          gsap + SplitText + CustomEase, DUR, EASE, STAGGER; WAAPI helpers (CSS_EASE, animate, enterFrom)
 js/content.js         all copy and section data (single source of truth)
 js/sections.js        card rendering + section transitions (+ mobile stack)
 js/menu.js            menu state, cursor, keyboard navigation
@@ -277,9 +285,15 @@ js/background.js      WebGL water / light background
 js/skyline.js         procedural city + tower
 js/butterflies.js     procedural butterflies
 js/emblem.js          clock/moon emblem on the right
+js/timedial.js        time dial: drag the emblem (or use it as a slider) to move the world clock
+js/time-math.js       pure time helpers: dial maths, shift formatting, window/twilight/daylight curves
 js/sfx.js             sound effects API
 js/lofi.js            generative lo-fi engine API
 js/projects.js        GitHub projects section
+js/battle.js          Debug Battle dialog (Skills card button, Dark Hour crawler)
+js/battle-logic.js    battle rules: bugs, weak spots, damage, ranks (pure, tested)
+js/rhythm.js          Night Session rhythm game (hold the lo-fi button, or hint 10)
+js/rhythm-logic.js    rhythm chart, judging and scoring (pure, tested)
 js/proc/*             seeded RNG, noise, Voronoi
 js/fx/*               atmosphere helpers: water shader, moon/dial/city/butterfly art, slash, palette (tokens for canvas/GLSL), pointer
 js/glyphs.js          small line icons used in card rows
@@ -288,21 +302,42 @@ assets/og-image.png   social preview, rendered from the live page (1200x630)
 ```
 
 QA-only URL flags (harmless in production): `?moonphase=0..1` (emblem), `?moon=0..1` and
-`?hudtime=HH:MM` (HUD), `?fxbench` (shader timing hooks).
+`?hudtime=HH:MM` (HUD), `?fxbench` (shader timing hooks), `?perfprobe` or `?perfprobe=<rounds>`
+(clicks through every section and logs frame times per transition: p50 / p95 / max, frames
+over 25 and 50 ms; `js/perfprobe.js`, loaded only with the flag).
 
 ### Contracts
 - **Events:** `EVT` in `core.js`. Payloads are documented there.
 - **Shared state:** `state.introDone`, `state.section`, `state.darkhour`. Use
   `afterIntro(fn)` to run entrance animations.
 - **SFX API** (`sfx.js`): `sfx.hover() click() confirm() back() whoosh() crack(stage) glass() objection() dialog(open) tick() bell() toast()`,
+  battle: `sfx.hit(kind) hurt() finisher()` (`kind`: normal, crit, weak, resist),
   plus `sfx.setMuted(bool)`, `sfx.isMuted()` and `sfx.unlock()`.
 - **Lo-fi API** (`lofi.js`): `lofi.start() stop() toggle() isPlaying() setVolume(0..1) getVolume() getAnalyser()`
-  (`getAnalyser()` returns an `AnalyserNode` while playing, otherwise `null`).
+  (`getAnalyser()` returns an `AnalyserNode` while playing, otherwise `null`), and
+  `onPlan(handler)`: the engine plans every bar one bar ahead and tells listeners
+  `{ bar, barStart, sixteenth, bpm, events: [{ type, step, time, midi, velocity }] }` on the
+  AudioContext clock (the rhythm game charts from it). Returns an unsubscribe function.
 - **Shatter API** (`shatter.js`): `makeFracturable(root)`, `shatter(element, {x, y})`,
   `resetAllFractures()`.
 - **Sections:** `content.js` exports `SECTIONS` (ordered) and `HOME`. A section may define
   `render(container)` for custom content (Projects uses it). `sections.js` exports
   `showSection(name)`, `showHome()` and `getSectionNames()`.
+- **Scene pause:** an opaque full-screen overlay calls `pauseScene(true)` / `pauseScene(false)`
+  (`core.js`); every `rafLoop` skips its frames meanwhile, except loops started with
+  `rafLoop(tick, { always: true })` (the overlay's own).
+- **World clock:** read the time with `now()` from `core.js`, never `new Date()`, for anything
+  the visitor sees (HUD, hands, moon phase, city windows, twilight, the Dark Hour). The time dial
+  moves it with `setVirtualTime(date | null, { transient })`, which emits `EVT.TIME`
+  `{date, virtual, transient}`; side effects (the Dark Hour) wait for a non-transient event.
+  `timeShift()` is the offset in ms. `emblem.js` exports `turnDial(zone, deg)` and
+  `dialGeometry()` for the dial; `timedial.js` exports `returnToNow()`.
+  `.panel-wrap` and `.card-stage` are `pointer-events: none` on desktop so the uncovered parts
+  of the emblem can be grabbed; the card turns them back on.
+- **Debug Battle:** any `[data-battle]` button opens it (`battle.js` exports `openBattle({ first, from })`
+  and `spawnCrawler()`). Attacks are the skills of the `arcana` section in `content.js`; each bug in
+  `battle-logic.js` names its weak and resisted skill, and a bug only appears when its weak skill is in
+  the loadout. Discovered affinities persist in `localStorage` (`p3:battle:known`).
 - **Dark Hour:** `darkhour.js` exports `setDarkHour(active)`. It sets
   `html[data-darkhour]`, `state.darkhour` and emits `EVT.DARKHOUR`.
 

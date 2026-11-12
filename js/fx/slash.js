@@ -1,12 +1,13 @@
 // The red diagonal slash and the section-change light sweep (DOM layer in .fx-root).
 // Crisp, transform/opacity-only animation, fired on SECTION_WILL_CHANGE in sync with the
-// panel wipe (same duration and easing, DUR.panel / EASE.snap).
+// panel wipe (same duration and easing, DUR.panel / EASE.snap). Web Animations, so the
+// full-screen band keeps moving on the compositor while the card swaps its content.
 import { EVT, on, prefersReducedMotion } from "../core.js";
-import { gsap, DUR, EASE } from "../motion.js";
+import { DUR, animate } from "../motion.js";
 
 let slash = null;
 let sweep = null;
-let timeline = null;
+let running = [];
 
 /** Sweep timing, shared with the WebGL light band in background.js. */
 export const SWEEP_DURATION = DUR.panel * 1.15;
@@ -51,26 +52,41 @@ function play(detail = {}) {
   const echo = slash.querySelector(".fx-slash__echo");
   const sweepTrail = sweep.querySelector(".fx-sweep__trail");
 
-  timeline?.kill();
+  running.forEach((animation) => animation.cancel());
   const { from: fromX, to: toX } = sweepPath(dir);
+  sweep.dataset.dir = String(dir);
+  const kick = DUR.panel * 0.38;
 
-  timeline = gsap.timeline({ defaults: { overwrite: "auto" } });
-  timeline
-    .set(sweep, { x: fromX, autoAlpha: 1, attr: { "data-dir": dir } })
-    .to(sweep, { x: toX, duration: SWEEP_DURATION, ease: EASE.snap }, 0)
-    .fromTo(sweepTrail, { scaleX: 0.2 }, { scaleX: 1, duration: DUR.panel * 0.6, ease: EASE.out }, 0)
-    .set(sweep, { autoAlpha: 0 })
+  running = [
+    // The sweep is visible only while it runs (hidden in CSS at rest).
+    animate(
+      sweep,
+      [
+        { transform: `translateX(${fromX}px)`, visibility: "visible" },
+        { transform: `translateX(${toX}px)`, visibility: "visible" }
+      ],
+      { duration: SWEEP_DURATION, ease: "snap", fill: "none" }
+    ),
+    animate(sweepTrail, [{ scale: "0.2 1" }, { scale: "1 1" }], { duration: DUR.panel * 0.6, ease: "out", fill: "none" }),
     // The slash itself: a hot glint runs down the blade, the blade kicks and leaves an echo.
-    .fromTo(glint, { yPercent: -120, autoAlpha: 1 }, { yPercent: 520, duration: DUR.panel * 0.8, ease: EASE.snap }, 0.04)
-    .set(glint, { autoAlpha: 0 }, 0.04 + DUR.panel * 0.8)
-    // Delayed tweens must not render their "from" state before they start.
-    .fromTo(bar, { scaleX: 2 }, { scaleX: 1, duration: DUR.scene * 0.5, ease: EASE.out, immediateRender: false }, DUR.panel * 0.38)
-    .fromTo(
+    animate(
+      glint,
+      [
+        { translate: "0 -120%", opacity: 1, visibility: "visible" },
+        { translate: "0 520%", opacity: 1, visibility: "visible" }
+      ],
+      { duration: DUR.panel * 0.8, delay: 0.04, ease: "snap", fill: "none" }
+    ),
+    animate(bar, [{ scale: "2 1" }, { scale: "1 1" }], { duration: DUR.scene * 0.5, delay: kick, ease: "out", fill: "none" }),
+    animate(
       echo,
-      { x: 0, autoAlpha: 0.7 },
-      { x: 26 * dir, autoAlpha: 0, duration: DUR.panel * 1.1, ease: EASE.out, immediateRender: false },
-      DUR.panel * 0.38
-    );
+      [
+        { translate: "0 0", opacity: 0.7 },
+        { translate: `${26 * dir}px 0`, opacity: 0 }
+      ],
+      { duration: DUR.panel * 1.1, delay: kick, ease: "out", fill: "none" }
+    )
+  ].filter(Boolean);
 }
 
 export function initSlash(root) {

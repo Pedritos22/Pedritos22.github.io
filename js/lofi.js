@@ -825,8 +825,7 @@ function planBlock(s, block) {
   };
 }
 
-function scheduleFilter(s, t, barInBlock) {
-  const arr = s.arr;
+function scheduleFilter(s, t, barInBlock, arr = s.arr) {
   const freq = s.tape.frequency;
   const bar = s.sixteenth * STEPS_PER_BAR;
   if (barInBlock === 0 && arr.sweep) {
@@ -1018,7 +1017,34 @@ function planBar(s, bar) {
   // Melody.
   melodyBar(s, bar).forEach((event) => add(event.step, { type: "melody", ...event }));
 
+  // The plan is made a bar ahead (for listeners like the rhythm game): keep its bar and
+  // arrangement with it, so the filter sweep reads the right block.
+  events.bar = bar;
+  events.arr = arr;
   return events;
+}
+
+/* ---------------------------------------------------------- plan listeners */
+
+const planListeners = new Set();
+
+/** Tell listeners what a bar will play and when (AudioContext times, nominal grid). */
+function announce(s, plan, barStart) {
+  if (!planListeners.size || plan.announced) return;
+  plan.announced = true;
+  const events = [];
+  plan.forEach((list, step) => {
+    const time = stepTime(s, barStart, step);
+    list.forEach((event) => events.push({ type: event.type, step, time, midi: event.midi ?? null, velocity: event.velocity ?? 1 }));
+  });
+  const detail = { bar: plan.bar, barStart, sixteenth: s.sixteenth, bpm: s.tune.bpm, events };
+  planListeners.forEach((listener) => {
+    try {
+      listener(detail);
+    } catch (error) {
+      console.warn("[lofi] plan listener failed", error);
+    }
+  });
 }
 
 /* --------------------------------------------------------------- scheduler */
@@ -1032,8 +1058,13 @@ function scheduleStep(s, time) {
   const step = s.step;
   if (step === 0) {
     s.barStart = time;
-    s.plan = planBar(s, s.bar);
-    scheduleFilter(s, time, s.bar % 8);
+    // Plan one bar ahead (same order as before, so the music does not change): listeners
+    // learn about every bar at least a bar before it plays.
+    s.plan = s.nextPlan?.bar === s.bar ? s.nextPlan : planBar(s, s.bar);
+    s.nextPlan = planBar(s, s.bar + 1);
+    scheduleFilter(s, time, s.bar % 8, s.plan.arr);
+    announce(s, s.plan, time);
+    announce(s, s.nextPlan, time + STEPS_PER_BAR * s.sixteenth);
   }
   const t = stepTime(s, s.barStart, step);
   const lead = t - c.currentTime;
@@ -1250,7 +1281,16 @@ export const lofi = {
   /** The persisted volume (available before start). */
   getVolume: () => volume,
   /** AnalyserNode (fftSize 256) on the music bus while playing, otherwise null. */
-  getAnalyser: () => session?.analyser ?? null
+  getAnalyser: () => session?.analyser ?? null,
+  /**
+   * Subscribe to bar plans: handler({ bar, barStart, sixteenth, bpm, events: [{ type, step,
+   * time, midi, velocity }] }), called about a bar before the bar plays. Times are on the
+   * AudioContext clock (getAudioContext() in sfx.js). Returns an unsubscribe function.
+   */
+  onPlan(handler) {
+    planListeners.add(handler);
+    return () => planListeners.delete(handler);
+  }
 };
 
 /* ------------------------------------------------------------------- debug */

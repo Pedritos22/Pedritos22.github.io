@@ -27,6 +27,8 @@ uniform float uFlash;  // 0..1 section-change sweep amplitude
 uniform float uSweep;  // sweep band centre: screen x fraction at mid-height
 uniform float uDir;    // +1 left->right, -1 right->left (trail side)
 uniform float uKick;   // 0..1 global light kick (glass break)
+uniform float uTwilight; // 0..1 dawn / dusk glow on the horizon (world clock)
+uniform float uDay;      // 0..1 daylight lift of the night palette (world clock)
 
 const vec3 INK = ${glsl(NORMAL.ink)};
 const vec3 NIGHT = ${glsl(NORMAL.night)};
@@ -34,6 +36,8 @@ const vec3 DEEP = ${glsl(NORMAL.deep)};
 const vec3 BLUE = ${glsl(NORMAL.blue)};
 const vec3 CYAN = ${glsl(NORMAL.cyan)};
 const vec3 ICE = ${glsl(NORMAL.ice)};
+const vec3 GOLD = ${glsl(NORMAL.gold)};
+const vec3 HOT = ${glsl(NORMAL.hot)};
 
 const vec3 DH_INK = vec3(0.0060, 0.0180, 0.0100);
 const vec3 DH_NIGHT = ${glsl(DARK.night)};
@@ -118,6 +122,12 @@ void main() {
   col = mix(col, INK, smoothstep(0.38, 0.98, y));
   vec3 dhBase = mix(DH_DEEP * 0.7, DH_SKY, smoothstep(0.02, 0.4, y));
   dhBase = mix(dhBase, DH_INK, smoothstep(0.45, 1.0, y));
+  // Time of day (the time dial, or the real clock): by day the deep night lifts a little;
+  // at dawn and dusk a low warm band sits on the horizon. The scene stays a night scene.
+  float dayMix = uDay * (1.0 - uDark);
+  col = mix(col, col * 1.22 + mix(DEEP, BLUE, 0.3) * 0.05, dayMix);
+  vec3 duskCol = mix(HOT, GOLD, 0.45 + 0.35 * uv.x);
+  col += duskCol * smoothstep(0.36, 0.0, y) * 0.15 * uTwilight * (1.0 - uDark);
   col = mix(col, dhBase, uDark);
 
   // ---- light masks: moon glow (upper right), keep the left column dark

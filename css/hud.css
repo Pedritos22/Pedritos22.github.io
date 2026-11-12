@@ -299,6 +299,47 @@ html:not(.is-ready) .hud {
   50% { opacity: 0.35; }
 }
 
+/* Time dial (js/timedial.js): the world runs at another time. The clock turns gold and a
+   small tag with the shift hangs under it. */
+.hud-shift {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  right: -4px;
+  padding: 3px 10px 2px 12px;
+  color: var(--ink);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  isolation: isolate;
+  opacity: 0;
+  translate: 0 -4px;
+  transition: opacity var(--dur-2) var(--ease-out), translate var(--dur-2) var(--ease-out);
+  pointer-events: none;
+}
+
+.hud-shift::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--gold);
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.hud.is-shifted .hud-shift {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.hud.is-shifted .hud-time {
+  color: var(--gold);
+}
+
 /* Dark Hour: the time-of-day band turns to blood. */
 .hud.is-darkhour .hud-tod::before {
   background: var(--red);

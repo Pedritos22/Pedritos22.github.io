@@ -4,8 +4,9 @@
 // Falls back to the CSS gradient in css/effects.css when WebGL is missing or ?nofx is set.
 import {
   EVT, on, state, flags, params, prefersReducedMotion, onReducedMotionChange,
-  onLayoutChange, rafLoop, clamp
+  onLayoutChange, rafLoop, clamp, now as worldNow
 } from "./core.js";
+import { hourOf, twilight, daylight } from "./time-math.js";
 import { gsap, DUR, EASE } from "./motion.js";
 import { lofi } from "./lofi.js";
 import { VERTEX, FRAGMENT } from "./fx/water-shader.js";
@@ -33,8 +34,18 @@ const fx = {
   flash: 0,
   sweep: -1,
   dir: 1,
-  kick: 0
+  kick: 0,
+  twilight: 0,
+  day: 0
 };
+
+/** Time-of-day light from the world clock (real, or moved by the time dial). */
+function readClock() {
+  const hour = hourOf(worldNow());
+  fx.twilight = twilight(hour);
+  fx.day = daylight(hour);
+}
+readClock();
 
 let analyserData = null;
 let analyserRef = null;
@@ -76,7 +87,7 @@ function buildProgram() {
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
   uniforms = {};
-  ["uRes", "uTime", "uMouse", "uMoon", "uDark", "uPulse", "uFlash", "uSweep", "uDir", "uKick"].forEach((name) => {
+  ["uRes", "uTime", "uMouse", "uMoon", "uDark", "uPulse", "uFlash", "uSweep", "uDir", "uKick", "uTwilight", "uDay"].forEach((name) => {
     uniforms[name] = gl.getUniformLocation(prog, name);
   });
   gl.disable(gl.DEPTH_TEST);
@@ -148,6 +159,8 @@ function draw() {
   gl.uniform1f(uniforms.uSweep, fx.sweep);
   gl.uniform1f(uniforms.uDir, fx.dir);
   gl.uniform1f(uniforms.uKick, fx.kick);
+  gl.uniform1f(uniforms.uTwilight, fx.twilight);
+  gl.uniform1f(uniforms.uDay, fx.day);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -331,6 +344,14 @@ export function init() {
     startLoop();
   });
   on(EVT.DARKHOUR, () => {
+    if (reduced) renderOnce();
+  });
+  window.setInterval(() => {
+    readClock();
+    if (reduced) renderOnce();
+  }, 60000);
+  on(EVT.TIME, () => {
+    readClock();
     if (reduced) renderOnce();
   });
   on(EVT.SECTION_WILL_CHANGE, onSectionWillChange);
