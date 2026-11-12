@@ -12,6 +12,14 @@
   --item-size: clamp(2.75rem, min(6vw, 8.2vh), 5.9rem);
 }
 
+/* 921-1180px: the identity column narrows to 0.72fr (layout.css), so the name takes a
+   smaller share of the width, or MOLENDYS runs under the card on taller screens. */
+@media (min-width: 921px) and (max-width: 1180px) {
+  .identity {
+    --name-size: clamp(3.4rem, min(7vw, 10.6vh), 7.45rem);
+  }
+}
+
 /* ------------------------------------------------------------- nameplate */
 
 .nameplate {
