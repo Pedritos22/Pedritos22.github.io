@@ -43,6 +43,8 @@ function spellMarkup(spell) {
   return `<span class="arcana-spell" aria-hidden="true"><b>&gt;</b> <span class="arcana-spell-text">${chars}</span></span>`;
 }
 
+// First child of each face: the band passes over the card's background but under its
+// ink (sigil, text), so the type stays crisp, like light behind the print.
 const foil = `<span class="arcana-foil" aria-hidden="true"><i></i></span>`;
 
 /** One card (a toggle button). `numeral` is "I".."VIII", or "0" for the Fool. */
@@ -51,17 +53,17 @@ export function cardMarkup(skill, numeral, extraClass = "") {
   return `<button class="skill arcana${extraClass}" type="button" aria-pressed="false" data-numeral="${numeral}" data-skill="${name}" style="--tint:${tint(skill.mark)}">
       <span class="arcana-inner">
         <span class="arcana-face arcana-front">
+          ${foil}
           <span class="arcana-numeral" aria-hidden="true">${numeral}</span>
           <span class="arcana-sigil">${renderSigil(skill.name, { hub: true })}<span class="arcana-mark">${mark(skill.mark)}</span></span>
           <span class="arcana-name">${name}</span>
-          ${foil}
         </span>
         <span class="arcana-face arcana-back">
+          ${foil}
           <span class="arcana-back-head" aria-hidden="true"><span>${numeral}</span><span>${name}</span></span>
           <span class="arcana-desc">${esc(skill.desc)}</span>
           ${spellMarkup(skill.spell)}
           <span class="arcana-ghost" aria-hidden="true">${mark(skill.mark)}</span>
-          ${foil}
         </span>
       </span>
     </button>`;

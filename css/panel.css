@@ -968,13 +968,11 @@
   opacity: 0;
 }
 
+/* The caret: a no-break space with a background, so it never wraps away from the text
+   (an inline-block would give the line a break opportunity before it). */
 .arcana-spell i:last-child::after {
-  content: "";
-  display: inline-block;
-  width: 0.55em;
-  height: 1.05em;
+  content: "\00a0";
   margin-left: 1px;
-  vertical-align: -0.18em;
   background: color-mix(in srgb, var(--cyan) 70%, transparent);
 }
 
@@ -1010,13 +1008,19 @@
 }
 
 /* Holo: a foil band leaning at the major angle, swept across by arcana.js (translate only).
-   No mix-blend-mode here: inside the 3D card it breaks backface-visibility in Firefox
-   (the flipped card showed its front mirrored instead of the back). */
+   It sits under the card's ink (first child; the ink is positioned after it), so it only
+   lights the background and the type stays crisp, the look of a screen blend. No
+   mix-blend-mode itself: inside the 3D card it breaks backface-visibility in Firefox (the
+   flipped card showed its front mirrored instead of the back). */
 .arcana-foil {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+}
+
+.arcana-face > :where(:not(.arcana-foil, .arcana-ghost)) {
+  position: relative;
 }
 
 .arcana-foil > i {
@@ -1030,9 +1034,9 @@
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--ice) 22%, transparent) 30%,
-    color-mix(in srgb, var(--cyan) 30%, transparent) 50%,
-    color-mix(in srgb, var(--gold) 22%, transparent) 70%,
+    color-mix(in srgb, var(--ice) 28%, transparent) 30%,
+    color-mix(in srgb, var(--cyan) 38%, transparent) 50%,
+    color-mix(in srgb, var(--gold) 28%, transparent) 70%,
     transparent
   );
 }
