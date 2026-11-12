@@ -1009,13 +1009,14 @@
   height: 100%;
 }
 
-/* Holo: a foil band leaning at the major angle, swept across by arcana.js (translate only). */
+/* Holo: a foil band leaning at the major angle, swept across by arcana.js (translate only).
+   No mix-blend-mode here: inside the 3D card it breaks backface-visibility in Firefox
+   (the flipped card showed its front mirrored instead of the back). */
 .arcana-foil {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  mix-blend-mode: screen;
 }
 
 .arcana-foil > i {
