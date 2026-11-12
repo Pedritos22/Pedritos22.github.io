@@ -19,7 +19,7 @@
 // Interrupting: the running animations are cancelled. A train that had not covered the card
 // yet is parked over it (the next train removes it when that one covers); a train that was
 // already leaving finishes leaving. The title goes back to plain text every time.
-import { HOME, SECTIONS, SECTION_MAP, ROMAN } from "./content.js";
+import { HOME, SECTIONS, SECTION_MAP } from "./content.js";
 import {
   EVT,
   emit,
@@ -33,7 +33,7 @@ import {
 } from "./core.js";
 import { gsap, DUR, EASE, STAGGER, animate, enterFrom, allFinished, hasWaapi } from "./motion.js";
 import { makeFracturable } from "./shatter.js";
-import { renderSigil } from "./sigils.js";
+import { arcanaMarkup, bindArcana, dealIn, drawSigils, foolChipMarkup } from "./arcana.js";
 import { glyph } from "./glyphs.js";
 import { sfx } from "./sfx.js";
 
@@ -41,6 +41,7 @@ const ORDER = [HOME.id, ...SECTIONS.map((section) => section.id)];
 const TOTAL = SECTIONS.length;
 const TAN8 = Math.tan((8 * Math.PI) / 180);
 const COPY_RESET_MS = 1800;
+const CYCLE_MS = 2400;
 
 let card = null;
 let stage = null;
@@ -70,14 +71,20 @@ export function getSectionNames() {
 
 /* ================================================================ markup */
 
-function rowMarkup([label, value, glyphName]) {
+/** Decorative chip that rotates through `words` (bindCycles); the row value says it all. */
+function cycleMarkup(words) {
+  if (!words?.length) return "";
+  return ` <span class="cycle-chip" aria-hidden="true" data-cycle="${esc(words.join("|"))}"><span>${esc(words[0])}</span></span>`;
+}
+
+function rowMarkup([label, value, glyphName, cycle]) {
   const swatches =
     glyphName === "swatch"
       ? `<span class="swatches" aria-hidden="true"><i class="swatch swatch--blue"></i><i class="swatch swatch--navy"></i></span>`
       : "";
   return `<li class="row">
       <span class="row-glyph" aria-hidden="true">${glyph(glyphName)}</span>
-      <span class="row-label">${esc(label)}</span>
+      <span class="row-label">${esc(label)}${cycleMarkup(cycle)}</span>
       <strong class="row-value">${esc(value)}${swatches}</strong>
     </li>`;
 }
@@ -104,35 +111,11 @@ function archiveMarkup(section) {
     </div>`;
 }
 
-function arcanaMarkup(section) {
-  return `<ul class="arcana-grid" role="list">${section.skills
-    .map(([name, description], i) => {
-      const numeral = ROMAN[i] ?? String(i + 1);
-      return `<li class="arcana-slot">
-        <button class="skill arcana" type="button" aria-pressed="false" data-numeral="${numeral}">
-          <span class="arcana-inner">
-            <span class="arcana-face arcana-front">
-              <span class="arcana-numeral" aria-hidden="true">${numeral}</span>
-              <span class="arcana-sigil">${renderSigil(name)}</span>
-              <span class="arcana-name">${esc(name)}</span>
-            </span>
-            <span class="arcana-face arcana-back">
-              <span class="arcana-back-head" aria-hidden="true"><span>${numeral}</span><span>${esc(name)}</span></span>
-              <span class="arcana-desc">${esc(description)}</span>
-              <span class="arcana-ghost" aria-hidden="true">${renderSigil(name)}</span>
-            </span>
-          </span>
-        </button>
-      </li>`;
-    })
-    .join("")}</ul>`;
-}
-
 /** Optional card action (section.action = [label, data-attribute]), in the card's footer strip. */
 function actionMarkup(section) {
   if (!section.action) return "";
   const [label, hook] = section.action;
-  return `<div class="card-action"><button class="action-link" type="button" data-${esc(hook)}><span>${esc(label)}</span></button></div>`;
+  return `<div class="card-action">${foolChipMarkup(section)}<button class="action-link" type="button" data-${esc(hook)}><span>${esc(label)}</span></button></div>`;
 }
 
 /** Escaped text with soft break opportunities after "/" and before "@" (long URLs on phones). */
@@ -341,15 +324,6 @@ function onCopyClick(event) {
   });
 }
 
-function onArcanaClick(event) {
-  const button = event.currentTarget;
-  if (event.defaultPrevented) return;
-  const flipped = !button.classList.contains("is-flipped");
-  button.classList.toggle("is-flipped", flipped);
-  button.setAttribute("aria-pressed", String(flipped));
-  sfx.click();
-}
-
 /** Bind interactive bits once per element. Call after makeFracturable so glass runs first. */
 function bindInteractions(root) {
   root.querySelectorAll(".copy-btn").forEach((button) => {
@@ -357,10 +331,38 @@ function bindInteractions(root) {
     button.dataset.bound = "true";
     button.addEventListener("click", onCopyClick);
   });
-  root.querySelectorAll(".skill.arcana").forEach((button) => {
-    if (button.dataset.bound) return;
-    button.dataset.bound = "true";
-    button.addEventListener("click", onArcanaClick);
+  bindArcana(root);
+  bindCycles(root);
+}
+
+/** Rotate the words of every cycle chip under `root` (Home: hello in each language). */
+function bindCycles(root) {
+  root.querySelectorAll(".cycle-chip[data-cycle]").forEach((chip) => {
+    if (chip.dataset.bound) return;
+    chip.dataset.bound = "true";
+    const words = chip.dataset.cycle.split("|");
+    if (words.length < 2) return;
+    let index = 0;
+    const timer = window.setInterval(() => {
+      if (!chip.isConnected) {
+        window.clearInterval(timer);
+        return;
+      }
+      if (document.hidden || prefersReducedMotion()) return;
+      index = (index + 1) % words.length;
+      const word = chip.firstElementChild;
+      const swap = () => {
+        word.textContent = words[index];
+        animate(word, [{ opacity: 0, translate: "0 60%" }, { opacity: 1, translate: "0 0" }], { duration: DUR.ui, ease: "out" });
+      };
+      const out = animate(word, [{ opacity: 1, translate: "0 0" }, { opacity: 0, translate: "0 -60%" }], {
+        duration: DUR.micro,
+        ease: "in",
+        fill: "forwards"
+      });
+      if (out) out.finished.then(() => { out.cancel(); swap(); }, () => {});
+      else swap();
+    }, CYCLE_MS);
   });
 }
 
@@ -387,12 +389,14 @@ function revealTargets(root) {
     items: [
       ...(body
         ? body.querySelectorAll(
-            ".detail-list > li, .archive-caption, .cal-rings, .cal-cell, .arcana-slot, .actions > *, .section-custom, .quick-start__label, .quick-start__grid > li"
+            ".detail-list > li, .archive-caption, .cal-rings, .cal-cell, .actions > *, .section-custom, .quick-start__label, .quick-start__grid > li"
           )
         : []),
       ...(action ? [action] : [])
     ],
-    sigils: body ? Array.from(body.querySelectorAll(".arcana-front .sigil")) : []
+    // Arcana cards are dealt from a deck instead (arcana.js), then their sigils draw in.
+    slots: body ? Array.from(body.querySelectorAll(".arcana-slot")) : [],
+    sigils: body ? Array.from(body.querySelectorAll(".arcana-slot .arcana-front .sigil")) : []
   };
 }
 
@@ -461,44 +465,13 @@ function cleanupReveal() {
 
 /* ================================================== desktop: animation */
 
-/** Draw every sigil in, all cards in parallel (a short offset per card). */
-function drawSigils(sigils, delay) {
-  const animations = [];
-  sigils.forEach((svg, i) => {
-    const at = delay + i * STAGGER;
-    const strokes = svg.querySelectorAll(".sg-draw");
-    const strokeStep = strokes.length > 1 ? 0.16 / (strokes.length - 1) : 0;
-    strokes.forEach((stroke, j) => {
-      animations.push(
-        animate(
-          stroke,
-          [
-            { strokeDasharray: "1 1", strokeDashoffset: 1 },
-            { strokeDasharray: "1 1", strokeDashoffset: 0 }
-          ],
-          { duration: DUR.panel, delay: at + j * strokeStep, ease: "power2InOut" }
-        )
-      );
-    });
-    svg.querySelectorAll(".sg-dash").forEach((dash) => {
-      animations.push(enterFrom(dash, {}, { duration: DUR.ui, delay: at + 0.12 }));
-    });
-    const dots = svg.querySelectorAll(".sg-dot");
-    const dotStep = dots.length > 1 ? 0.1 / (dots.length - 1) : 0;
-    dots.forEach((dot, j) => {
-      animations.push(enterFrom(dot, { scale: 0 }, { duration: DUR.ui, delay: at + 0.3 + j * dotStep, ease: "spring" }));
-    });
-  });
-  return animations;
-}
-
 /**
- * Cascade the content of `root` in: kicker, title letters, lead, rows/cards, sigils.
+ * Cascade the content of `root` in: kicker, title letters, lead, rows, dealt cards, sigils.
  * Web Animations that start `delay` seconds from now; returns them (already hiding the
  * targets, like GSAP from-tweens).
  */
 function startReveal(root, { direction = 1, delay = 0 } = {}) {
-  const { kicker, title, lead, items, sigils } = revealTargets(root);
+  const { kicker, title, lead, items, slots, sigils } = revealTargets(root);
   const animations = [];
   const at = (offset) => ({ duration: DUR.panel, delay: delay + offset, ease: "out" });
 
@@ -517,7 +490,8 @@ function startReveal(root, { direction = 1, delay = 0 } = {}) {
 
   if (lead) animations.push(enterFrom(lead, { y: 12 }, at(0.08)));
   items.forEach((item, i) => animations.push(enterFrom(item, { x: 22 * direction }, at(0.12 + i * STAGGER))));
-  if (sigils.length) animations.push(...drawSigils(sigils, delay + 0.22));
+  if (slots.length) animations.push(...dealIn(slots, delay + 0.12));
+  if (sigils.length) animations.push(...drawSigils(sigils, delay + 0.3));
   return animations.filter(Boolean);
 }
 

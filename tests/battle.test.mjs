@@ -4,7 +4,8 @@ import {
   BUGS, ENEMY_HP, affinity, availableBugs, pickWaves, rollDamage, rollEnemyHit, rank
 } from "../js/battle-logic.js";
 
-const SKILLS = ["Java", "Python", "Algorithms", "Docker", "Git", "SQL"];
+// Mirrors the Skills card in js/content.js (content.js needs a browser to import).
+const SKILLS = ["Java", "Python", "Dart / Flutter", "SQL", "Algorithms", "Git", "Docker", "Linux / Bash"];
 const seq = (...values) => {
   let i = 0;
   return () => values[i++ % values.length];
@@ -13,6 +14,19 @@ const seq = (...values) => {
 test("every skill is the weak spot of exactly one bug", () => {
   for (const skill of SKILLS) {
     assert.equal(BUGS.filter((bug) => affinity(bug, skill) === "weak").length, 1, skill);
+  }
+});
+
+test("every skill is resisted by exactly one bug", () => {
+  for (const skill of SKILLS) {
+    assert.equal(BUGS.filter((bug) => affinity(bug, skill) === "resist").length, 1, skill);
+  }
+});
+
+test("every bug's weak and resisted skills are on the card", () => {
+  for (const bug of BUGS) {
+    assert.ok(SKILLS.includes(bug.weak), `${bug.id} weak: ${bug.weak}`);
+    assert.ok(SKILLS.includes(bug.resist), `${bug.id} resist: ${bug.resist}`);
   }
 });
 

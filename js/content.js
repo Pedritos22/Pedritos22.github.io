@@ -41,7 +41,7 @@ export const HIDDEN_PROJECTS = ["Pedritos22", "zadanieS4A"];
  *   label    kicker text       stamp  big watermark word on the card
  *   title    card heading      copy   lead paragraph
  *   kind     card layout: "facts" | "profile" | "archive" | "arcana" | "custom" | "contact"
- *   details  [label, value, glyph?] rows
+ *   details  [label, value, glyph?, cycle?] rows
  *   render   (container) => void, custom content hook (Projects)
  */
 
@@ -51,20 +51,27 @@ export const HOME = {
   code: "00",
   label: "Profile 00",
   stamp: "Welcome",
-  title: "Welcome to my page!",
-  copy: "Glad to have you here! Feel free to explore, fiddle around and get to know me better.",
+  title: "Press start.",
+  copy:
+    "This is my corner of the internet, built like a pause menu. Almost everything reacts: click it, drag it, hold it, even break it. The hints button up top lists the secrets.",
   kind: "facts",
+  // [label, value, glyph, cycle?]: `cycle` is a decorative chip that rotates through words.
   details: [
-    ["Fun fact 01", "I speak at least three languages fluently.", "speech"],
-    ["Fun fact 02", "My favourite board game is Mahjong.", "tile"],
-    ["Fun fact 03", "My favourite drink is Estathé.", "drink"]
+    [
+      "Languages",
+      "Polish, English and Italian. Learning Chinese.",
+      "speech",
+      ["Cześć", "Hello", "Ciao", "Hola", "你好"]
+    ],
+    ["Board game", "Mahjong. Nothing else comes close.", "tile"],
+    ["Fuel", "Estathé. Always Estathé.", "drink"]
   ],
   /** Quick-start tiles under the fun facts (desktop): [section id, caption]. */
   start: [
-    ["about", "Who I am"],
-    ["skills", "What I work with"],
-    ["projects", "What I've built"],
-    ["contact", "Say hello"]
+    ["about", "The short version"],
+    ["skills", "Eight cards and a battle test"],
+    ["projects", "Live from GitHub"],
+    ["contact", "Email, GitHub, LinkedIn"]
   ]
 };
 
@@ -110,20 +117,28 @@ export const SECTIONS = [
     code: "03",
     label: "Loadout 03",
     stamp: "Skills",
-    title: "Technical toolkit.",
+    title: "Pick a card.",
     copy:
-      "The skills below are the ones I'm most comfortable with, but I'm always learning new things and expanding my skill set. Check out my GitHub to see some of my projects.",
+      "My loadout. Flip a card to see what I've done with it, then put the whole deck to the test against real bugs.",
     kind: "arcana",
     // Card action: opens the Debug Battle (js/battle.js listens for [data-battle]).
     action: ["Run a battle test", "battle"],
+    // name: card title and battle command (battle-logic.js matches bugs on it)
+    // mark: technology mark (js/marks.js)   desc: back of the card (keep it under ~50
+    // characters: the back is small)        spell: one line of code, typed out on the back
+    // and cast in the Debug Battle (up to ~11 characters fit on one line of a small card)
     skills: [
-      ["Java", "Object-oriented programming, data structures and scalable systems"],
-      ["Python", "Data analysis, automation and scripting"],
-      ["Algorithms", "Problem solving, complexity analysis and CS fundamentals"],
-      ["Docker", "Containerization, deployment and environment management"],
-      ["Git", "Version control, collaboration and code management"],
-      ["SQL", "Database design, querying and data manipulation"]
-    ]
+      { name: "Java", mark: "java", desc: "OOP and data structures. Built a rhythm game in it.", spell: "@Override" },
+      { name: "Python", mark: "python", desc: "FastAPI backends, automation and quick scripts.", spell: "import antigravity" },
+      { name: "Dart / Flutter", mark: "flutter", desc: "Mobile apps: Mindly and LajkonikGO.", spell: "flutter run" },
+      { name: "SQL", mark: "sql", desc: "PostgreSQL schemas, queries and migrations.", spell: "DROP TABLE bugs;" },
+      { name: "Algorithms", mark: "algorithms", desc: "Complexity, problem solving and visualised sorts.", spell: "O(n log n)" },
+      { name: "Git", mark: "git", desc: "Branches, rebases and a history that reads well.", spell: "git bisect" },
+      { name: "Docker", mark: "docker", desc: "API, Postgres and Redis up in one command.", spell: "compose up" },
+      { name: "Linux / Bash", mark: "bash", desc: "Processes, signals, IPC and shell scripts.", spell: "sudo !!" }
+    ],
+    // Card 0: dealt once every card above has been turned over (js/arcana.js).
+    fool: { name: "The Fool", mark: "go", desc: "Next up: deeper into Java, and picking up Go.", spell: "go run ." }
   },
   {
     id: "projects",
@@ -161,5 +176,5 @@ export const SECTIONS = [
 
 export const SECTION_MAP = Object.fromEntries([HOME, ...SECTIONS].map((section) => [section.id, section]));
 
-/** Roman numerals for the arcana cards (I to XII is plenty). */
+/** Roman numerals for the arcana cards (I to XII is plenty; card 0 is the Fool's). */
 export const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];

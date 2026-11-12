@@ -14,13 +14,16 @@ import {
   PLAYER_HP, ENEMY_HP, affinity, availableBugs, pickWaves, rollDamage, rollEnemyHit, rank
 } from "./battle-logic.js";
 import { bugSvg } from "./fx/bug-art.js";
+import { mark } from "./marks.js";
 
 const KNOWN_KEY = "p3:battle:known";
 const ABORT = Symbol("battle-abort");
 const TAGS = { weak: "Weak", resist: "Resist", normal: "Hit" };
 const STAMPS = { weak: "Weak", resist: "Resist", crit: "Critical", extra: "Extra turn" };
 
-const skills = (SECTIONS.find((section) => section.kind === "arcana")?.skills ?? []).map(([name]) => name);
+const loadout = SECTIONS.find((section) => section.kind === "arcana")?.skills ?? [];
+const skills = loadout.map((skill) => skill.name);
+const spellOf = (name) => loadout.find((skill) => skill.name === name)?.spell ?? null;
 
 let dialog = null;
 let els = {};
@@ -68,10 +71,11 @@ const swallow = (error) => {
 
 /* ------------------------------------------------------------------- build */
 
-function commandMarkup(name, i) {
-  return `<li><button class="battle__cmd" type="button" data-skill="${esc(name)}">
+function commandMarkup(skill, i) {
+  return `<li><button class="battle__cmd" type="button" data-skill="${esc(skill.name)}">
       <span class="battle__cmd-no" aria-hidden="true">${ROMAN[i] ?? i + 1}</span>
-      <span class="battle__cmd-name">${esc(name)}</span>
+      <span class="battle__cmd-mark" aria-hidden="true">${mark(skill.mark)}</span>
+      <span class="battle__cmd-name">${esc(skill.name)}</span>
       <span class="battle__cmd-tag" data-aff="unknown">?</span>
     </button></li>`;
 }
@@ -101,7 +105,7 @@ function build() {
       </div>
       <nav class="battle__commands" aria-label="Skills">
         <p class="battle__commands-label">Choose a skill <span aria-hidden="true">1-${skills.length}</span></p>
-        <ul class="battle__cmd-list" role="list">${skills.map(commandMarkup).join("")}</ul>
+        <ul class="battle__cmd-list" role="list">${loadout.map(commandMarkup).join("")}</ul>
       </nav>
       <div class="battle__party">
         <p class="battle__party-name">Pietro</p>
@@ -311,6 +315,24 @@ function flash(element) {
   animate(element, [{ filter: "brightness(2.4)" }, { filter: "brightness(1)" }], { duration: 0.22, ease: "out", fill: "none" });
 }
 
+/** The bug's expression (bug-art.js draws them all; CSS shows this one). */
+function setFace(face, holdMs = 0) {
+  window.clearTimeout(st?.faceTimer);
+  els.sprite.dataset.face = face;
+  if (holdMs && st) {
+    st.faceTimer = window.setTimeout(() => {
+      if (st && st.enemyHp > 0) els.sprite.dataset.face = "idle";
+    }, holdMs);
+  }
+}
+
+/** A hit: the chromatic split flickers on the sprite for a moment. */
+function glitchHit() {
+  els.sprite.classList.add("is-hit");
+  window.clearTimeout(els.sprite._hitTimer);
+  els.sprite._hitTimer = window.setTimeout(() => els.sprite.classList.remove("is-hit"), reduced() ? 120 : 260);
+}
+
 /** The comic finisher: speed lines and a word on a red band at the major angle. */
 async function burst(word) {
   els.burstWord.textContent = word;
@@ -343,7 +365,9 @@ function startWave(index) {
   els.wave.textContent = `Bug ${index + 1} / ${st.waves.length}`;
   els.name.textContent = st.bug.name;
   els.sprite.innerHTML = bugSvg(st.bug);
-  els.sprite.classList.remove("is-down");
+  els.sprite.classList.remove("is-down", "is-hit");
+  els.sprite.dataset.clones = "0";
+  setFace("idle");
   renderEnemy();
   renderTags();
   log(`Bug spotted: ${st.bug.name}.`);
@@ -363,13 +387,16 @@ async function playerAct(skill) {
     const kind = affinity(st.bug, skill);
     const { amount, crit } = rollDamage(kind);
     const shown = crit ? "crit" : kind;
-    log(`Pietro uses ${skill}.`);
+    const spell = spellOf(skill);
+    log(spell ? `Pietro casts ${spell}` : `Pietro uses ${skill}.`);
     if (!reduced()) animate(els.party, [{ translate: "0 0" }, { translate: "-14px -4px" }, { translate: "0 0" }], { duration: 0.24, ease: "out", fill: "none" });
     await step(200);
 
     sfx.hit(shown);
     shake(els.sprite, kind === "resist" ? 4 : 12);
     flash(els.sprite);
+    if (kind !== "resist") glitchHit();
+    setFace(kind === "weak" ? "dizzy" : kind === "resist" ? "idle" : "hurt", 900);
     popNumber(els.fx, amount, shown);
     if (shown !== "normal") stampOn(els.fx, shown);
     learn(st.bug.id, skill, kind);
@@ -407,6 +434,9 @@ async function playerAct(skill) {
 async function enemyTurn() {
   const line = st.bug.lines[Math.floor(Math.random() * st.bug.lines.length)];
   log(`${st.bug.name}: “${line}”`);
+  setFace("idle");
+  // Fork Bomb: one more copy spawns behind it every time it acts.
+  if (st.bug.motif === "fork") els.sprite.dataset.clones = String(Math.min(3, Number(els.sprite.dataset.clones || 0) + 1));
   if (!reduced()) animate(els.sprite, [{ translate: "0 0" }, { translate: "-26px 4px" }, { translate: "0 0" }], { duration: 0.3, ease: "snap", fill: "none" });
   await step(240);
   const hit = rollEnemyHit();
@@ -426,6 +456,7 @@ async function enemyTurn() {
 
 async function defeat(byWeakSpot) {
   sfx.finisher();
+  setFace("down");
   els.sprite.classList.add("is-down");
   await burst(byWeakSpot ? "Patch deployed" : "Fixed");
   await step(0); // closed during the finisher? stop here

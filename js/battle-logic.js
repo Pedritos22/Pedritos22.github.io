@@ -63,6 +63,24 @@ export const BUGS = Object.freeze([
     motif: "noodle",
     fix: "Refactored into three tidy functions.",
     lines: ["A 900-line function wraps around you.", "Global variables everywhere.", "Nobody remembers what flag2 does."]
+  },
+  {
+    id: "fork-bomb",
+    name: "Fork Bomb",
+    weak: "Linux / Bash",
+    resist: "Dart / Flutter",
+    motif: "fork",
+    fix: "ulimit -u caps it. The copies stop spawning.",
+    lines: [":(){ :|:& };: hisses down the fuse.", "There are two of it now. Now four.", "The process table is full."]
+  },
+  {
+    id: "renderflex-overflow",
+    name: "RenderFlex Overflow",
+    weak: "Dart / Flutter",
+    resist: "Linux / Bash",
+    motif: "overflow",
+    fix: "Wrapped in Expanded. Everything fits.",
+    lines: ["A RenderFlex overflowed by 42 pixels on the right.", "Yellow and black stripes everywhere.", "setState() called after dispose()."]
   }
 ]);
 

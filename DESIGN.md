@@ -25,6 +25,11 @@ audio, or the owner's own files. Generic motifs are fine (moon, clock, tarot-lik
 butterflies, a tower on the skyline, water caustics, a calendar HUD); specific
 copyrighted designs are not.
 
+**Technology marks** (Python, Docker, Git, ...) are the one exception to "no logos": they
+identify what a skill card stands for and live only in `js/marks.js` (Simple Icons paths,
+CC0, or our own silhouettes), drawn in one colour from the card's tokens. A brand colour
+appears only faintly on the back of a card, through `--brand`; the Dark Hour replaces it.
+
 ---
 
 ## 2. Color
@@ -87,6 +92,7 @@ Fonts are self-hosted from `assets/fonts` (see `css/fonts.css`), latin and latin
 | Menu | **Bebas Neue** | main menu items |
 | HUD / labels | **Barlow Condensed** 600/800, usually *italic* | HUD, kickers, numbers, tags, buttons |
 | Body | **Inter** (variable 400–900) | paragraphs, list values |
+| Code | system monospace (`--font-code`) | one-line code on the arcana cards, sprite labels |
 
 Fluid type scale (major third, 1.25), as tokens `--fs-*` in `base.css`:
 
@@ -273,7 +279,9 @@ js/motion.js          gsap + SplitText + CustomEase, DUR, EASE, STAGGER; WAAPI h
 js/content.js         all copy and section data (single source of truth)
 js/sections.js        card rendering + section transitions (+ mobile stack)
 js/menu.js            menu state, cursor, keyboard navigation
-js/sigils.js          procedural arcana sigils (SVG)
+js/sigils.js          procedural arcana sigils (SVG); { hub: true } puts a medallion in the centre
+js/arcana.js          Skills cards: markup, deal from the deck, holo sheen, typed spells, card 0 (The Fool)
+js/marks.js           technology marks for the cards and battle commands (the only brand marks)
 js/hud.js             HUD + tool buttons + audio controls UI
 js/intro.js           intro sequence
 js/hints.js           hints dialog
@@ -292,6 +300,7 @@ js/lofi.js            generative lo-fi engine API
 js/projects.js        GitHub projects section
 js/battle.js          Debug Battle dialog (Skills card button, Dark Hour crawler)
 js/battle-logic.js    battle rules: bugs, weak spots, damage, ranks (pure, tested)
+js/fx/bug-art.js      bug sprites: one silhouette per bug, cel shading, every expression (pure, tested)
 js/rhythm.js          Night Session rhythm game (hold the lo-fi button, or hint 10)
 js/rhythm-logic.js    rhythm chart, judging and scoring (pure, tested)
 js/proc/*             seeded RNG, noise, Voronoi
@@ -335,9 +344,15 @@ over 25 and 50 ms; `js/perfprobe.js`, loaded only with the flag).
   `.panel-wrap` and `.card-stage` are `pointer-events: none` on desktop so the uncovered parts
   of the emblem can be grabbed; the card turns them back on.
 - **Debug Battle:** any `[data-battle]` button opens it (`battle.js` exports `openBattle({ first, from })`
-  and `spawnCrawler()`). Attacks are the skills of the `arcana` section in `content.js`; each bug in
-  `battle-logic.js` names its weak and resisted skill, and a bug only appears when its weak skill is in
-  the loadout. Discovered affinities persist in `localStorage` (`p3:battle:known`).
+  and `spawnCrawler()`). Attacks are the skills of the `arcana` section in `content.js` (each casts its
+  `spell`); each bug in `battle-logic.js` names its weak and resisted skill, and a bug only appears when
+  its weak skill is in the loadout. Every skill is the weak spot of exactly one bug and resisted by exactly
+  one (tested). Discovered affinities persist in `localStorage` (`p3:battle:known`). Sprites carry every
+  expression; `data-face` on `.battle__sprite` (`idle | hurt | dizzy | down`) picks one, and
+  `data-clones` (0..3) reveals the Fork Bomb's copies.
+- **Skills cards:** `content.js` skills are `{ name, mark, desc, spell }` (desc under ~50 characters,
+  spell up to ~11 so it fits one line); `fool` is card 0, dealt once every card has been turned over in
+  a visit. Finding it shows a `0` chip by the battle button for good (`localStorage` `p3:arcana:fool`).
 - **Dark Hour:** `darkhour.js` exports `setDarkHour(active)`. It sets
   `html[data-darkhour]`, `state.darkhour` and emits `EVT.DARKHOUR`.
 

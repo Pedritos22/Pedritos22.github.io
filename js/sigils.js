@@ -10,6 +10,8 @@
 //   - a star polygon {n/k}
 //   - one "rune" (a short angular polyline) per fold, optionally mirrored
 //   - small vertex dots and a centre mark
+//   - or, with { hub: true }, a solid medallion disc in the centre instead of the centre
+//     mark: it covers the star's inner lines so a technology mark (js/marks.js) can sit on it
 import { createRng } from "./proc/rng.js";
 
 const cache = new Map();
@@ -71,7 +73,10 @@ function runePath(points, rotation, mirror) {
     .join("");
 }
 
-function build(name) {
+/** Radius of the centre medallion (viewBox units, the sigil spans -52..52). */
+export const HUB_RADIUS = 19;
+
+function build(name, hub = false) {
   const rng = createRng(`sigil:${name}`);
   const fold = rng.pick([3, 4, 5, 6, 7, 8]);
   // Star polygons need n >= 5; small folds double up so the star still reads.
@@ -90,7 +95,7 @@ function build(name) {
     `<circle class="sg-dash" r="${rng.pick([40, 41])}" pathLength="${dashes}" stroke-dasharray="0.5 0.5"/>`
   );
   const inner = starRadius * Math.cos((Math.PI * k) / n);
-  if (inner > 6) parts.push(`<circle class="sg-draw" r="${fmt(inner)}" pathLength="1"/>`);
+  if (inner > (hub ? HUB_RADIUS + 3 : 6)) parts.push(`<circle class="sg-draw" r="${fmt(inner)}" pathLength="1"/>`);
 
   // Star polygon.
   const star = starPaths(n, k, starRadius, rotation);
@@ -123,12 +128,17 @@ function build(name) {
     if (i % every === 0) parts.push(`<circle class="sg-dot" cx="${fmt(x)}" cy="${fmt(y)}" r="1.8" pathLength="1"/>`);
   });
 
-  // Centre mark: a ring or a diamond.
-  if (rng.chance(0.5)) {
-    parts.push(`<circle class="sg-draw" r="${rng.pick([4, 5, 6])}" pathLength="1"/>`);
+  // Centre: the medallion (drawn last, so it covers the star's inner lines and the runes'
+  // roots), or a small ring or diamond. The rng draws are the same either way, so a name
+  // keeps its sigil with or without the medallion.
+  const ring = rng.chance(0.5);
+  const size = ring ? rng.pick([4, 5, 6]) : rng.pick([5, 6, 7]);
+  if (hub) {
+    parts.push(`<circle class="sg-draw sg-hub" r="${HUB_RADIUS}" pathLength="1"/>`);
+  } else if (ring) {
+    parts.push(`<circle class="sg-draw" r="${size}" pathLength="1"/>`);
   } else {
-    const s = rng.pick([5, 6, 7]);
-    parts.push(`<path class="sg-draw" d="M0 ${-s}L${s} 0L0 ${s}L${-s} 0Z" pathLength="1"/>`);
+    parts.push(`<path class="sg-draw" d="M0 ${-size}L${size} 0L0 ${size}L${-size} 0Z" pathLength="1"/>`);
   }
 
   return { parts, fold, n, k };
@@ -138,14 +148,16 @@ function build(name) {
  * Inline SVG string for the sigil of `name` (memoized).
  * options.className  extra class names for the <svg>
  * options.title      accessible title (omit to keep the sigil decorative)
+ * options.hub        true: a medallion disc in the centre instead of the centre mark
  */
 export function renderSigil(name, options = {}) {
   const className = options.className ? ` ${options.className}` : "";
-  const key = `${name}|${className}|${options.title ?? ""}`;
+  const hub = Boolean(options.hub);
+  const key = `${name}|${className}|${options.title ?? ""}|${hub}`;
   const cached = cache.get(key);
   if (cached) return cached;
 
-  const { parts, fold, n, k } = build(String(name));
+  const { parts, fold, n, k } = build(String(name), hub);
   const label = options.title
     ? `role="img" aria-label="${String(options.title).replace(/"/g, "&quot;")}"`
     : `aria-hidden="true"`;
