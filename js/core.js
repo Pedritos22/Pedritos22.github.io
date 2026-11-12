@@ -19,7 +19,9 @@ export const EVT = Object.freeze({
   GLASS_BREAK: "glass:break",               // {element, x, y}
   OBJECTION: "objection",                   // {}
   RESET: "reset",                           // {}  user pressed the reset button
-  TIME: "time"                              // {date, virtual, transient}  the time dial moved the clock
+  TIME: "time",                             // {date, virtual, transient}  the time dial moved the clock
+  CONSOLE: "console",                       // {open}        the system console opened / closed
+  DIVE: "dive"                              // {depth: 0 | 1} the camera went under water / surfaced
 });
 
 const bus = new EventTarget();
@@ -48,12 +50,15 @@ export function once(type, handler) {
 /**
  * Small shared state. Owners write, everyone may read.
  *   introDone  -> intro.js       section   -> sections.js
- *   darkhour   -> darkhour.js
+ *   darkhour   -> darkhour.js     depths    -> dive.js
+ *   console    -> terminal.js
  */
 export const state = {
   introDone: false,
   section: "home",
-  darkhour: false
+  darkhour: false,
+  depths: false,
+  console: false
 };
 
 /** Run `handler` once the intro is done (immediately if it already is). */

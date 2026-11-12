@@ -151,6 +151,7 @@ pseudo-element) or on an unclipped wrapper. Always verify focus-visible on scree
 | `--z-shell` | 10 | main layout (menu, panel, emblem) |
 | `--z-hud` | 30 | HUD, top tools |
 | `--z-drag` | 40 | dragged nameplate |
+| `--z-console` | 50 | system console (drops from the top, not modal) |
 | `--z-overlay` | 60 | objection burst |
 | `--z-shards` | 70 | flying glass shards |
 | `--z-toast` | 75 | toasts |
@@ -273,6 +274,8 @@ css/effects.css       background canvas, skyline, butterflies, emblem, Dark Hour
 css/projects.css      projects section
 css/battle.css        Debug Battle dialog, sprites, crawler
 css/rhythm.css        Night Session dialog and highway
+css/dive.css          the dive: rest positions above / below the water, the Depths layer
+css/terminal.css      system console
 js/main.js            imports and init()s every module, each wrapped in try/catch
 js/core.js            event bus (EVT), state, flags, media queries, moonPhase, daySeed, rafLoop
 js/motion.js          gsap + SplitText + CustomEase, DUR, EASE, STAGGER; WAAPI helpers (CSS_EASE, animate, enterFrom)
@@ -303,10 +306,16 @@ js/battle-logic.js    battle rules: bugs, weak spots, damage, ranks (pure, teste
 js/fx/bug-art.js      bug sprites: one silhouette per bug, cel shading, every expression (pure, tested)
 js/rhythm.js          Night Session rhythm game (hold the lo-fi button, or hint 10)
 js/rhythm-logic.js    rhythm chart, judging and scoring (pure, tested)
+js/dive.js            the dive: scroll past the desktop page to go under the water (the Depths)
+js/terminal.js        system console UI (~ opens it) and its browser context
+js/terminal-logic.js  console tokenizer, history, completion and the command table (pure, tested)
+js/toast.js           toasts: one slanted plate in the lower left, aria-live
+js/extras.js          secrets left out of the hints: Konami code, away tab title, DevTools greeting
 js/proc/*             seeded RNG, noise, Voronoi
 js/fx/*               atmosphere helpers: water shader, moon/dial/city/butterfly art, slash, palette (tokens for canvas/GLSL), pointer
 js/glyphs.js          small line icons used in card rows
 404.html + css/404.css  standalone not-found page (absolute paths; served by GitHub Pages for any missing URL)
+assets/favicon-away.svg the sleeping moon shown in the tab while the visitor is away (js/extras.js)
 assets/og-image.png   social preview, rendered from the live page (1200x630)
 ```
 
@@ -317,8 +326,8 @@ over 25 and 50 ms; `js/perfprobe.js`, loaded only with the flag).
 
 ### Contracts
 - **Events:** `EVT` in `core.js`. Payloads are documented there.
-- **Shared state:** `state.introDone`, `state.section`, `state.darkhour`. Use
-  `afterIntro(fn)` to run entrance animations.
+- **Shared state:** `state.introDone`, `state.section`, `state.darkhour`, `state.depths`,
+  `state.console`. Use `afterIntro(fn)` to run entrance animations.
 - **SFX API** (`sfx.js`): `sfx.hover() click() confirm() back() whoosh() crack(stage) glass() objection() dialog(open) tick() bell() toast()`,
   battle: `sfx.hit(kind) hurt() finisher()` (`kind`: normal, crit, weak, resist),
   plus `sfx.setMuted(bool)`, `sfx.isMuted()` and `sfx.unlock()`.
@@ -355,6 +364,25 @@ over 25 and 50 ms; `js/perfprobe.js`, loaded only with the flag).
   a visit. Finding it shows a `0` chip by the battle button for good (`localStorage` `p3:arcana:fool`).
 - **Dark Hour:** `darkhour.js` exports `setDarkHour(active)`. It sets
   `html[data-darkhour]`, `state.darkhour` and emits `EVT.DARKHOUR`.
+- **Toasts:** `toast.js` exports `toast(text, { kicker, sound })`. One at a time; a new one
+  replaces the one on screen.
+- **System console:** `terminal.js` exports `openConsole({ from })`, `closeConsole()`,
+  `toggleConsole()` and `isConsoleOpen()`; it sets `state.console` and emits `EVT.CONSOLE`
+  `{open}`. The `~` key (`event.code` Backquote) opens it after the intro, and so does any
+  `[data-console]` button. Commands live in `terminal-logic.js` as `{ name, aliases, group,
+  usage, desc, run(args, ctx), complete?, hidden? }`; `run` returns lines and reaches the page
+  only through `ctx`, so the table is tested in node (`tests/terminal.test.mjs`). `hidden`
+  commands stay off `help`. History persists in `localStorage` (`p3:console:history`).
+  Commands that open a modal close the console first.
+- **The dive:** `dive.js` exports `dive()`, `surface()` and `canDive()` (desktop, after the
+  intro, no dialog). It sets `html[data-depths]` and `state.depths`, makes `.shell` inert, and
+  emits `EVT.DIVE` `{depth, preview}`: `preview: true` while the wheel pulls (depth 0..0.08,
+  or 1..0.92 on the way up), `false` on a commit (0 or 1). Rest positions for both states live
+  in `css/dive.css`; a transition animates from wherever things are to the new rest, so it can
+  be interrupted. The shader reads it as `uDepth` (no extra noise evaluations). Any
+  `[data-dive]` button dives; `EVT.RESET` and a section change surface.
+- **God mode:** `battle.js` exports `armGodMode()` (the Konami code in `extras.js`): the next
+  run takes no damage and ends on rank ∞.
 
 ---
 

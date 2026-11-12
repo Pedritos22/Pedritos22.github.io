@@ -1,6 +1,6 @@
 // GLSL for the full-screen "moonlight on water" background (js/background.js).
 // Budget: 4 gradient-noise evaluations per pixel (2 for the domain warp, 2 for the caustic
-// ridges); light shafts, grain and static use cheap trig/hash only.
+// ridges); light shafts, grain, static and the dive use cheap trig/hash only.
 import { NORMAL, DARK, glsl } from "./palette.js";
 
 export const VERTEX = `
@@ -29,6 +29,7 @@ uniform float uDir;    // +1 left->right, -1 right->left (trail side)
 uniform float uKick;   // 0..1 global light kick (glass break)
 uniform float uTwilight; // 0..1 dawn / dusk glow on the horizon (world clock)
 uniform float uDay;      // 0..1 daylight lift of the night palette (world clock)
+uniform float uDepth;    // 0..1 under the water (js/dive.js): light from above, the moon gone
 
 const vec3 INK = ${glsl(NORMAL.ink)};
 const vec3 NIGHT = ${glsl(NORMAL.night)};
@@ -176,6 +177,29 @@ void main() {
   vec3 sweepCol = mix(mix(CYAN, ICE, 0.5), DH_GLOW, uDark);
   col += sweepCol * sweep * uFlash * 0.32;
   col += moonTint * uKick * 0.05;
+
+  // ---- the dive: under the surface the light comes from above (js/dive.js). It reuses the
+  // caustic web (c, warp) and trig shafts, so it costs no extra noise.
+  if (uDepth > 0.001) {
+    float up = pow(clamp(y, 0.0, 1.0), 1.5);
+    vec3 abyss = mix(INK * 0.6, mix(NIGHT, DEEP, 0.6), up);
+    abyss = mix(abyss, mix(DH_INK * 0.6, mix(DH_NIGHT, DH_DEEP, 0.6), up), uDark);
+    // The surface far above: a rippling band of light along the top edge.
+    float surf = smoothstep(0.72, 1.0, y);
+    vec3 surfCol = mix(mix(BLUE, CYAN, 0.3 + 0.35 * warp), mix(DH_DEEP, DH_GLOW, 0.4 + 0.3 * warp), uDark);
+    vec3 under = abyss + surfCol * surf * (0.16 + 0.42 * c);
+    // The caustic web, fading with depth.
+    under += causticCol * c * smoothstep(0.3, 1.0, y) * 0.12;
+    // Shafts fanning down from the surface at the major angle, swaying slowly.
+    vec2 src = vec2((uv.x - 0.42) * aspect, uv.y - 1.5);
+    float fanT = src.x / max(-src.y, 0.05) - 0.14 + sin(t * 0.11) * 0.02;
+    float shafts = 0.5 + 0.5 * sin(fanT * 46.0 + t * 0.17)
+                 + 0.4 * sin(fanT * 83.0 - t * 0.13 + 1.3)
+                 + 0.3 * sin(fanT * 131.0 + t * 0.09 + warp);
+    shafts = smoothstep(0.7, 1.6, shafts) * exp(-fanT * fanT * 3.2) * smoothstep(-0.05, 0.95, y);
+    under += mix(ICE * 0.5 + CYAN * 0.2, DH_MOON * 0.6, uDark) * shafts * (0.16 + uPulse * 0.05);
+    col = mix(col, under, uDepth);
+  }
 
   // ---- Dark Hour: faint blood haze on the horizon + flickering static
   if (uDark > 0.001) {

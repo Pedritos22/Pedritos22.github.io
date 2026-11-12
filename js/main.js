@@ -7,6 +7,7 @@ const MODULES = [
   "sfx",
   "lofi",
   "darkhour",
+  "toast",
   // Scenery (behind everything)
   "background",
   "skyline",
@@ -24,6 +25,9 @@ const MODULES = [
   "projects",
   "battle",
   "rhythm",
+  "dive",
+  "terminal",
+  "extras",
   // Last: the intro emits intro:done once everything above has subscribed.
   "intro"
 ];

@@ -36,7 +36,8 @@ const fx = {
   dir: 1,
   kick: 0,
   twilight: 0,
-  day: 0
+  day: 0,
+  depth: 0
 };
 
 /** Time-of-day light from the world clock (real, or moved by the time dial). */
@@ -87,7 +88,7 @@ function buildProgram() {
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
   uniforms = {};
-  ["uRes", "uTime", "uMouse", "uMoon", "uDark", "uPulse", "uFlash", "uSweep", "uDir", "uKick", "uTwilight", "uDay"].forEach((name) => {
+  ["uRes", "uTime", "uMouse", "uMoon", "uDark", "uPulse", "uFlash", "uSweep", "uDir", "uKick", "uTwilight", "uDay", "uDepth"].forEach((name) => {
     uniforms[name] = gl.getUniformLocation(prog, name);
   });
   gl.disable(gl.DEPTH_TEST);
@@ -161,6 +162,7 @@ function draw() {
   gl.uniform1f(uniforms.uKick, fx.kick);
   gl.uniform1f(uniforms.uTwilight, fx.twilight);
   gl.uniform1f(uniforms.uDay, fx.day);
+  gl.uniform1f(uniforms.uDepth, fx.depth);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -232,6 +234,20 @@ function onSectionWillChange(detail = {}) {
     { sweep: path.to / vw + lead, duration: SWEEP_DURATION, ease: EASE.snap, overwrite: false }
   );
   gsap.fromTo(fx, { flash: 1 }, { flash: 0, duration: DUR.panel * 1.7, ease: "power2.in", overwrite: false });
+}
+
+/** The dive (js/dive.js): the preview sets the depth directly, a commit tweens it. */
+function onDive({ depth = 0, preview = false } = {}) {
+  gsap.killTweensOf(fx, "depth");
+  if (preview || reduced || !gl) {
+    fx.depth = depth;
+    if (reduced) renderOnce();
+    return;
+  }
+  const down = depth > fx.depth;
+  gsap.to(fx, { depth, duration: down ? DUR.scene * 1.3 : DUR.panel, ease: down ? EASE.snap : EASE.out, overwrite: false });
+  // The emblem (the light source) moved with the page: measure it again once it is back.
+  if (!depth) window.setTimeout(measureMoon, DUR.panel * 1000 + 60);
 }
 
 function onGlassBreak() {
@@ -357,6 +373,7 @@ export function init() {
   on(EVT.SECTION_WILL_CHANGE, onSectionWillChange);
   on(EVT.SECTION_CHANGED, () => requestAnimationFrame(measureMoon));
   on(EVT.GLASS_BREAK, onGlassBreak);
+  on(EVT.DIVE, onDive);
   document.fonts?.ready.then(() => {
     measureMoon();
     if (reduced) renderOnce();

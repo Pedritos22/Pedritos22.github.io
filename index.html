@@ -56,6 +56,8 @@
   <link rel="stylesheet" href="css/overlays.css" />
   <link rel="stylesheet" href="css/battle.css" />
   <link rel="stylesheet" href="css/rhythm.css" />
+  <link rel="stylesheet" href="css/dive.css" />
+  <link rel="stylesheet" href="css/terminal.css" />
 
   <script defer src="vendor/gsap/gsap.min.js"></script>
   <script defer src="vendor/gsap/SplitText.min.js"></script>
@@ -175,6 +177,9 @@
     </section>
   </main>
 
+  <!-- The Depths: under the water, below the desktop page (js/dive.js renders it) -->
+  <section class="depths" aria-labelledby="depths-title" hidden></section>
+
   <noscript>
     <style>
       .shell, .meta-bar { visibility: visible !important; animation: none !important; }
@@ -198,6 +203,21 @@
     <div class="objection-flash"></div>
   </div>
 
+  <!-- System console: press ~ (js/terminal.js). Not modal: the scene stays live under it. -->
+  <section class="console" role="dialog" aria-modal="false" aria-labelledby="console-title" hidden>
+    <span class="console-plate" aria-hidden="true"></span>
+    <header class="console-head">
+      <p class="console-kicker" id="console-title">System console <span class="console-tty" aria-hidden="true">tty1</span></p>
+      <button class="console-close" type="button"><span class="console-close-key" aria-hidden="true">~</span><span>Close</span></button>
+    </header>
+    <div class="console-log" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form class="console-prompt" autocomplete="off">
+      <span class="console-ps1" aria-hidden="true">guest@dark-hour:~$</span>
+      <input class="console-input" type="text" aria-label="Command" aria-describedby="console-help" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" />
+    </form>
+    <p class="visually-hidden" id="console-help">Type help and press Enter. Tab completes, the arrow keys browse the history, Escape closes.</p>
+  </section>
+
   <!-- Hints: a list of side requests (js/hints.js) -->
   <dialog class="hints-dialog" id="hint-panel" aria-labelledby="hint-title">
     <div class="hints-backdrop" data-close></div>
@@ -208,7 +228,7 @@
         <span>Close</span>
       </button>
       <header class="hints-head">
-        <p class="hints-kicker">Side requests <span class="hints-count">11</span></p>
+        <p class="hints-kicker">Side requests <span class="hints-count">13</span></p>
         <h2 id="hint-title">Requests</h2>
         <p class="hints-lede">Nothing here is required. All of it is fun.</p>
       </header>
@@ -289,6 +309,22 @@
           <div class="hint-body">
             <h3>Full deck</h3>
             <p>Turn over every card on the Skills card. The deck isn't complete.</p>
+          </div>
+        </li>
+        <li class="hint">
+          <span class="hint-no" aria-hidden="true">12</span>
+          <div class="hint-body">
+            <h3>Talk to the machine</h3>
+            <p>There is a console behind the page. Press <span class="hint-key">~</span> to open it, then type <span class="hint-key">help</span>. Not every command is on the list.</p>
+            <button class="hint-action" type="button" data-console>Open now</button>
+          </div>
+        </li>
+        <li class="hint">
+          <span class="hint-no" aria-hidden="true">13</span>
+          <div class="hint-body">
+            <h3>Deep end</h3>
+            <p>On a big screen the page ends at the bottom edge. The water doesn't. Scroll down and keep going.</p>
+            <button class="hint-action" type="button" data-dive>Dive now</button>
           </div>
         </li>
       </ol>

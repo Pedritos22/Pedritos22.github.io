@@ -176,5 +176,28 @@ export const SECTIONS = [
 
 export const SECTION_MAP = Object.fromEntries([HOME, ...SECTIONS].map((section) => [section.id, section]));
 
+/**
+ * The Depths: the hidden layer under the water (js/dive.js), reached by scrolling down past
+ * the desktop page. The colophon only states how this site is built (it is all in the repo);
+ * the save file is filled in live from this visit and the browser's storage.
+ */
+export const DEPTHS = {
+  kicker: "Depth 06",
+  stamp: "Depths",
+  title: "You found the deep end.",
+  copy: "This is where the machinery lives. Everything up there runs on what's down here.",
+  colophonTitle: "How it's built",
+  colophon: [
+    ["Framework", "None, and no build step"],
+    ["Code", "Plain ES modules, served as-is"],
+    ["Water", "A WebGL shader at half resolution"],
+    ["Motion", "GSAP and the Web Animations API"],
+    ["Music", "Lo-fi generated live, new every day"],
+    ["Sound", "Mostly synthesized in the browser"]
+  ],
+  saveTitle: "Save file",
+  engraving: "Press ~ to talk to the machine."
+};
+
 /** Roman numerals for the arcana cards (I to XII is plenty; card 0 is the Fool's). */
 export const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];

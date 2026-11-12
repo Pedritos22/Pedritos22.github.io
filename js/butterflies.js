@@ -3,6 +3,8 @@
 // menu, nameplate and HUD. Wings flap in 3D on the compositor (CSS keyframes); the flight
 // path is integrated in a rafLoop that writes one transform per butterfly per frame.
 // Easter egg: click one and it bursts into sparkles. None with reduced motion or ?nofx.
+// swarm() (the Konami code) sends a whole flock up at once. Under the water (js/dive.js)
+// none fly.
 import {
   EVT, on, state, flags, params, afterIntro, daySeed, prefersReducedMotion, onReducedMotionChange,
   isMobileLayout, rafLoop, clamp
@@ -272,10 +274,48 @@ function pauseForTransition() {
   gsap.to(layer, { autoAlpha: 0, duration: DUR.micro, ease: "none", overwrite: "auto" });
   // One hero per moment: come back once the panel has landed.
   resumeCall = gsap.delayedCall(DUR.panel + 0.45, () => {
+    if (state.depths) return; // still under the water: onDive brings them back
     paused = false;
     measureObstacles();
     gsap.to(layer, { autoAlpha: 1, duration: DUR.panel, ease: "none", overwrite: "auto" });
   });
+}
+
+/* ------------------------------------------------------------------ dive */
+
+function onDive({ depth, preview }) {
+  if (preview || !enabled) return;
+  resumeCall?.kill();
+  if (depth >= 1) {
+    paused = true;
+    gsap.to(layer, { autoAlpha: 0, duration: DUR.ui, ease: "none", overwrite: "auto" });
+    return;
+  }
+  resumeCall = gsap.delayedCall(DUR.panel, () => {
+    paused = false;
+    measureObstacles();
+    gsap.to(layer, { autoAlpha: 1, duration: DUR.panel, ease: "none", overwrite: "auto" });
+  });
+}
+
+/* ------------------------------------------------------------------ swarm */
+
+/**
+ * A flock rises out of the city all at once (the Konami code). Ignores the usual cap.
+ * Returns false when butterflies are off (reduced motion, ?nofx, under the water).
+ */
+export function swarm(count = 9) {
+  if (!enabled || paused || document.hidden || !layer) return false;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  for (let i = 0; i < count; i += 1) {
+    const x = vw * (0.08 + 0.84 * (i + Math.random()) / count);
+    const b = makeButterfly(x, vh + 30 + Math.random() * 160, Math.random() < 0.5 ? 0.5 : -0.5, -1);
+    b.speed = 80 + Math.random() * 50;
+    b.dirY = -1.7;
+    b.life = 14 + Math.random() * 6;
+  }
+  return true;
 }
 
 /* ---------------------------------------------------------------- lifecycle */
@@ -323,6 +363,7 @@ export function init() {
 
   afterIntro(enable);
   on(EVT.SECTION_WILL_CHANGE, pauseForTransition);
+  on(EVT.DIVE, onDive);
   onReducedMotionChange((reduced) => {
     if (reduced) disable();
     else if (state.introDone) enable();

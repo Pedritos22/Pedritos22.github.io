@@ -6,6 +6,7 @@
 // Entry points: the "Run a battle test" button on the Skills card ([data-battle]) and, in
 // the Dark Hour, a bug that sometimes crawls along the bottom of the screen.
 // Rules and numbers: js/battle-logic.js. Sprites: js/fx/bug-art.js.
+// The Konami code (js/extras.js) arms God mode for the next run: nothing gets through.
 import { EVT, on, state, prefersReducedMotion, pauseScene, escapeHtml as esc } from "./core.js";
 import { DUR, animate, enterFrom } from "./motion.js";
 import { sfx } from "./sfx.js";
@@ -32,6 +33,12 @@ let runId = 0;
 let known = readKnown();
 let crawler = null;
 let crawlTimer = 0;
+let godArmed = false;
+
+/** The next run is in God mode (the Konami code): focus never drops, the rank is ∞. */
+export function armGodMode() {
+  godArmed = true;
+}
 
 /* ------------------------------------------------------------------ memory */
 
@@ -110,7 +117,7 @@ function build() {
       <div class="battle__party">
         <p class="battle__party-name">Pietro</p>
         <div class="battle__bar battle__bar--focus" aria-hidden="true"><i></i></div>
-        <p class="battle__hp">Focus <b>100</b>/100</p>
+        <p class="battle__hp">Focus <b>100</b><span class="battle__hp-max">/100</span></p>
       </div>
       <div class="battle__result" hidden>
         <p class="battle__result-kicker"></p>
@@ -146,6 +153,7 @@ function build() {
     party: q(".battle__party"),
     focusBar: q(".battle__bar--focus > i"),
     focusHp: q(".battle__party .battle__hp b"),
+    focusMax: q(".battle__party .battle__hp-max"),
     result: q(".battle__result"),
     resultKicker: q(".battle__result-kicker"),
     rank: q(".battle__rank"),
@@ -211,7 +219,8 @@ function renderEnemy() {
 
 function renderParty() {
   setBar(els.focusBar, st.hp, PLAYER_HP);
-  els.focusHp.textContent = String(st.hp);
+  els.focusHp.textContent = st.god ? "∞" : String(st.hp);
+  els.focusMax.hidden = Boolean(st.god);
   els.party.classList.toggle("is-low", st.hp <= 30);
 }
 
@@ -439,14 +448,16 @@ async function enemyTurn() {
   if (st.bug.motif === "fork") els.sprite.dataset.clones = String(Math.min(3, Number(els.sprite.dataset.clones || 0) + 1));
   if (!reduced()) animate(els.sprite, [{ translate: "0 0" }, { translate: "-26px 4px" }, { translate: "0 0" }], { duration: 0.3, ease: "snap", fill: "none" });
   await step(240);
-  const hit = rollEnemyHit();
-  sfx.hurt();
+  const hit = st.god ? 0 : rollEnemyHit();
+  if (st.god) sfx.hit("resist");
+  else sfx.hurt();
   st.hp = Math.max(0, st.hp - hit);
   st.damageTaken += hit;
   renderParty();
   shake(els.party, 8);
   popNumber(els.party, hit, "hurt");
   await step(560);
+  if (st.god) log("Nothing gets through. God mode.");
   if (st.hp <= 0) {
     showResult(false);
     return;
@@ -472,19 +483,19 @@ async function defeat(byWeakSpot) {
 }
 
 function showResult(won) {
-  const grade = won ? rank({ turns: st.turns, damageTaken: st.damageTaken, weakHits: st.weakHits, waves: st.waves.length }) : "";
+  const grade = !won ? "" : st.god ? "∞" : rank({ turns: st.turns, damageTaken: st.damageTaken, weakHits: st.weakHits, waves: st.waves.length });
   els.commands.hidden = true;
   els.result.hidden = false;
   els.result.dataset.outcome = won ? "won" : "lost";
-  els.resultKicker.textContent = won ? "All tests passing" : "Focus at zero";
+  els.resultKicker.textContent = won ? (st.god ? "All tests passing (cheat)" : "All tests passing") : "Focus at zero";
   els.rank.textContent = won ? grade : "×";
-  els.resultTitle.textContent = won ? `Rank ${grade}. Ship it.` : "Burnout. Take a break.";
+  els.resultTitle.textContent = won ? (st.god ? "Rank ∞. Nobody saw that." : `Rank ${grade}. Ship it.`) : "Burnout. Take a break.";
   const rows = [
     ["Bugs fixed", `${st.fixed} / ${st.waves.length}`],
     ["Turns", String(st.turns)],
     ["Weak spots hit", String(st.weakHits)],
     ["Biggest hit", String(st.maxHit)],
-    ["Focus left", `${st.hp} / ${PLAYER_HP}`]
+    ["Focus left", st.god ? "∞" : `${st.hp} / ${PLAYER_HP}`]
   ];
   els.stats.innerHTML = rows.map(([label, value]) => `<li><span>${esc(label)}</span><b>${esc(value)}</b></li>`).join("");
   log(won ? `Run cleared with rank ${grade}.` : "Pietro needs a coffee. Try again?");
@@ -512,8 +523,10 @@ function start(first) {
     maxHit: 0,
     fixed: 0,
     busy: false,
-    lastButton: null
+    lastButton: null,
+    god: godArmed
   };
+  godArmed = false;
   els.commands.hidden = false;
   els.result.hidden = true;
   els.burst.classList.remove("is-on");

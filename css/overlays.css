@@ -1,4 +1,4 @@
-/* Intro, objection burst, hints dialog, nameplate drag states, Dark Hour sweep.
+/* Intro, objection burst, hints dialog, nameplate drag states, Dark Hour sweep, toasts.
    Owner: HUD/overlays workstream (C). */
 
 :root {
@@ -752,4 +752,76 @@ html.name-lifted .shell {
 
 .dh-sweep.is-leaving .dh-sweep-band {
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cyan) 26%, transparent) 40%, color-mix(in srgb, var(--ice) 45%, transparent) 50%, color-mix(in srgb, var(--cyan) 26%, transparent) 60%, transparent);
+}
+
+/* =================================================================== toasts */
+
+/* One plate in the lower left, just above the footer strip (js/toast.js). */
+.toast-region {
+  position: fixed;
+  left: clamp(var(--s-5), 3.6vw, var(--s-8));
+  bottom: calc(44px * var(--k) + var(--s-4));
+  z-index: var(--z-toast);
+  pointer-events: none;
+}
+
+.toast {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  min-width: 240px;
+  max-width: min(420px, calc(100vw - 2 * var(--s-5)));
+  padding: var(--s-3) var(--s-6) var(--s-3) var(--s-5);
+  isolation: isolate;
+}
+
+/* Front plate with a cyan edge; a blue back plate peeks out underneath. The right edge
+   leans 8px over the plate's ~56px: the -8deg major angle. */
+.toast::before,
+.toast::after {
+  content: "";
+  position: absolute;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.toast::before {
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, var(--cyan) 0 4px, transparent 4px),
+    linear-gradient(145deg, var(--abyss), var(--night) 80%);
+}
+
+.toast::after {
+  inset: var(--s-1) calc(var(--s-1) * -1) calc(var(--s-1) * -1) var(--s-1);
+  z-index: -2;
+  background: color-mix(in srgb, var(--blue) 70%, var(--deep));
+}
+
+.toast-kicker {
+  color: var(--cyan);
+  font-family: var(--font-hud);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.toast-text {
+  color: var(--paper);
+  font-family: var(--font-hud);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 920px) {
+  .toast-region {
+    left: var(--s-4);
+    bottom: calc(var(--s-4) + env(safe-area-inset-bottom, 0px));
+  }
 }
