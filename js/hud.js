@@ -229,10 +229,13 @@ function showTip(target) {
     const label = target.classList.contains("hud-volume") ? `${text} ${els.volume.value}%` : text;
     tip.textContent = label;
     // Below the whole HUD, centred on the control, so it never covers the other row.
+    // The rects are on screen; the tip sits in the HUD's own (unscaled) box, and on big
+    // screens the HUD is scaled (hud.css), so divide that back out.
     const rect = target.getBoundingClientRect();
     const hudRect = hud.getBoundingClientRect();
-    tip.style.left = `${Math.round(rect.left - hudRect.left + rect.width / 2)}px`;
-    tip.style.top = `${Math.round(hudRect.height + 12)}px`;
+    const scale = hud.offsetWidth ? hudRect.width / hud.offsetWidth : 1;
+    tip.style.left = `${Math.round((rect.left - hudRect.left + rect.width / 2) / scale)}px`;
+    tip.style.top = `${Math.round(hudRect.height / scale + 12)}px`;
     tip.classList.add("is-visible");
   }, 90);
 }

@@ -185,7 +185,7 @@ html:not(.is-ready) .hud {
 .hud-date-inner {
   display: flex;
   align-items: baseline;
-  font-size: 3.25rem;
+  font-size: 52px;
   font-weight: 800;
   font-style: italic;
   line-height: 0.86;
@@ -207,7 +207,7 @@ html:not(.is-ready) .hud {
   margin-top: 5px;
   padding: 3px 12px 2px 11px;
   color: var(--ink);
-  font-size: 1.125rem;
+  font-size: 18px;
   font-weight: 800;
   font-style: italic;
   line-height: 1;
@@ -263,7 +263,7 @@ html:not(.is-ready) .hud {
 }
 
 .hud-tod-text {
-  font-size: var(--fs-sm);
+  font-size: 14px;
   font-weight: 800;
   font-style: italic;
   line-height: 1;
@@ -277,7 +277,7 @@ html:not(.is-ready) .hud {
   align-self: center;
   display: flex;
   align-items: baseline;
-  font-size: 1.375rem;
+  font-size: 22px;
   font-weight: 600;
   font-style: italic;
   line-height: 1;
@@ -307,7 +307,7 @@ html:not(.is-ready) .hud {
   right: -4px;
   padding: 3px 10px 2px 12px;
   color: var(--ink);
-  font-size: var(--fs-xs);
+  font-size: 12px;
   font-weight: 800;
   font-style: italic;
   line-height: 1;
@@ -410,7 +410,7 @@ html:not(.is-ready) .hud {
   align-content: center;
   gap: 2px;
   min-width: 64px;
-  font-size: 0.6875rem;
+  font-size: 11px;
   line-height: 1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -531,7 +531,7 @@ html:not(.is-ready) .hud {
 
 .hud-glyph {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 20px;
   line-height: 1;
   transition: color var(--dur-1) var(--ease-out);
 }
@@ -701,7 +701,7 @@ html:not(.is-ready) .hud {
   color: var(--ink);
   background: var(--paper);
   font-family: var(--font-hud);
-  font-size: var(--fs-xs);
+  font-size: 12px;
   font-weight: 800;
   font-style: italic;
   line-height: 1;
@@ -718,6 +718,30 @@ html:not(.is-ready) .hud {
 .hud-tip.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+/* ------------------------------------------------------------ big screens */
+
+/* --k (base.css): the HUD is drawn in px, so it scales as one piece from its top-right
+   corner. Inside it the space tokens and the font size stay at 1x, or they would scale
+   twice. hud.js divides the scale out when it places the tooltip. */
+@media (min-width: 2112px) and (min-height: 1056px) {
+  .hud {
+    --s-1: 4px;
+    --s-2: 8px;
+    --s-3: 12px;
+    --s-4: 16px;
+    --s-5: 24px;
+    --s-6: 32px;
+    --s-7: 48px;
+    --s-8: 64px;
+    --s-9: 96px;
+    top: calc(12px * var(--k));
+    right: clamp(calc(16px * var(--k)), 2vw, calc(32px * var(--k)));
+    font-size: 16px;
+    scale: var(--k);
+    transform-origin: 100% 0;
+  }
 }
 
 /* ----------------------------------------------------------------- mobile */

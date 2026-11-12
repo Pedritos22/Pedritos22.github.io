@@ -52,6 +52,9 @@
   --s-8: 64px;
   --s-9: 96px;
 
+  /* Big-screen scale (see the media queries below). 1 everywhere up to 2112x1056. */
+  --k: 1;
+
   /* Geometry */
   --tilt-major: -8deg;
   --tilt-minor: 4deg;
@@ -79,6 +82,40 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938, 1.077 20.4%, 1.121, 1.149 24.3%, 1.159, 1.163 27%, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991 46.9%, 0.977 50.1%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1);
+}
+
+/* Big screens: the desktop composition is tuned for a ~1920x960 viewport and caps out
+   there. Past it, --k grows in 10% steps with whichever of width / height has less room
+   (k <= min(w / 1920, h / 960)), so a 2560x1440 or 4K screen shows the same layout scaled
+   up instead of a small one floating in empty space. rem and the space tokens follow --k;
+   px sizes that shape the layout multiply by it where they are declared. */
+@media (min-width: 2112px) and (min-height: 1056px) { :root { --k: 1.1; } }
+@media (min-width: 2304px) and (min-height: 1152px) { :root { --k: 1.2; } }
+@media (min-width: 2496px) and (min-height: 1248px) { :root { --k: 1.3; } }
+@media (min-width: 2688px) and (min-height: 1344px) { :root { --k: 1.4; } }
+@media (min-width: 2880px) and (min-height: 1440px) { :root { --k: 1.5; } }
+@media (min-width: 3072px) and (min-height: 1536px) { :root { --k: 1.6; } }
+@media (min-width: 3264px) and (min-height: 1632px) { :root { --k: 1.7; } }
+@media (min-width: 3456px) and (min-height: 1728px) { :root { --k: 1.8; } }
+@media (min-width: 3648px) and (min-height: 1824px) { :root { --k: 1.9; } }
+@media (min-width: 3840px) and (min-height: 1920px) { :root { --k: 2; } }
+
+@media (min-width: 2112px) and (min-height: 1056px) {
+  html {
+    font-size: calc(100% * var(--k));
+  }
+
+  :root {
+    --s-1: calc(4px * var(--k));
+    --s-2: calc(8px * var(--k));
+    --s-3: calc(12px * var(--k));
+    --s-4: calc(16px * var(--k));
+    --s-5: calc(24px * var(--k));
+    --s-6: calc(32px * var(--k));
+    --s-7: calc(48px * var(--k));
+    --s-8: calc(64px * var(--k));
+    --s-9: calc(96px * var(--k));
+  }
 }
 
 /* Dark Hour: the world turns green. Components inherit through the tokens above. */

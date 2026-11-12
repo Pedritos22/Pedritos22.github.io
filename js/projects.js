@@ -446,7 +446,9 @@ function fit(root) {
   window.requestAnimationFrame(() => {
     if (!list.isConnected) return;
     // Room below the list, in document coordinates (independent of any transient scroll).
-    const room = () => window.innerHeight - 72 - (list.getBoundingClientRect().top + window.scrollY);
+    // The 72px clearance above the footer grows with the big-screen scale (--k, base.css).
+    const uiScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--k")) || 1;
+    const room = () => window.innerHeight - 72 * uiScale - (list.getBoundingClientRect().top + window.scrollY);
     list.style.removeProperty("max-height");
     const natural = list.scrollHeight;
     const room0 = room();

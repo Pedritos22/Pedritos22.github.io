@@ -1,6 +1,12 @@
 /* 404 page ("Lost after midnight"). Owner: audio/projects workstream (D).
    Standalone: only fonts.css + base.css + this file. Tokens from base.css throughout. */
 
+/* The big-screen scale (--k, base.css) is tuned for the main page. This page sizes itself
+   from the viewport already, so it stays at 1x (loaded after base.css, so this wins). */
+:root {
+  --k: 1;
+}
+
 .nf {
   --nf-gutter: clamp(var(--s-4), 5vw, var(--s-8));
 

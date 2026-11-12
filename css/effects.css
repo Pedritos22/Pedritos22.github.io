@@ -422,7 +422,7 @@ html[data-darkhour] body::after {
 /* The moon clock stands behind the content card like a character behind the UI:
    z-index -1 inside .panel-wrap paints it under the card (the shell isolates). */
 .emblem-mount {
-  --emblem-size: clamp(440px, 78vh, 780px);
+  --emblem-size: clamp(calc(440px * var(--k)), 78vh, calc(780px * var(--k)));
   position: absolute;
   z-index: -1;
   top: calc(var(--emblem-size) * -0.36);

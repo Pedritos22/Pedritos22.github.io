@@ -7,20 +7,20 @@
 
 .shell,
 .meta-bar {
-  --footer-h: 44px;
+  --footer-h: calc(44px * var(--k));
   --gutter: clamp(var(--s-5), 3.6vw, var(--s-8));
 }
 
 .shell {
   /* The fixed HUD (hud.css) covers roughly the top 120px of the right column. */
-  --hud-clear: 120px;
+  --hud-clear: calc(120px * var(--k));
   --shell-pt: var(--s-6);
   position: relative;
   z-index: var(--z-shell);
   height: 100svh;
   min-height: 600px;
   display: grid;
-  grid-template-columns: minmax(300px, 0.84fr) minmax(0, 1.16fr);
+  grid-template-columns: minmax(calc(300px * var(--k)), 0.84fr) minmax(0, 1.16fr);
   grid-template-rows: minmax(0, 1fr);
   column-gap: clamp(var(--s-5), 3vw, var(--s-7));
   padding: var(--shell-pt) var(--gutter) calc(var(--footer-h) + var(--s-2));
@@ -123,8 +123,8 @@ html:not(.is-ready) .meta-bar {
 
 .card-stage {
   position: relative;
-  width: min(100%, 700px);
-  height: min(100%, 700px);
+  width: min(100%, calc(700px * var(--k)));
+  height: min(100%, calc(700px * var(--k)));
   min-height: 0;
 }
 
