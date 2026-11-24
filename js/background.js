@@ -236,9 +236,14 @@ function onSectionWillChange(detail = {}) {
   gsap.fromTo(fx, { flash: 1 }, { flash: 0, duration: DUR.panel * 1.7, ease: "power2.in", overwrite: false });
 }
 
-/** The dive (js/dive.js): the preview sets the depth directly, a commit tweens it. */
-function onDive({ depth = 0, preview = false } = {}) {
+/**
+ * Depth under the water. The descent (js/story.js) sets it straight from the scroll
+ * (preview) and marks its state changes with `scroll`; those never tween, the next scroll
+ * frame sets the depth again. Any other commit tweens.
+ */
+function onDive({ depth = 0, preview = false, scroll = false } = {}) {
   gsap.killTweensOf(fx, "depth");
+  if (scroll && !preview) return;
   if (preview || reduced || !gl) {
     fx.depth = depth;
     if (reduced) renderOnce();

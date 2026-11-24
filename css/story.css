@@ -1,0 +1,1634 @@
+/* The descent (js/story.js): the whole site under the title screen, one chapter per menu
+   item, the chapter rail, the cut (js/cut.js) and the title screen leaving.
+   Owner: menu/panel workstream (B).
+
+   Pinned scenes ([data-scene]) are --len viewports tall; their .scene sticks to the screen
+   while --p runs 0..1, and everything moves with calc(var(--p)): transform and opacity
+   only. <html> carries --hero (the title screen leaving, 0..1 over the first screen) and
+   --descent (0..1 over the page). html[data-story-static] (phones, reduced motion): nothing
+   pins, every scene is drawn in its final state, chapters stack. */
+
+.story {
+  --gutter: clamp(var(--s-5), 3.6vw, var(--s-8));
+  --rail-w: calc(180px * var(--k));
+  position: relative;
+  z-index: var(--z-shell);
+  /* The seams, the waterline and the watermarks bleed past the sides: clip them without
+     making a scroll container (that would break the sticky scenes). */
+  overflow-x: clip;
+}
+
+/* ===================================================================== the cut */
+
+.cut {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-cut);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cut-train {
+  position: absolute;
+  top: -12vh;
+  bottom: -12vh;
+  left: 0;
+  display: flex;
+  will-change: transform;
+}
+
+.cut-train[data-dir="-1"] {
+  flex-direction: row-reverse;
+}
+
+/* The destination rides on the navy body: its number outlined, its name in display type. */
+.cut-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: baseline;
+  gap: 0.24em;
+  translate: -50% -50%;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: clamp(3.6rem, 1rem + 9vw, 10rem);
+  line-height: 0.86;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cut-label b {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--cyan);
+  font-weight: 400;
+}
+
+.cut-veil {
+  position: absolute;
+  inset: 0;
+  background: var(--abyss);
+}
+
+/* =================================================================== shared type */
+
+/* One kicker for the card and every chapter: the card's red diamond and tracking. */
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0;
+  color: var(--cyan);
+  font: italic 800 var(--fs-sm) / 1.1 var(--font-hud);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.kicker::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: var(--red);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.chapter-title {
+  margin: var(--s-3) 0 0;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.chapter-lead {
+  max-width: 58ch;
+  margin: var(--s-4) 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-lg);
+  line-height: 1.6;
+}
+
+/* Depth in metres after a chapter's kicker (story.js measure()). */
+.kicker__m {
+  color: var(--text-3);
+}
+
+.kicker__m:not(:empty)::before {
+  content: "·";
+  margin-right: var(--s-3);
+}
+
+/* ================================================================== the waterline */
+
+/* The water surface between the title screen and the first chapter: the intro's line, now
+   at the top edge of the descent. Above it the city, below it the deep. */
+.waterline {
+  position: relative;
+  z-index: 3;
+  height: 0;
+  pointer-events: none;
+  /* It surfaces as soon as the page moves (at rest the title screen owns the bottom edge). */
+  opacity: clamp(0, calc(var(--hero, 0) * 10), 1);
+}
+
+html[data-story-static] .waterline {
+  opacity: 1;
+}
+
+/* Static mode (phones, reduced motion): the city and the slash stay at the surface. */
+html[data-story-static][data-story] :is(.fx-skyline, .fx-slash, .fx-flyers) {
+  visibility: hidden;
+}
+
+.waterline__wave {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  width: 200%;
+  height: 40px;
+  overflow: visible;
+  animation: waterline-drift 14s linear infinite;
+}
+
+.waterline__halo,
+.waterline__line {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.waterline__halo {
+  stroke: color-mix(in srgb, var(--cyan) 35%, transparent);
+  stroke-width: 9;
+}
+
+.waterline__line {
+  stroke: var(--paper);
+  stroke-width: 2.5;
+}
+
+/* Light just under the surface. */
+.waterline__glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 42svh;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cyan) 14%, transparent), color-mix(in srgb, var(--blue) 6%, transparent) 30%, transparent);
+}
+
+@keyframes waterline-drift {
+  to { translate: -50% 0; }
+}
+
+/* ===================================================================== the seams */
+
+/* Between two chapters the cut's trailing bands lie across the page on the half major
+   angle: a white streak, cyan, then the blue slab fading into the next chapter. They ride
+   the boundary as it scrolls past, so every chapter arrives behind the same edge. */
+.seam {
+  position: relative;
+  z-index: 3;
+  height: 0;
+  pointer-events: none;
+}
+
+.seam > i {
+  position: absolute;
+  left: -6vw;
+  right: -6vw;
+  rotate: calc(var(--tilt-major) / 2);
+}
+
+.seam__streak {
+  top: -14px;
+  height: 2px;
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+
+.seam__cyan {
+  top: -6px;
+  height: 3px;
+  background: var(--cyan);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 70%, transparent);
+}
+
+.seam__blue {
+  top: -3px;
+  height: 48px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--blue) 45%, transparent), transparent);
+}
+
+/* =================================================================== chapters */
+
+.chapter {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The card's details at full-screen size: the watermark word on the major angle and the
+   outlined chapter number. */
+.chapter-deco {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.chapter-stamp {
+  position: absolute;
+  top: 6svh;
+  right: -3vw;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--blue-soft) 13%, transparent);
+  font-family: var(--font-display);
+  font-size: var(--fs-mega);
+  line-height: 0.86;
+  text-transform: uppercase;
+  white-space: nowrap;
+  rotate: var(--tilt-major);
+  transform-origin: 100% 0;
+}
+
+.chapter-num {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 2svh;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--cyan) 22%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(7rem, 3rem + 11vw, 15rem);
+  line-height: 0.8;
+}
+
+.chapter--quests .chapter-num {
+  display: none; /* the running year takes that corner */
+}
+
+/* ------------------------------------------------------------------------ about */
+
+.manifesto {
+  max-width: none;
+  margin: var(--s-5) 0 0;
+  color: var(--paper);
+  font: italic 800 clamp(1.7rem, 0.9rem + 2.7vw, 3.7rem) / 1.06 var(--font-hud);
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+
+/* Each word lights as the scroll reaches it. Words not reached stay at 42% (still 3:1 for
+   large text), so the sentence is always readable. */
+.manifesto .w {
+  opacity: clamp(0.42, calc(var(--p, 1) * 1.45 * var(--n) - var(--i)), 1);
+}
+
+.manifesto .w--lit {
+  color: var(--cyan);
+  opacity: clamp(0.62, calc(var(--p, 1) * 1.45 * var(--n) - var(--i)), 1);
+}
+
+.who-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: var(--s-7) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.who-tile {
+  --on: clamp(0, calc((var(--p, 1) - 0.7 - var(--i) * 0.035) * 14), 1);
+  opacity: var(--on);
+  translate: 0 calc((1 - var(--on)) * 24px);
+}
+
+.who-tiles .status-tile[data-key] {
+  grid-column: auto;
+}
+
+.who-crest {
+  --size: min(100%, 54svh);
+  --in: min(1, calc(var(--p, 1) * 5));
+  position: relative;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: var(--size);
+  aspect-ratio: 1;
+  color: color-mix(in srgb, var(--cyan) 85%, transparent);
+  opacity: var(--in);
+  scale: calc(0.82 + var(--in) * 0.18);
+}
+
+.who-crest > * {
+  grid-area: 1 / 1;
+}
+
+.who-crest .sigil {
+  rotate: calc(var(--p, 1) * 150deg);
+  stroke-width: 0.85;
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--cyan) 40%, transparent));
+}
+
+.who-crest .sg-hub {
+  fill: var(--abyss);
+  stroke: color-mix(in srgb, var(--gold) 80%, transparent);
+}
+
+.who-crest__initials {
+  position: relative;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5.2svh, 3.6rem);
+  line-height: 1;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--cyan) 60%, transparent);
+}
+
+/* True circles around the crest, turning the other way. */
+.who-crest__orbit {
+  width: 118%;
+  height: 118%;
+  border: 1px dashed color-mix(in srgb, var(--ice) 22%, transparent);
+  border-radius: 50%;
+  rotate: calc(var(--p, 1) * -80deg);
+}
+
+.who-crest__orbit--inner {
+  width: 76%;
+  height: 76%;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--cyan) 14%, transparent);
+  box-shadow: inset 0 0 60px color-mix(in srgb, var(--blue) 22%, transparent);
+}
+
+/* ------------------------------------------------------------------- experience */
+
+.quests-year {
+  position: absolute;
+  right: var(--gutter);
+  bottom: -0.12em;
+  z-index: -1;
+  margin: 0;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--blue-soft) 26%, transparent);
+  font-family: var(--font-display);
+  font-size: clamp(8rem, 24vw, 24rem);
+  line-height: 0.8;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.quests-plot {
+  align-self: start;
+  width: 100%;
+}
+
+.chrono--story {
+  --lane-w: calc(120px * var(--k));
+  --row-h: calc(44px * var(--k));
+  --bar-h: calc(20px * var(--k));
+  --top-h: calc(36px * var(--k));
+  --axis-h: calc(34px * var(--k));
+}
+
+.chrono--story .chrono-label {
+  font-size: calc(12.5px * var(--k));
+}
+
+.chrono--story .chrono-lane__name {
+  padding-top: calc(14px * var(--k));
+}
+
+/* Only what the clock has reached is drawn: a bar grows from its start up to the line,
+   markers and labels wait for their entry. */
+.chrono--story .chrono-track {
+  scale: clamp(0, calc((var(--now) - var(--from)) / (var(--to) - var(--from))), 1) 1;
+}
+
+.chrono--story .chrono-item.is-future {
+  opacity: 1;
+}
+
+.chrono--story .chrono-label,
+.chrono--story .chrono-marker {
+  transition: opacity var(--dur-2) var(--ease-out), scale var(--dur-2) var(--ease-spring);
+}
+
+.chrono--story .chrono-item.is-future .chrono-label {
+  opacity: 0;
+}
+
+.chrono--story .chrono-bar.is-future::after {
+  display: none;
+}
+
+.chrono--story .chrono-marker.is-future {
+  opacity: 0;
+  scale: 0.3;
+}
+
+.chrono--story .chrono-link {
+  transform-origin: 0 50%;
+  scale: clamp(0, calc((var(--now) - var(--from)) / (var(--to) - var(--from))), 1) 1;
+}
+
+.chrono--story .chrono-detail {
+  align-content: center;
+  min-height: 0;
+}
+
+.chrono--story .chrono-detail__title {
+  font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+}
+
+/* The quest list is the phone version of the chronograph's detail plate. */
+.quests-plot > .quest-log {
+  display: none;
+}
+
+/* -------------------------------------------------------------------- hacknation */
+
+.chapter--hack .kicker {
+  color: var(--gold);
+}
+
+.hack-star {
+  position: absolute;
+  top: 14svh;
+  right: 6vw;
+  z-index: -1;
+  width: 34vmin;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, var(--gold), color-mix(in srgb, var(--gold) 20%, transparent));
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  opacity: 0.09;
+  rotate: calc(var(--p, 1) * 72deg);
+  scale: calc(0.8 + var(--p, 1) * 0.35);
+  pointer-events: none;
+}
+
+.pipeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  gap: var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pipeline__rail {
+  position: absolute;
+  top: calc(var(--fs-xs) + var(--s-2) + 9px);
+  left: 9px;
+  right: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--paper) 12%, transparent);
+}
+
+.pipeline__rail i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--gold));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 60%, transparent);
+  transform-origin: 0 50%;
+  scale: clamp(0, calc((var(--p, 1) - 0.06) / 0.5), 1) 1;
+}
+
+.pipe-step {
+  --on: clamp(0, calc((var(--p, 1) - 0.06 - var(--i) * 0.085) * 14), 1);
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  opacity: var(--on);
+  translate: 0 calc((1 - var(--on)) * 14px);
+}
+
+.pipe-step__no {
+  color: var(--text-3);
+  font: italic 800 var(--fs-xs) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+}
+
+.pipe-step__node {
+  width: 18px;
+  height: 18px;
+  margin-bottom: var(--s-2);
+  background: color-mix(in srgb, var(--cyan) calc(var(--on) * 100%), var(--abyss));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--cyan) 70%, transparent),
+    0 0 calc(var(--on) * 18px) color-mix(in srgb, var(--cyan) 70%, transparent);
+  rotate: 45deg;
+}
+
+.pipe-step:last-child .pipe-step__node {
+  background: color-mix(in srgb, var(--gold) calc(var(--on) * 100%), var(--abyss));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--gold) 70%, transparent),
+    0 0 calc(var(--on) * 22px) color-mix(in srgb, var(--gold) 70%, transparent);
+}
+
+.pipe-step__name {
+  color: var(--paper);
+  font: italic 800 var(--fs-lg) / 1.05 var(--font-hud);
+  text-transform: uppercase;
+}
+
+.pipe-step__sub {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-5);
+  margin: var(--s-4) 0 0;
+}
+
+.metric {
+  --on: clamp(0, calc((var(--p, 1) - 0.46 - var(--i) * 0.05) * 10), 1);
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  padding-top: var(--s-4);
+  border-top: 1px solid color-mix(in srgb, var(--paper) 14%, transparent);
+  opacity: var(--on);
+  translate: 0 calc((1 - var(--on)) * 18px);
+}
+
+.metric__value {
+  margin: 0;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 1.4rem + 3.2vw, 5rem);
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric:first-child .metric__value {
+  color: var(--gold);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+
+.metric__label {
+  color: var(--cyan);
+  font: italic 800 var(--fs-xs) / 1.3 var(--font-hud);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hack-role {
+  max-width: 80ch;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  opacity: clamp(0, calc((var(--p, 1) - 0.78) * 8), 1);
+}
+
+/* ---------------------------------------------------------------------- projects */
+
+.work-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-5);
+}
+
+.reel {
+  min-height: 0;
+}
+
+.reel-track {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  height: 100%;
+  margin: 0;
+  padding: 0 var(--gutter) 0 0;
+  list-style: none;
+  translate: calc(var(--p, 0) * var(--shift, 0) * -1px) 0;
+}
+
+.reel-panel {
+  position: relative;
+  display: flex;
+  flex: 0 0 min(calc(660px * var(--k)), 56vw);
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: min(100%, calc(500px * var(--k)));
+  padding: var(--s-6) var(--s-7) var(--s-6) var(--s-6);
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 16%, transparent) 0 1px, transparent 1px),
+    linear-gradient(160deg, color-mix(in srgb, var(--deep) 60%, transparent), color-mix(in srgb, var(--abyss) 50%, transparent));
+  box-shadow: inset 3px 0 0 var(--cyan);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+}
+
+.reel-panel--more {
+  justify-content: center;
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+/* The panel's number, huge and outlined, behind its content. */
+.reel-panel::after {
+  content: attr(data-no);
+  position: absolute;
+  right: var(--s-5);
+  bottom: -0.16em;
+  z-index: -1;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--cyan) 22%, transparent);
+  font-family: var(--font-display);
+  font-size: calc(220px * var(--k));
+  line-height: 1;
+  pointer-events: none;
+}
+
+.reel-panel > * {
+  margin: 0;
+}
+
+.reel-panel__no {
+  color: var(--text-3);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+}
+
+.reel-panel__no b {
+  color: var(--cyan);
+}
+
+.reel-panel__name {
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 1.6rem + 3.4vw, 5.2rem);
+  font-weight: 400;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+/* Live from GitHub: language, stars, last push (projects.js boardFacts()). */
+.reel-panel__live {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  min-height: 1.2em;
+  color: var(--text-3);
+  font: italic 600 var(--fs-xs) / 1.2 var(--font-hud);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.reel-live__lang {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text-2);
+}
+
+.reel-live__lang::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--lang, var(--cyan));
+  rotate: 45deg;
+}
+
+.reel-panel__summary {
+  color: var(--paper);
+  font-size: var(--fs-lg);
+  line-height: 1.5;
+}
+
+.reel-panel__points {
+  display: grid;
+  gap: var(--s-1);
+  padding-left: 1.1em;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.reel-panel__points li::marker {
+  color: var(--cyan);
+}
+
+.reel-panel__stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  padding: 0;
+  list-style: none;
+}
+
+.reel-panel__stack li {
+  padding: 3px var(--s-2) 2px;
+  color: var(--ice);
+  background: color-mix(in srgb, var(--cyan) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 26%, transparent);
+  font: italic 600 var(--fs-xs) / 1.1 var(--font-hud);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.reel-panel__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: auto !important;
+  padding-top: var(--s-3);
+}
+
+.reel-panel__link {
+  display: inline-grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0 var(--s-5);
+  color: var(--ink);
+  background: var(--cyan);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: background-color var(--dur-1) linear;
+}
+
+.reel-panel__link + .reel-panel__link {
+  color: var(--paper);
+  background: color-mix(in srgb, var(--paper) 12%, transparent);
+}
+
+.reel-panel__link:hover,
+.reel-panel__link:focus-visible {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.reel-panel__link:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.reel-progress {
+  height: 2px;
+  margin-right: var(--gutter);
+  background: color-mix(in srgb, var(--paper) 12%, transparent);
+}
+
+.reel-progress i {
+  display: block;
+  height: 100%;
+  background: var(--cyan);
+  transform-origin: 0 50%;
+  scale: var(--p, 1) 1;
+}
+
+/* ------------------------------------------------------------------------ skills */
+
+/* The flippable deck (arcana.js), at a fixed height so the cards size from it like they did
+   in the card (container queries on "cardbody"). */
+.deck {
+  position: relative;
+  height: min(52svh, calc(520px * var(--k)));
+  container: cardbody / size;
+}
+
+.chapter .card-action {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0;
+}
+
+/* ===================================================================== reveal blocks */
+
+[data-reveal] > :not(.chapter-deco):not(.deck),
+[data-reveal] .school-entry,
+[data-reveal] .school-focus > li {
+  opacity: 0;
+  translate: 0 26px;
+  transition: opacity var(--dur-4) var(--ease-out), translate var(--dur-4) var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+[data-reveal].is-in > :not(.chapter-deco):not(.deck),
+[data-reveal].is-in .school-entry,
+[data-reveal].is-in .school-focus > li,
+html[data-story-static] [data-reveal] > *,
+html[data-story-static] [data-reveal] .school-entry,
+html[data-story-static] [data-reveal] .school-focus > li {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* --------------------------------------------------------------------- education */
+
+.school-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.school-entry {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  padding: var(--s-5) var(--s-6) var(--s-5) var(--s-5);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 14%, transparent) 0 1px, transparent 1px),
+    linear-gradient(160deg, color-mix(in srgb, var(--blue) 16%, transparent), color-mix(in srgb, var(--paper) 3%, transparent));
+  box-shadow: inset 3px 0 0 var(--blue-soft);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+.school-entry:first-child {
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.school-entry p,
+.school-entry h3 {
+  margin: 0;
+}
+
+.school-entry__when {
+  color: var(--cyan);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.school-entry__title {
+  color: var(--paper);
+  font: italic 800 var(--fs-xl) / 1.05 var(--font-hud);
+  text-transform: uppercase;
+}
+
+.school-entry__meta {
+  color: var(--text-2);
+  font: italic 600 var(--fs-sm) / 1.3 var(--font-hud);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.school-entry__note {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.school-focus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.school-focus > li {
+  padding: var(--s-2) var(--s-4);
+  color: var(--paper);
+  background: color-mix(in srgb, var(--paper) 7%, transparent);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+}
+
+/* ----------------------------------------------------------------------- contact */
+
+.signal-title {
+  margin: 0;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: clamp(3.6rem, 1rem + 9vw, 10.5rem);
+  font-weight: 400;
+  line-height: 0.84;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.chapter--signal .chapter-lead {
+  margin: 0;
+}
+
+.signal-body {
+  width: min(100%, calc(960px * var(--k)));
+}
+
+.chapter--signal .reach-hero__label,
+.chapter--signal .reach-clock {
+  max-width: none;
+  margin: 0;
+  color: var(--cyan);
+  font: italic 800 var(--fs-xs) / 1.2 var(--font-hud);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.chapter--signal .reach-hero__label {
+  grid-column: 1 / -1;
+}
+
+.chapter--signal .reach-clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  color: var(--text-2);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.chapter--signal .reach-hero__mail {
+  font-size: clamp(1.6rem, 1rem + 2.6vw, 3.4rem);
+}
+
+/* ========================================================================= the rail */
+
+/* The menu folded down: the same labels, numbers and indents on the counter angle, the
+   marker plate on the chapter in view, the hot cursor plate on hover; a depth gauge on its
+   left edge and "Menu" back to the title screen. Shown below the title screen. */
+.story-rail {
+  position: fixed;
+  top: 50%;
+  left: var(--s-5);
+  z-index: var(--z-hud);
+  display: grid;
+  gap: var(--s-4);
+  padding-left: var(--s-4);
+  translate: -16px -50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-3) var(--ease-out), translate var(--dur-3) var(--ease-out);
+}
+
+html[data-story] .story-rail {
+  translate: 0 -50%;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.story-rail ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  rotate: calc(var(--tilt-minor) * -1);
+  transform-origin: 0 50%;
+}
+
+.story-rail li:nth-child(2) { --indent: 0.5; }
+.story-rail li:nth-child(3) { --indent: 0.14; }
+.story-rail li:nth-child(4) { --indent: 0.64; }
+.story-rail li:nth-child(5) { --indent: 0.3; }
+.story-rail li:nth-child(6) { --indent: 0.58; }
+.story-rail li:nth-child(7) { --indent: 0.2; }
+
+.story-rail__link {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-left: calc(var(--indent, 0) * 20px);
+  padding: 3px var(--s-3) 1px var(--s-2);
+  color: color-mix(in srgb, var(--blue-soft) 82%, transparent);
+  font-family: var(--font-menu);
+  font-size: clamp(1.15rem, 0.8rem + 0.7vw, 1.6rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  text-transform: uppercase;
+  isolation: isolate;
+  transition: color var(--dur-1) linear;
+}
+
+.story-rail__link::before {
+  content: "";
+  position: absolute;
+  inset: 0 -2px;
+  z-index: -1;
+  background: var(--blue);
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  opacity: 0;
+  scale: 0.2 1;
+  transform-origin: 0 50%;
+  transition: opacity var(--dur-2) var(--ease-out), scale var(--dur-2) var(--ease-spring), background-color var(--dur-1) linear;
+}
+
+.story-rail__no {
+  color: var(--text-3);
+  font: italic 800 10px / 1 var(--font-hud);
+  letter-spacing: 0.12em;
+}
+
+.story-rail__link.is-active {
+  color: var(--paper);
+}
+
+.story-rail__link.is-active::before {
+  opacity: 1;
+  scale: 1 1;
+}
+
+.story-rail__link.is-active .story-rail__no {
+  color: var(--paper);
+}
+
+@media (hover: hover) {
+  .story-rail__link:hover {
+    color: var(--paper);
+  }
+
+  .story-rail__link:hover::before {
+    background: var(--hot);
+    opacity: 1;
+    scale: 1 1;
+  }
+}
+
+.story-rail__link:focus-visible {
+  outline: none;
+  color: var(--paper);
+}
+
+.story-rail__link:focus-visible::before {
+  opacity: 1;
+  scale: 1 1;
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+
+/* The depth gauge: a hairline down the left, the cyan diamond at --gauge, the metres. */
+.story-rail__gauge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--paper) 16%, transparent);
+}
+
+.story-rail__gauge i {
+  position: absolute;
+  top: calc(var(--gauge, 0) * 100%);
+  left: -4px;
+  width: 9px;
+  height: 9px;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  rotate: 45deg;
+  translate: 0 -50%;
+}
+
+/* The metres, above the list: the same instrument as the intro's depth gauge. */
+.story-rail__depth {
+  margin: 0;
+  color: var(--cyan);
+  font: italic 800 var(--fs-xs) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.story-rail__top {
+  justify-self: start;
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 0;
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--paper) 8%, transparent);
+  font: italic 800 var(--fs-xs) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  transition: color var(--dur-1) linear, background-color var(--dur-1) linear;
+}
+
+.story-rail__top:hover,
+.story-rail__top:focus-visible {
+  color: var(--ink);
+  background: var(--cyan);
+  outline: none;
+}
+
+/* ======================================================================== desktop */
+
+@media (min-width: 921px) {
+  /* --- the title screen leaving: one event, the water surface rising ---
+     The waterline is the top edge of .story, so it rises with the page. Everything of the
+     surface that is fixed to the screen (the city, the slash, the butterflies) is cut off
+     below it: at --hero h the line is (1 - h) screens from the top, so the cut is h screens
+     from the bottom. The menu folds into the rail (story.js applyFold). */
+  html:not([data-story-static]) :is(.fx-skyline, .fx-flyers) {
+    clip-path: inset(0 0 calc(var(--hero, 0) * 100svh) 0);
+  }
+
+  /* The slash's box runs from -14vh to 114vh (effects.css), so its cut is 14vh further. */
+  html:not([data-story-static]) .fx-slash {
+    clip-path: inset(0 0 calc(14vh + var(--hero, 0) * 100svh) 0);
+  }
+
+  /* The moon clock turns as the camera goes down past it. */
+  html:not([data-story-static]) .emblem-mount {
+    rotate: calc(var(--hero, 0) * 100deg);
+  }
+
+  .meta-bar {
+    opacity: calc(1 - var(--hero, 0) * 4);
+  }
+
+  html[data-story] .meta-bar {
+    visibility: hidden;
+  }
+
+  html[data-story] .fx-flyers {
+    opacity: 0;
+  }
+
+  /* --- the menu folding into the rail --- */
+  html:not([data-story-static]) .story-rail {
+    translate: 0 -50%;
+    opacity: 1;
+    visibility: hidden;
+    pointer-events: none;
+    transition: none;
+  }
+
+  html:not([data-story-static])[data-fold] .story-rail {
+    visibility: visible;
+  }
+
+  html:not([data-story-static])[data-folded] .story-rail {
+    pointer-events: auto;
+  }
+
+  html:not([data-story-static])[data-fold] .menu {
+    visibility: hidden;
+  }
+
+  /* While flying, a link is just its label: the number, the plates and the rail's own
+     instruments arrive as it lands. */
+  html:not([data-story-static]) :is(.story-rail__no, .story-rail__gauge, .story-rail__depth, .story-rail__top) {
+    opacity: clamp(0, calc((var(--fold, 1) - 0.7) / 0.3), 1);
+  }
+
+  html:not([data-story-static]):not([data-folded]) .story-rail__link::before {
+    opacity: 0;
+  }
+
+  /* The Depths have no menu item to fly from: they surface as the others land. */
+  html:not([data-story-static]) .story-rail__link[data-goto="depths"] {
+    opacity: clamp(0, calc((var(--fold, 1) - 0.7) / 0.3), 1);
+  }
+
+  /* "Scroll to dive": under the menu, fading as soon as the page moves. */
+  .dive-cue {
+    position: absolute;
+    left: var(--gutter);
+    bottom: calc(var(--footer-h) + var(--s-5));
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    color: var(--text-2);
+    font: italic 800 var(--fs-xs) / 1 var(--font-hud);
+    letter-spacing: 0.22em;
+    text-decoration: none;
+    text-transform: uppercase;
+    opacity: calc(1 - var(--hero, 0) * 4);
+    transition: color var(--dur-1) linear;
+  }
+
+  html:not(.is-complete) .dive-cue {
+    visibility: hidden;
+  }
+
+  .dive-cue:hover,
+  .dive-cue:focus-visible {
+    color: var(--cyan);
+  }
+
+  .dive-cue:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 6px;
+  }
+
+  .dive-cue__line {
+    position: relative;
+    width: 52px;
+    height: 2px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--paper) 16%, transparent);
+  }
+
+  .dive-cue__line i {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -40%;
+    width: 40%;
+    background: var(--cyan);
+    animation: cue-run 4s ease-in-out infinite;
+  }
+
+  @keyframes cue-run {
+    0%, 20% { translate: 0 0; }
+    70%, 100% { translate: 350% 0; }
+  }
+
+  /* --- pinned scenes --- */
+  .chapter[data-scene] {
+    height: calc(var(--len, 2) * 100svh);
+  }
+
+  .scene {
+    position: sticky;
+    top: 0;
+    display: grid;
+    height: 100svh;
+    min-height: 600px;
+    padding: calc(118px * var(--k)) var(--gutter) var(--s-7) calc(var(--gutter) + var(--rail-w));
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  html[data-story-static] .chapter[data-scene] {
+    height: auto;
+  }
+
+  html[data-story-static] .scene {
+    position: relative;
+    height: auto;
+    min-height: 100svh;
+  }
+
+  /* Pinned chapters bring their heading in over the first tenth of the scroll. */
+  .scene .chapter-head {
+    --in: min(1, calc(var(--p, 1) * 9));
+    opacity: var(--in);
+    translate: 0 calc((1 - var(--in)) * 28px);
+  }
+
+  .chapter--about .scene {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+    align-items: center;
+    gap: var(--s-8);
+  }
+
+  .chapter--quests .scene {
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: center;
+    gap: var(--s-6);
+  }
+
+  .chrono--story {
+    grid-template-columns: minmax(0, 1.7fr) minmax(calc(300px * var(--k)), 1fr);
+    align-items: stretch;
+    gap: var(--s-5);
+  }
+
+  .chrono--story .chrono-detail {
+    padding: var(--s-5) var(--s-7) var(--s-5) var(--s-6);
+  }
+
+  .chapter--hack .scene {
+    align-content: center;
+    gap: var(--s-6);
+  }
+
+  .chapter--work .scene {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: var(--s-6);
+    padding-right: 0;
+  }
+
+  .work-head {
+    padding-right: var(--gutter);
+  }
+
+  /* The reel is explored sideways from its first panel on: the heading stays. */
+  .chapter--work .chapter-head {
+    opacity: 1;
+    translate: none;
+  }
+
+  /* --- reveal chapters --- */
+  .chapter[data-reveal] {
+    display: grid;
+    align-content: center;
+    gap: var(--s-6);
+    min-height: 100svh;
+    padding: var(--s-9) var(--gutter) var(--s-9) calc(var(--gutter) + var(--rail-w));
+  }
+
+  .chapter--skills {
+    gap: var(--s-5);
+  }
+
+  /* --- the Depths close the descent: they leave room for the rail like the chapters --- */
+  .story ~ .depths {
+    padding-left: calc(var(--depths-gutter) + 180px * var(--k));
+  }
+
+  .story ~ .depths .depths-surface {
+    left: calc(var(--depths-gutter) + 180px * var(--k));
+  }
+
+  /* Reduced motion: the reel is a grid of panels. */
+  html[data-story-static] .reel-track {
+    flex-wrap: wrap;
+    translate: none;
+  }
+
+  html[data-story-static] .reel-progress {
+    display: none;
+  }
+
+  /* --- short screens --- */
+  @media (max-height: 820px) {
+    .scene {
+      padding-top: calc(96px * var(--k));
+      padding-bottom: var(--s-5);
+    }
+
+    .chapter-title {
+      font-size: var(--fs-2xl);
+    }
+
+    .chapter-lead {
+      font-size: var(--fs-md);
+    }
+
+    .manifesto {
+      font-size: clamp(1.8rem, 0.8rem + 2.2vw, 3rem);
+    }
+
+    .who-tiles {
+      gap: var(--s-1);
+      margin-top: var(--s-5);
+    }
+
+    .chrono--story {
+      --row-h: calc(34px * var(--k));
+      --bar-h: calc(16px * var(--k));
+    }
+
+    .pipe-step__sub {
+      display: none;
+    }
+
+    .reel-panel {
+      min-height: 0;
+      padding: var(--s-5);
+    }
+
+    .reel-panel__points {
+      display: none;
+    }
+
+    .deck {
+      height: min(48svh, 400px);
+    }
+  }
+}
+
+/* ========================================================================= phones */
+
+/* The same document, static: chapters stack, the reel and the pipeline turn vertical, the
+   chronograph is an overview above the quest list, the rail is one "Menu" button. */
+@media (max-width: 920px) {
+  .story {
+    --gutter: clamp(var(--s-4), 5vw, 36px);
+  }
+
+  .chapter {
+    padding: var(--s-8) var(--gutter);
+  }
+
+  .seam__blue {
+    height: 32px;
+  }
+
+  .scene {
+    display: grid;
+    gap: var(--s-5);
+  }
+
+  .chapter-stamp {
+    top: var(--s-4);
+    font-size: clamp(5rem, 26vw, 9rem);
+  }
+
+  .chapter-num {
+    bottom: var(--s-2);
+    font-size: clamp(5rem, 28vw, 8rem);
+  }
+
+  .chapter-title {
+    font-size: var(--fs-2xl);
+  }
+
+  .chapter-lead {
+    font-size: var(--fs-md);
+  }
+
+  .who-copy {
+    display: grid;
+    gap: var(--s-4);
+  }
+
+  .manifesto {
+    margin: 0;
+  }
+
+  .who-tiles {
+    grid-template-columns: minmax(0, 1fr);
+    margin: 0;
+  }
+
+  .who-crest {
+    --size: min(64vw, 280px);
+    order: -1;
+    justify-self: start;
+  }
+
+  .quests-year {
+    font-size: clamp(5rem, 30vw, 9rem);
+  }
+
+  .quests-plot {
+    display: grid;
+    gap: var(--s-5);
+  }
+
+  .quests-plot > .quest-log {
+    display: grid;
+  }
+
+  .chrono--story .chrono-detail {
+    display: none;
+  }
+
+  .pipeline {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+    padding-left: var(--s-6);
+  }
+
+  .pipeline__rail {
+    top: 0;
+    bottom: 0;
+    left: 8px;
+    width: 2px;
+    height: auto;
+  }
+
+  .pipeline__rail i {
+    height: 100%;
+    width: 100%;
+  }
+
+  .pipe-step__node {
+    position: absolute;
+    left: calc(var(--s-6) * -1);
+    top: 0;
+    margin: 0;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-4);
+  }
+
+  .hack-star {
+    width: 50vw;
+    top: var(--s-6);
+  }
+
+  .work-head {
+    display: block;
+  }
+
+  .reel-track {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+    translate: none;
+  }
+
+  .reel-panel {
+    flex: none;
+    min-height: 0;
+    padding: var(--s-5);
+  }
+
+  .reel-panel::after {
+    font-size: 140px;
+  }
+
+  .reel-progress {
+    display: none;
+  }
+
+  .deck {
+    height: auto;
+    container-type: normal;
+  }
+
+  .deck .arcana-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    height: auto;
+    gap: var(--s-5) var(--s-4);
+  }
+
+  .deck .skill.arcana {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    aspect-ratio: 5 / 7;
+  }
+
+  .chapter .card-action {
+    flex-wrap: wrap;
+  }
+
+  .school-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .signal-title {
+    font-size: clamp(3rem, 16vw, 5rem);
+  }
+
+  /* The title screen keeps its own "Scroll" cue on phones. */
+  .dive-cue {
+    display: none;
+  }
+
+  /* The rail: just "Menu", bottom right. */
+  .story-rail {
+    top: auto;
+    right: var(--s-4);
+    bottom: calc(var(--s-4) + env(safe-area-inset-bottom, 0px));
+    left: auto;
+    padding: 0;
+    translate: 0 12px;
+  }
+
+  html[data-story] .story-rail {
+    translate: 0 0;
+  }
+
+  .story-rail ol,
+  .story-rail__gauge,
+  .story-rail__depth {
+    display: none;
+  }
+
+  .story-rail__top {
+    min-height: 44px;
+    padding: 0 var(--s-5);
+    color: var(--ink);
+    background: var(--cyan);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 60%, transparent);
+  }
+}
+
+/* ================================================================== reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .waterline__wave {
+    animation: none;
+  }
+
+  .dive-cue__line i {
+    animation: none;
+  }
+
+  .story-rail,
+  .story-rail__link::before {
+    transition: none;
+  }
+}

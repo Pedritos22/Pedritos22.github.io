@@ -10,19 +10,34 @@
 /* ============================================================== intro cover */
 
 /* Set by an inline <head> script before first paint, removed when the intro overlay
-   takes over (or after 4 s as a safety net). Nothing of the page flashes through. */
+   takes over (or after 4 s as a safety net). Nothing of the page flashes through: the cover
+   is already the deep water the intro starts in. */
 html.intro-pending::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: var(--z-intro);
-  background: var(--ink);
+  background: linear-gradient(180deg, var(--night), var(--abyss) 45%, var(--ink));
   pointer-events: auto;
+}
+
+/* While the intro plays the page under it does not scroll. */
+html.intro-playing {
+  overflow: hidden;
+}
+
+/* Deep under the water nothing of the surface shows: the city, the slash, the HUD and the
+   page wait above the waterline and come into view as it passes. */
+html.intro-deep :is(.fx-slash, .fx-skyline, .fx-flyers, .hud, .shell, .meta-bar, .story, .story-rail) {
+  visibility: hidden;
 }
 
 /* ==================================================================== intro */
 
+/* Surfacing (js/intro.js): --d is the depth, 1 at 400 m and 0 at the surface. The real water
+   shader is behind; the tint thins as we rise so it shows more and more. */
 .intro {
+  --d: 1;
   position: fixed;
   inset: 0;
   z-index: var(--z-intro);
@@ -30,113 +45,215 @@ html.intro-pending::before {
   cursor: pointer;
 }
 
-.intro.is-broken {
+.intro-water {
+  position: absolute;
+  inset: 0;
+}
+
+.intro-tint {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -12%, color-mix(in srgb, var(--cyan) 14%, transparent), transparent 62%),
+    linear-gradient(180deg, var(--night), var(--abyss) 45%, var(--ink));
+  opacity: calc(0.3 + var(--d) * 0.66);
+}
+
+/* Light from far above: shafts at the major angle, stronger as we rise. */
+.intro-rays {
+  position: absolute;
+  inset: 0;
+  opacity: calc(0.15 + (1 - var(--d)) * 0.85);
   pointer-events: none;
 }
 
-.intro.is-broken .intro-surface {
-  visibility: hidden;
+.intro-rays i {
+  position: absolute;
+  top: -10%;
+  left: var(--x);
+  width: var(--w);
+  height: 110%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ice) 14%, transparent) 50%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, #000 5%, transparent 85%);
+  mask-image: linear-gradient(180deg, #000 5%, transparent 85%);
+  rotate: var(--tilt-major);
+  transform-origin: 50% 0;
+  animation: intro-sway 6s ease-in-out var(--delay) infinite alternate;
 }
 
-.intro-surface {
+.intro-rays i:nth-child(1) { --x: 18%; --w: 8vw; --delay: 0s; }
+.intro-rays i:nth-child(2) { --x: 40%; --w: 16vw; --delay: -2s; }
+.intro-rays i:nth-child(3) { --x: 62%; --w: 6vw; --delay: -4s; }
+.intro-rays i:nth-child(4) { --x: 80%; --w: 11vw; --delay: -1s; }
+
+@keyframes intro-sway {
+  from { rotate: -9.5deg; }
+  to { rotate: -6.5deg; }
+}
+
+/* Bubbles rising past the camera (true circles). */
+.intro-bubbles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.intro-bubbles i {
+  position: absolute;
+  bottom: -24px;
+  left: var(--x);
+  width: var(--size);
+  height: var(--size);
+  border: 1px solid color-mix(in srgb, var(--ice) 55%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ice) 45%, transparent), transparent 60%);
+  opacity: 0;
+  animation: intro-rise var(--dur) linear var(--delay) infinite;
+}
+
+@keyframes intro-rise {
+  0% { translate: 0 0; opacity: 0; }
+  10% { opacity: 0.8; }
+  80% { opacity: 0.5; }
+  100% { translate: var(--drift) -118svh; opacity: 0; }
+}
+
+/* The depth scale on the right: marks scroll down past the centre line as we rise. */
+.intro-scale {
+  --px: calc(1.6px * var(--k));
+  position: absolute;
+  top: 20svh;
+  right: clamp(var(--s-6), 8vw, var(--s-9));
+  width: 64px;
+  height: 60svh;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent);
+}
+
+.intro-scale::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  width: 9px;
+  height: 9px;
+  translate: 0 -50%;
+  background: var(--cyan);
+  rotate: 45deg;
+  box-shadow: 0 0 12px var(--cyan);
+}
+
+.intro-scale li {
+  position: absolute;
+  right: 0;
+  top: calc(50% + (var(--m) - var(--d) * 400) * var(--px));
+  width: 14px;
+  height: 1px;
+  background: color-mix(in srgb, var(--ice) 40%, transparent);
+}
+
+.intro-scale li.is-major {
+  width: 30px;
+  background: color-mix(in srgb, var(--ice) 75%, transparent);
+}
+
+.intro-scale li span {
+  position: absolute;
+  right: calc(100% + var(--s-2));
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--text-2);
+  font: italic 800 var(--fs-xs) / 1 var(--font-hud);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+/* The gauge in the middle. */
+.intro-gauge {
   position: absolute;
   inset: 0;
   display: grid;
-  place-items: center;
-  background:
-    radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--night) 70%, var(--ink)) 0, var(--ink) 58%),
-    var(--ink);
-}
-
-.intro-clock {
-  --dial: clamp(220px, min(46vw, 46vh), 400px);
-  position: relative;
-  display: grid;
+  place-content: center;
   justify-items: center;
   gap: var(--s-4);
-  margin-top: calc(var(--dial) * -0.04);
+  text-align: center;
 }
 
-.intro-dial {
-  width: var(--dial);
-  height: var(--dial);
-  overflow: visible;
+.intro-kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: 0;
+  color: var(--cyan);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
 }
 
-.intro-halo {
-  fill: none;
-  stroke: var(--intro-glow);
-  stroke-width: 18;
-  opacity: 0;
-  transition: opacity 0.12s linear;
+.intro-kicker::before,
+.intro-kicker::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  background: var(--red);
+  rotate: 45deg;
 }
 
-.intro-ring {
-  fill: none;
-  stroke: var(--ice);
-  stroke-opacity: 0.55;
-  stroke-width: 1.1;
-  stroke-dasharray: 1 1;
-  transform: rotate(-90deg);
-}
-
-.intro-ring-inner {
-  fill: none;
-  stroke: var(--ice);
-  stroke-opacity: 0.12;
-  stroke-width: 0.8;
-}
-
-.intro-ticks-minor {
-  fill: none;
-  stroke: var(--ice);
-  stroke-opacity: 0.38;
-  stroke-width: 0.8;
-}
-
-.intro-ticks-major {
-  fill: none;
-  stroke: var(--paper);
-  stroke-width: 2;
-}
-
-.intro-marker {
-  fill: var(--red);
-}
-
-.intro-hand path {
-  fill: var(--paper);
-}
-
-.intro-hand--second path,
-.intro-hand--second circle {
-  fill: var(--red);
-}
-
-.intro-pivot {
-  fill: var(--paper);
-}
-
-.intro-pivot-core {
-  fill: var(--red);
-}
-
-.intro-readout {
+.intro-depth {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
   margin: 0;
   color: var(--paper);
-  font-family: var(--font-hud);
-  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.25rem);
-  font-weight: 800;
-  font-style: italic;
-  line-height: 1;
-  letter-spacing: 0.06em;
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 3rem + 9vw, 12rem);
+  line-height: 0.85;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 40px color-mix(in srgb, var(--cyan) 35%, transparent);
 }
 
-.intro-readout i {
-  margin: 0 0.06em;
+.intro-depth__unit {
   color: var(--cyan);
-  font-style: inherit;
+  font-size: 0.32em;
+}
+
+.intro-meter {
+  width: min(42vw, 380px);
+  height: 2px;
+  background: color-mix(in srgb, var(--paper) 14%, transparent);
+}
+
+.intro-meter i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--paper));
+  box-shadow: 0 0 10px var(--cyan);
+  transform-origin: 0 50%;
+  scale: calc(1 - var(--d)) 1;
+}
+
+.intro.is-surfacing .intro-kicker {
+  color: var(--paper);
+}
+
+/* The waterline (js/intro.js draws it as the clip edge of the water moves down). */
+.intro-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.intro-line path {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 6px var(--cyan)) drop-shadow(0 0 22px color-mix(in srgb, var(--cyan) 70%, transparent));
 }
 
 .intro-skip {
@@ -155,69 +272,9 @@ html.intro-pending::before {
   transform: translateX(-50%);
 }
 
-/* 0:00 - everything that was blue-white turns to the hidden hour's green. */
-.intro.is-midnight .intro-ring,
-.intro.is-midnight .intro-ticks-minor,
-.intro.is-midnight .intro-ring-inner {
-  stroke: var(--intro-glow);
-}
-
-.intro.is-midnight .intro-ticks-major,
-.intro.is-midnight .intro-hand path,
-.intro.is-midnight .intro-pivot {
-  stroke: none;
-  fill: var(--intro-glow);
-}
-
-.intro.is-midnight .intro-ticks-major {
-  fill: none;
-  stroke: var(--intro-glow);
-}
-
-.intro.is-midnight .intro-halo {
-  opacity: 0.07;
-}
-
-.intro.is-midnight .intro-readout {
-  color: var(--intro-glow);
-}
-
-.intro.is-midnight .intro-surface {
-  background:
-    radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--intro-glow) 9%, var(--ink)) 0, var(--ink) 60%),
-    var(--ink);
-}
-
-.intro .crack-layer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.intro .crack-layer .crack-glow .crack-path {
-  stroke: var(--intro-glow);
-  stroke-opacity: 0.28;
-}
-
-.intro .crack-layer .crack-line .crack-path {
-  stroke: color-mix(in srgb, var(--intro-glow) 22%, var(--paper));
-}
-
-.intro .crack-layer .facet--light {
-  fill: var(--intro-glow);
-  fill-opacity: 0.04;
-}
-
-.intro-flash {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 50% 48%, var(--intro-glow), color-mix(in srgb, var(--intro-glow) 55%, var(--ink)) 70%);
-  opacity: 0;
-  pointer-events: none;
-  mix-blend-mode: screen;
+.intro--reduced .intro-rays i,
+.intro--reduced .intro-bubbles i {
+  animation: none;
 }
 
 /* ================================================================ objection */

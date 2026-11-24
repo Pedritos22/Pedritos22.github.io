@@ -1,0 +1,561 @@
+/* The chronograph (Experience): the quest log on a time axis. Owner: menu/panel workstream (B).
+   Built by js/chrono.js. Geometry comes from month numbers in custom properties:
+     .chrono   --span (months on the axis), --now (months from the start to the world clock)
+     bar       --from, --to (to = var(--now) while current), --row
+     segment   --s-from, --s-to (one per role, newest brightest)
+     marker    --at, --row
+   The plot maps a month m to x = x0 + (width - x0 - x1) * m / span; inside a lane's track
+   (which already starts at x0) that is simply 100% * m / span. */
+
+.chrono {
+  --lane-w: calc(92px * var(--k));
+  --x1: calc(20px * var(--k));
+  --row-h: calc(34px * var(--k));
+  --bar-h: calc(16px * var(--k));
+  --top-h: calc(30px * var(--k)); /* room for the NOW chip */
+  --axis-h: calc(28px * var(--k)); /* year labels along the bottom */
+  display: grid;
+  gap: var(--s-4);
+}
+
+/* ---------------------------------------------------------------- plot */
+
+.chrono-plot {
+  position: relative;
+  padding: var(--top-h) 0 var(--axis-h);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 16%, transparent) 0 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, var(--ink) 62%, transparent), color-mix(in srgb, var(--abyss) 36%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ice) 8%, transparent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+
+/* Month hairlines over the time area. */
+.chrono-grid {
+  position: absolute;
+  top: var(--top-h);
+  bottom: var(--axis-h);
+  left: var(--lane-w);
+  right: var(--x1);
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--paper) 5%, transparent) 0 1px, transparent 1px calc(100% / var(--span)));
+  pointer-events: none;
+}
+
+/* Years: a label on top and a stronger line down the plot. */
+.chrono-axis {
+  position: absolute;
+  inset: 0 var(--x1) 0 var(--lane-w);
+  pointer-events: none;
+}
+
+.chrono-year {
+  position: absolute;
+  top: var(--top-h);
+  bottom: 0;
+  left: calc(100% * var(--at) / var(--span));
+  display: flex;
+  align-items: flex-end;
+  padding: 0 0 calc(8px * var(--k)) var(--s-2);
+  color: var(--text-2);
+  font: italic 800 var(--fs-sm) / 1 var(--font-hud);
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chrono-year::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: linear-gradient(0deg, color-mix(in srgb, var(--cyan) 60%, transparent), color-mix(in srgb, var(--paper) 10%, transparent) 40%);
+}
+
+/* What has not happened yet: hatched along the counter angle. */
+.chrono-future {
+  position: absolute;
+  top: var(--top-h);
+  bottom: var(--axis-h);
+  left: calc(var(--lane-w) + (100% - var(--lane-w) - var(--x1)) * var(--now) / var(--span));
+  right: 0;
+  background: repeating-linear-gradient(98deg, transparent 0 7px, color-mix(in srgb, var(--paper) 6%, transparent) 7px 8px);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- lanes */
+
+.chrono-lane {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--lane-w) minmax(0, 1fr);
+  align-items: center;
+  padding: calc(4px * var(--k)) 0;
+  border-top: 1px solid color-mix(in srgb, var(--paper) 9%, transparent);
+}
+
+.chrono-lane__name {
+  align-self: start;
+  max-width: none;
+  margin: 0;
+  padding: calc(9px * var(--k)) 0 0 var(--s-4);
+  color: var(--cyan);
+  font: italic 800 var(--fs-xs) / 1.1 var(--font-hud);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.chrono-lane[data-lane="uni"] .chrono-lane__name {
+  color: var(--blue-soft);
+}
+
+.chrono-lane[data-lane="events"] .chrono-lane__name {
+  color: var(--ice);
+}
+
+.chrono-lane__track {
+  position: relative;
+  height: calc(var(--rows) * var(--row-h));
+  margin-right: var(--x1);
+}
+
+/* ---------------------------------------------------------------- items */
+
+.chrono-item {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  color: var(--paper);
+  background: none;
+  cursor: pointer;
+  transition: opacity var(--dur-2) var(--ease-out), filter var(--dur-1) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chrono-item:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 4px;
+}
+
+.chrono-bar {
+  top: calc(var(--row) * var(--row-h) + (var(--row-h) - var(--bar-h)) / 2);
+  left: calc(100% * var(--from) / var(--span));
+  width: calc(100% * (var(--to) - var(--from)) / var(--span));
+  height: var(--bar-h);
+}
+
+.chrono-track {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--blue-soft) 22%, transparent);
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+  transform-origin: 0 50%;
+}
+
+.chrono-seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(100% * (var(--s-from) - var(--from)) / (var(--to) - var(--from)));
+  width: calc(100% * (var(--s-to) - var(--s-from)) / (var(--to) - var(--from)));
+  background: linear-gradient(90deg, var(--deep), color-mix(in srgb, var(--blue) 80%, var(--deep)));
+}
+
+.chrono-seg.is-newest {
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+}
+
+/* Finished entries keep the muted fill: only what is still going on is lit. */
+.chrono-bar:not(.is-current) .chrono-seg.is-newest {
+  background: linear-gradient(90deg, var(--deep), color-mix(in srgb, var(--blue) 70%, var(--deep)));
+}
+
+.chrono-lane[data-lane="uni"] .chrono-seg {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--deep) 80%, var(--night)), var(--deep));
+}
+
+.chrono-lane[data-lane="uni"] .chrono-seg.is-newest {
+  background: linear-gradient(90deg, var(--deep), var(--blue-soft));
+}
+
+/* A current bar runs into the NOW line with a bright cap. */
+.chrono-bar.is-current::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  right: -1px;
+  width: 3px;
+  background: var(--paper);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: chrono-cap 4s var(--ease-out) infinite;
+}
+
+@keyframes chrono-cap {
+  0%, 70%, 100% { opacity: 1; }
+  85% { opacity: 0.45; }
+}
+
+.chrono-label {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--paper);
+  font: italic 800 calc(11px * var(--k)) / 1 var(--font-hud);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.chrono-bar[data-place="inside"] .chrono-label {
+  left: var(--s-3);
+}
+
+.chrono-item[data-place="after"] .chrono-label {
+  left: calc(100% + var(--s-2));
+}
+
+.chrono-item[data-place="before"] .chrono-label {
+  right: calc(100% + var(--s-2));
+}
+
+/* A recurring event: a dashed link between its editions. */
+.chrono-link {
+  position: absolute;
+  top: calc(var(--row) * var(--row-h) + var(--row-h) / 2);
+  left: calc(100% * var(--from) / var(--span));
+  width: calc(100% * (var(--to) - var(--from)) / var(--span));
+  height: 1px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--ice) 45%, transparent) 0 4px, transparent 4px 8px);
+  pointer-events: none;
+}
+
+/* Markers: a diamond per event, a star for the highlight. */
+.chrono-marker {
+  top: calc(var(--row) * var(--row-h) + var(--row-h) / 2);
+  left: calc(100% * (var(--at) + 0.5) / var(--span));
+  width: calc(18px * var(--k));
+  height: calc(18px * var(--k));
+  translate: -50% -50%;
+}
+
+.chrono-glyph {
+  position: absolute;
+  inset: 4px;
+  background: var(--ice);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 70%, transparent);
+  rotate: 45deg;
+}
+
+.chrono-marker.is-highlight .chrono-glyph {
+  inset: -1px;
+  background: var(--gold);
+  box-shadow: none;
+  rotate: 0deg;
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.chrono-marker.is-highlight .chrono-label {
+  color: var(--gold);
+}
+
+/* Shown (hover, focus, selection): lit, the rest of the plot steps back. */
+.chrono-item.is-shown {
+  z-index: 1;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--cyan) 55%, transparent));
+}
+
+.chrono-item.is-shown .chrono-track {
+  box-shadow: inset 0 0 0 1px var(--paper);
+}
+
+.chrono-plot:has(.chrono-item:hover) .chrono-item:not(:hover):not(.is-shown) {
+  opacity: 0.55;
+}
+
+/* Starts after NOW (the time dial went back): not yet. */
+.chrono-item.is-future {
+  opacity: 0.22;
+}
+
+.chrono-item.is-future .chrono-seg {
+  background: repeating-linear-gradient(98deg, color-mix(in srgb, var(--paper) 30%, transparent) 0 2px, transparent 2px 5px);
+}
+
+/* ------------------------------------------------------------------ now */
+
+.chrono-now {
+  position: absolute;
+  top: calc(var(--top-h) - 8px);
+  bottom: calc(var(--axis-h) - 6px);
+  left: calc(var(--lane-w) + (100% - var(--lane-w) - var(--x1)) * var(--now) / var(--span));
+  width: 2px;
+  margin-left: -1px;
+  background: var(--cyan);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cyan) 70%, transparent);
+  transform-origin: 50% 0;
+  pointer-events: none;
+}
+
+.chrono-now__chip {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  padding: 3px var(--s-3) 2px var(--s-2);
+  color: var(--ink);
+  background: var(--cyan);
+  font: italic 800 calc(10px * var(--k)) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+/* Near the right edge the chip hangs to the left of the line instead. */
+.chrono-now__chip.is-flipped {
+  left: auto;
+  right: -1px;
+  padding: 3px var(--s-2) 2px var(--s-3);
+  clip-path: polygon(4px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* --------------------------------------------------------------- detail */
+
+.chrono-detail {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+  min-height: calc(156px * var(--k));
+  padding: var(--s-4) var(--s-7) var(--s-4) var(--s-5);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ice) 14%, transparent) 0 1px, transparent 1px),
+    linear-gradient(100deg, color-mix(in srgb, var(--deep) 58%, transparent), color-mix(in srgb, var(--night) 30%, transparent) 75%);
+  box-shadow: inset 3px 0 0 var(--cyan);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+
+.chrono-detail > * {
+  max-width: none;
+  margin: 0;
+}
+
+.chrono-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  font: italic 800 var(--fs-xs) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.chrono-detail__type {
+  padding: 3px var(--s-2) 2px;
+  color: var(--ink);
+  background: var(--cyan);
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.chrono-detail__type[data-lane="uni"] {
+  background: var(--blue-soft);
+}
+
+.chrono-detail__type[data-lane="events"] {
+  background: var(--ice);
+}
+
+.chrono-detail__type[data-lane="highlight"] {
+  background: var(--gold);
+}
+
+.chrono-detail__period {
+  color: var(--paper);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chrono-detail__now {
+  color: var(--cyan);
+}
+
+.chrono-detail__now::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: var(--s-1);
+  vertical-align: 1px;
+  background: var(--cyan);
+  rotate: 45deg;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.chrono-detail__future {
+  color: var(--text-3);
+}
+
+.chrono-detail__title {
+  margin-top: var(--s-2) !important;
+  color: var(--paper);
+  font: italic 800 clamp(1.35rem, 3.6cqw, 1.75rem) / 1.05 var(--font-hud);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.chrono-detail__org {
+  color: var(--text-2);
+  font: italic 600 var(--fs-sm) / 1.3 var(--font-hud);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.chrono-detail__note {
+  margin-top: var(--s-1) !important;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.chrono-detail__stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin-top: var(--s-2) !important;
+  padding: 0;
+  list-style: none;
+}
+
+.chrono-detail__stack li {
+  padding: 2px var(--s-2) 1px;
+  color: var(--ice);
+  background: color-mix(in srgb, var(--cyan) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 26%, transparent);
+  font: italic 600 var(--fs-xs) / 1.1 var(--font-hud);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.chrono-detail__earlier {
+  margin-top: var(--s-1) !important;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.chrono-detail__earlier > span {
+  margin-right: var(--s-1);
+  color: var(--blue-soft);
+  font: italic 800 var(--fs-xs) / 1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------- the Experience card */
+
+/* Desktop: a compact header (kicker; title and lead side by side) so the plot gets the room.
+   The list under the plot is for the mobile stack only. */
+.card-stage > .content-card[data-kind="quests"] {
+  padding-top: calc(var(--edge-t) + var(--s-5));
+}
+
+.card-stage > .content-card[data-kind="quests"] h2 {
+  margin-bottom: var(--s-1);
+  font-size: clamp(2.1rem, min(5.4cqw, 7cqh), 3.4rem);
+}
+
+.card-stage > .content-card[data-kind="quests"] > .card-lead {
+  margin-bottom: var(--s-4);
+  font-size: var(--fs-sm);
+}
+
+.card-stage .quest-log {
+  display: none;
+}
+
+.mobile-section-stack .chrono-detail {
+  display: none;
+}
+
+/* Short desktop screens (1280x720 and the like): tighter rows and a lighter detail plate. */
+@media (min-width: 921px) and (max-height: 820px) {
+  .chrono {
+    --row-h: calc(24px * var(--k));
+    --bar-h: calc(12px * var(--k));
+    --top-h: calc(24px * var(--k));
+    --axis-h: calc(22px * var(--k));
+    gap: var(--s-3);
+  }
+
+  .chrono-year {
+    padding-bottom: 5px;
+    font-size: var(--fs-xs);
+  }
+
+  .chrono-lane__name {
+    padding-top: 5px;
+  }
+
+  .chrono-detail {
+    min-height: 0;
+    padding-top: var(--s-3);
+    padding-bottom: var(--s-3);
+  }
+
+  .chrono-detail__title {
+    margin-top: var(--s-1) !important;
+    font-size: 1.3rem;
+  }
+
+  .chrono-detail__earlier {
+    display: none;
+  }
+
+  .card-stage > .content-card[data-kind="quests"] > .card-lead {
+    margin-bottom: var(--s-3);
+  }
+}
+
+/* ----------------------------------------------------------------- mobile */
+
+@media (max-width: 920px) {
+  .chrono {
+    --lane-w: 58px;
+    --x1: 12px;
+    --row-h: 28px;
+    --bar-h: 12px;
+    margin-bottom: var(--s-4);
+  }
+
+  .chrono-lane__name {
+    padding-left: var(--s-2);
+    font-size: 0.625rem;
+    letter-spacing: 0.12em;
+  }
+
+  .chrono-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  /* The list below tells the story: on a phone only long and current entries keep a name. */
+  .chrono-item:not(.is-current):not(.is-highlight):not([data-place="inside"]) .chrono-label {
+    display: none;
+  }
+
+  .chrono-year.is-edge {
+    color: transparent;
+  }
+}
+
+/* --------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .chrono-bar.is-current::after {
+    animation: none;
+  }
+}

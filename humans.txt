@@ -1,0 +1,10 @@
+/* TEAM */
+Design and code: Pietro Molendys
+Site: https://pedritos22.github.io/
+GitHub: https://github.com/pedritos22
+From: Cracow, Poland
+
+/* SITE */
+Standards: HTML, CSS, ES modules, WebGL, Web Audio, Web Animations
+Components: GSAP
+Software: no framework, no build step

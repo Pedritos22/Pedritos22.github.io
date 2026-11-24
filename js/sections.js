@@ -1,73 +1,38 @@
-// Card rendering, section transitions and the mobile stack.
+// The title screen's card ("Press start") and the blocks shared with the descent.
 // Owner: menu/panel workstream (B).
 //
-// Desktop: one persistent card (.content-card) whose decoration (plates, watermark, number,
-// pager, wipe layer) stays in place while the content nodes are swapped under a diagonal
-// wipe. Mobile (<= 920px): every section is rendered as its own card in
-// .mobile-section-stack and revealed on scroll.
+// The card no longer swaps sections: the site is one document (js/story.js), the menu is its
+// table of contents and choosing an item cuts to the chapter. The card stays as the welcome
+// plate of the title screen: its kicker, title, lead, the latest highlight (a link into the
+// Experience chapter) and the fun facts. Desktop: it is cut in along the diagonal after the
+// intro and its content cascades. Phones: the same card sits under the menu in
+// .mobile-section-stack.
 //
-// Transition anatomy (desktop, full motion):
-//   0ms      SECTION_WILL_CHANGE + whoosh. A "train" of bands enters from the direction side:
-//            a cyan leading edge, the navy cover body, then electric blue, cyan and a thin
-//            white streak trailing behind it. All bands lean at -8deg.
-//   ~220ms   the navy body covers the card: content swap, SECTION_CHANGED.
-//   ~240ms+  the train exits; the trailing bands uncover the new content while it cascades in
-//            (kicker, title letters, lead, rows/cards, watermark, number).
-// The train, the cascade and the sigils are Web Animations (compositor-driven), so the swap
-// on the covered frame cannot stall them; card content comes from pre-parsed templates with
-// the title already split into letters.
-// Interrupting: the running animations are cancelled. A train that had not covered the card
-// yet is parked over it (the next train removes it when that one covers); a train that was
-// already leaving finishes leaving. The title goes back to plain text every time.
-import { HOME, SECTIONS, SECTION_MAP } from "./content.js";
-import {
-  EVT,
-  emit,
-  on,
-  state,
-  afterIntro,
-  isMobileLayout,
-  onLayoutChange,
-  prefersReducedMotion,
-  escapeHtml as esc
-} from "./core.js";
+// Shared with story.js: contactMarkup() (the Contact chapter), questListMarkup() (the
+// Experience list on phones) and hydrate() (copy buttons, glass, the deck, the chronograph,
+// the local time, the hello chip).
+import { HOME, HIGHLIGHTS, QUESTS, SECTION_MAP } from "./content.js";
+import { t, onLang, formatPeriod, locale } from "./i18n.js";
+import { afterIntro, isMobileLayout, onLayoutChange, prefersReducedMotion, escapeHtml as esc } from "./core.js";
 import { gsap, DUR, EASE, STAGGER, animate, enterFrom, allFinished, hasWaapi } from "./motion.js";
 import { makeFracturable } from "./shatter.js";
-import { arcanaMarkup, bindArcana, dealIn, drawSigils, foolChipMarkup } from "./arcana.js";
+import { bindArcana } from "./arcana.js";
+import { bindChrono } from "./chrono.js";
 import { glyph } from "./glyphs.js";
 import { sfx } from "./sfx.js";
 
-const ORDER = [HOME.id, ...SECTIONS.map((section) => section.id)];
-const TOTAL = SECTIONS.length;
-const TAN8 = Math.tan((8 * Math.PI) / 180);
 const COPY_RESET_MS = 1800;
 const CYCLE_MS = 2400;
 
 let card = null;
-let stage = null;
-let wipe = null;
 let watermark = null;
 let numberEl = null;
 let backPlate = null;
-let pager = null;
-let announcer = null;
 let mobileStack = null;
-
-let target = HOME.id; // last requested section on desktop
-let tl = null; // GSAP timeline of the entrance or the reduced-motion crossfade
-let run = null; // running wipe: { train, swapped }
-let token = 0; // bumped by every transition and interruption; stale callbacks compare it
-let reveal = []; // WAAPI animations of the running content reveal (desktop card)
-let cardSize = null; // border box of the desktop card, kept by a ResizeObserver
-const templates = new Map(); // section id -> <template> of its desktop card content
+let reveal = [];
 let entrancePending = false;
-let mobileBuilt = false;
 let mobileObserver = null;
 let resizeFrame = 0;
-
-export function getSectionNames() {
-  return SECTIONS.map((section) => section.id);
-}
 
 /* ================================================================ markup */
 
@@ -93,108 +58,90 @@ function rowsMarkup(details, modifier) {
   return `<ul class="detail-list detail-list--${modifier}" role="list">${details.map(rowMarkup).join("")}</ul>`;
 }
 
-function archiveMarkup(section) {
-  const cells = (section.focus || [])
-    .map(
-      (label, i) => `<li class="cal-cell">
-        <span class="cal-num">${String(i + 1).padStart(2, "0")}</span>
-        <span class="cal-label">${esc(label)}</span>
-      </li>`
-    )
-    .join("");
-  return `
-    ${rowsMarkup(section.details, "record")}
-    <div class="archive-cal">
-      <p class="archive-caption"><span>Focus areas</span></p>
-      <span class="cal-rings" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-      <ol class="cal-grid" role="list">${cells}</ol>
-    </div>`;
-}
-
-/** Optional card action (section.action = [label, data-attribute]), in the card's footer strip. */
-function actionMarkup(section) {
-  if (!section.action) return "";
-  const [label, hook] = section.action;
-  return `<div class="card-action">${foolChipMarkup(section)}<button class="action-link" type="button" data-${esc(hook)}><span>${esc(label)}</span></button></div>`;
-}
-
 /** Escaped text with soft break opportunities after "/" and before "@" (long URLs on phones). */
 function breakable(text) {
   return esc(text).replace(/\//g, "/<wbr>").replace(/@/g, "<wbr>@");
 }
 
-function contactMarkup(section) {
-  const rows = section.links
-    .map((link) => {
-      const external = link.external ? ` target="_blank" rel="noopener noreferrer"` : "";
-      const trail = link.copy
-        ? `<button class="copy-btn" type="button" data-copy="${esc(link.value)}" aria-label="Copy ${esc(link.label.toLowerCase())} address">
-            <span class="copy-glyph copy-glyph--idle">${glyph("copy")}</span>
-            <span class="copy-glyph copy-glyph--done">${glyph("check")}</span>
-            <span class="copy-text" aria-live="polite">Copy</span>
-          </button>`
+/**
+ * Contact: the address itself is the call to action (big, linked, with a copy button), then
+ * one tile per channel, then the local time in Kraków for visitors in other time zones.
+ */
+export function contactMarkup(section) {
+  const reach = section.reach ?? {};
+  const email = section.links?.find((link) => link.id === "email");
+  const hero = email
+    ? `<div class="reach-hero">
+        <p class="reach-hero__label"><span>${esc(reach.cta ?? email.label)}</span></p>
+        <a class="reach-hero__mail" href="${esc(email.href)}">${breakable(email.value)}</a>
+        <button class="copy-btn reach-copy" type="button" data-copy="${esc(email.value)}" aria-label="${esc(t("card.copyAria", { what: email.label.toLowerCase() }))}">
+          <span class="copy-glyph copy-glyph--idle">${glyph("copy")}</span>
+          <span class="copy-glyph copy-glyph--done">${glyph("check")}</span>
+          <span class="copy-text" aria-live="polite">${esc(t("card.copy"))}</span>
+        </button>
+      </div>`
+    : "";
+  const tiles = (reach.tiles ?? [])
+    .map((tile) => {
+      const external = tile.external ? ` target="_blank" rel="noopener noreferrer"` : "";
+      return `<li><a class="reach-tile" href="${esc(tile.href)}"${external}>
+          <span class="reach-tile__glyph" aria-hidden="true">${glyph(tile.glyph)}</span>
+          <span class="reach-tile__label">${esc(tile.label)}</span>
+          <span class="reach-tile__value">${esc(tile.value)}</span>
+          <span class="reach-tile__arrow" aria-hidden="true">${glyph("external")}</span>
+          ${tile.external ? `<span class="visually-hidden">${esc(t("card.newTab"))}</span>` : ""}
+        </a></li>`;
+    })
+    .join("");
+  const clock = reach.localTime
+    ? `<p class="reach-clock"><span class="reach-clock__label">${esc(reach.localTime)}</span> <time class="reach-clock__time" data-local-time></time></p>`
+    : "";
+  return `${hero}<ul class="reach-grid" role="list">${tiles}</ul>${clock}`;
+}
+
+/** The latest highlight (HackNation): a slanted plate that cuts into the Experience chapter. */
+function highlightMarkup() {
+  const item = HIGHLIGHTS?.[0];
+  if (!item) return "";
+  return `<a class="card-highlight" href="#hacknation" data-goto="hacknation">
+      <span class="card-highlight__label">${esc(item.label)}</span>
+      <span class="card-highlight__title">${esc(item.title)}</span>
+      <span class="card-highlight__where">${esc(item.meta)}</span>
+    </a>`;
+}
+
+/**
+ * The quest list (the Experience chapter on phones, under the chronograph): one plate per entry. The period and a type chip on the
+ * left, the newest role, the organisation and a one-line note on the right; earlier roles
+ * at the same place follow as a small line. Current entries carry a "Now" chip.
+ */
+export function questListMarkup() {
+  const items = (QUESTS || [])
+    .map((quest) => {
+      const [latest, ...earlier] = quest.roles;
+      const current = latest.to === null;
+      const place = quest.place ? ` · ${esc(quest.place)}` : "";
+      const before = earlier.length
+        ? `<p class="quest__earlier"><span>${esc(t("quest.earlier"))}</span> ${earlier
+            .map((role) => `${esc(role.title)} (${esc(formatPeriod(role.from, role.to))})`)
+            .join("; ")}</p>`
         : "";
-      return `<li class="row link-row${link.copy ? " has-copy" : ""}">
-        <a class="link-main" href="${esc(link.href)}"${external}>
-          <span class="row-glyph" aria-hidden="true">${glyph(link.glyph)}</span>
-          <span class="row-label">${esc(link.label)}</span>
-          <span class="row-value">${breakable(link.value)}</span>
-          ${link.external ? `<span class="link-ext" aria-hidden="true">${glyph("external")}</span><span class="visually-hidden"> (opens in a new tab)</span>` : ""}
-        </a>
-        ${trail}
-      </li>`;
+      return `<li class="quest${current ? " is-current" : ""}" data-type="${esc(quest.group)}" data-quest="${esc(quest.id)}">
+          <p class="quest__side">
+            <span class="quest__when">${esc(formatPeriod(latest.from, latest.to))}</span>
+            <span class="quest__type">${esc(quest.type)}</span>
+            ${current ? `<span class="quest__now">${esc(t("quest.current"))}</span>` : ""}
+          </p>
+          <div class="quest__main">
+            <h3 class="quest__title">${esc(latest.title)}</h3>
+            <p class="quest__org">${esc(quest.org)}${place}</p>
+            <p class="quest__note">${esc(quest.note)}</p>
+            ${before}
+          </div>
+        </li>`;
     })
     .join("");
-
-  const actions = (section.actions || [])
-    .map(([label, href, variant]) => {
-      const external = /^https?:/.test(href) ? ` target="_blank" rel="noopener noreferrer"` : "";
-      return `<a class="action-link ${variant}" href="${esc(href)}"${external}><span>${esc(label)}</span></a>`;
-    })
-    .join("");
-
-  return `<ul class="detail-list detail-list--links" role="list">${rows}</ul>
-    ${actions ? `<div class="actions">${actions}</div>` : ""}`;
-}
-
-/** Quick-start tiles: shortcuts into the menu (desktop home card). */
-function startMarkup(section) {
-  if (!section.start?.length) return "";
-  const tiles = section.start
-    .map(([id, caption]) => {
-      const target = SECTION_MAP[id];
-      if (!target) return "";
-      return `<li><button class="quick-tile" type="button" data-goto="${esc(id)}">
-          <span class="quick-tile__code">${esc(target.code)}</span>
-          <span class="quick-tile__name">${esc(target.menu)}</span>
-          <span class="quick-tile__hint">${esc(caption)}</span>
-          <span class="quick-tile__arrow" aria-hidden="true">${glyph("external")}</span>
-        </button></li>`;
-    })
-    .join("");
-  return `<nav class="quick-start" aria-label="Quick start">
-      <p class="quick-start__label"><span>Start here</span></p>
-      <ul class="quick-start__grid" role="list">${tiles}</ul>
-    </nav>`;
-}
-
-function bodyMarkup(section) {
-  switch (section.kind) {
-    case "facts":
-      return rowsMarkup(section.details, "facts") + startMarkup(section);
-    case "profile":
-      return rowsMarkup(section.details, "profile");
-    case "archive":
-      return archiveMarkup(section);
-    case "arcana":
-      return arcanaMarkup(section);
-    case "contact":
-      return contactMarkup(section);
-    case "custom":
-      return `<div class="section-custom" data-render="${esc(section.id)}"></div>`;
-    default:
-      return section.details ? rowsMarkup(section.details, "profile") : "";
-  }
+  return `<ol class="quest-log" role="list">${items}</ol>`;
 }
 
 /**
@@ -215,7 +162,7 @@ function splitTitleMarkup(text) {
   return `<span class="visually-hidden">${esc(text)}</span><span class="split-text" aria-hidden="true">${words}</span>`;
 }
 
-/** The swappable nodes: kicker, title, lead and body. */
+/** The card's content: kicker, title (split into letters for the cascade), lead, body. */
 function contentMarkup(section, titleId, { splitTitle = false } = {}) {
   const title = splitTitle
     ? `<h2 id="${titleId}" data-split>${splitTitleMarkup(section.title)}</h2>`
@@ -223,8 +170,7 @@ function contentMarkup(section, titleId, { splitTitle = false } = {}) {
   return `<p class="section-kicker">${esc(section.label)}</p>
     ${title}
     <p class="card-lead">${esc(section.copy)}</p>
-    <div class="card-body" data-kind="${esc(section.kind)}">${bodyMarkup(section)}</div>
-    ${actionMarkup(section)}`;
+    <div class="card-body" data-kind="${esc(section.kind)}">${highlightMarkup()}${rowsMarkup(section.details, "facts")}</div>`;
 }
 
 /** Put split titles back to plain text (one text node: proper kerning, clean copy/paste). */
@@ -236,17 +182,6 @@ function unsplitTitles(root) {
   });
 }
 
-/** Desktop card content for a section, parsed once and cloned on every visit. */
-function contentFragment(section) {
-  let template = templates.get(section.id);
-  if (!template) {
-    template = document.createElement("template");
-    template.innerHTML = contentMarkup(section, "card-title", { splitTitle: true });
-    templates.set(section.id, template);
-  }
-  return template.content.cloneNode(true);
-}
-
 /** Persistent decoration: back plate + main plate with watermark, number and hairlines. */
 function decoMarkup(section) {
   return `<span class="card-back" aria-hidden="true"></span>
@@ -255,14 +190,6 @@ function decoMarkup(section) {
       <span class="card-hair card-hair--cross"></span>
       <span class="card-watermark">${esc(section.stamp)}</span>
       <span class="card-num">${esc(section.code)}</span>
-    </span>`;
-}
-
-function pagerMarkup() {
-  const pips = SECTIONS.map(() => "<i></i>").join("");
-  return `<span class="card-pager" aria-hidden="true">
-      <span class="pager-pips">${pips}</span>
-      <span class="pager-count"><b>00</b><span>/ ${String(TOTAL).padStart(2, "0")}</span></span>
     </span>`;
 }
 
@@ -314,12 +241,12 @@ function onCopyClick(event) {
     window.clearTimeout(button._copyTimer);
     button.classList.toggle("is-copied", ok);
     button.classList.toggle("is-failed", !ok);
-    if (label) label.textContent = ok ? "Copied" : "Copy failed";
+    if (label) label.textContent = ok ? t("card.copied") : t("card.copyFailed");
     if (ok) sfx.confirm();
     else sfx.back();
     button._copyTimer = window.setTimeout(() => {
       button.classList.remove("is-copied", "is-failed");
-      if (label) label.textContent = "Copy";
+      if (label) label.textContent = t("card.copy");
     }, COPY_RESET_MS);
   });
 }
@@ -332,7 +259,28 @@ function bindInteractions(root) {
     button.addEventListener("click", onCopyClick);
   });
   bindArcana(root);
+  bindChrono(root);
+  bindLocalTime(root);
   bindCycles(root);
+}
+
+/** The local time in Kraków on the contact card (real time, not the dialled world clock). */
+let localTimer = 0;
+function paintLocalTime() {
+  const nodes = document.querySelectorAll("[data-local-time]");
+  if (!nodes.length) return;
+  const date = new Date();
+  const text = new Intl.DateTimeFormat(locale(), { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Warsaw", timeZoneName: "short" }).format(date);
+  nodes.forEach((node) => {
+    node.textContent = text;
+    node.dateTime = date.toISOString();
+  });
+}
+
+function bindLocalTime(root) {
+  if (!root.querySelector("[data-local-time]")) return;
+  paintLocalTime();
+  if (!localTimer) localTimer = window.setInterval(paintLocalTime, 30000);
 }
 
 /** Rotate the words of every cycle chip under `root` (Home: hello in each language). */
@@ -366,101 +314,60 @@ function bindCycles(root) {
   });
 }
 
-function hydrate(root) {
+/** Bind everything interactive under `root` (copy buttons, glass, cards...). Also used by story.js. */
+export function hydrate(root) {
   hydrateCustom(root);
   makeFracturable(root);
   bindInteractions(root);
 }
 
-/* ======================================================= desktop: state */
+/* ======================================================= desktop: card */
 
 function contentNodes() {
   if (!card) return [];
-  return Array.from(card.querySelectorAll(":scope > .section-kicker, :scope > h2, :scope > .card-lead, :scope > .card-body, :scope > .card-action"));
+  return Array.from(card.querySelectorAll(":scope > .section-kicker, :scope > h2, :scope > .card-lead, :scope > .card-body"));
 }
 
 function revealTargets(root) {
   const body = root.querySelector(".card-body");
-  const action = root.querySelector(".card-action");
   return {
     kicker: root.querySelector(".section-kicker"),
     title: root.querySelector("h2"),
     lead: root.querySelector(".card-lead"),
-    items: [
-      ...(body
-        ? body.querySelectorAll(
-            ".detail-list > li, .archive-caption, .cal-rings, .cal-cell, .actions > *, .section-custom, .quick-start__label, .quick-start__grid > li"
-          )
-        : []),
-      ...(action ? [action] : [])
-    ],
-    // Arcana cards are dealt from a deck instead (arcana.js), then their sigils draw in.
-    slots: body ? Array.from(body.querySelectorAll(".arcana-slot")) : [],
-    sigils: body ? Array.from(body.querySelectorAll(".arcana-slot .arcana-front .sigil")) : []
+    items: body ? Array.from(body.querySelectorAll(".card-highlight, .detail-list > li")) : []
   };
-}
-
-function updatePager(index) {
-  if (!pager) return;
-  pager.querySelectorAll(".pager-pips i").forEach((pip, i) => pip.classList.toggle("is-on", i + 1 === index));
-  const count = pager.querySelector(".pager-count b");
-  if (count) count.textContent = String(index).padStart(2, "0");
-}
-
-function announce(section) {
-  if (announcer) announcer.textContent = `${section.menu}: ${section.title}`;
-}
-
-/** Track whether the card body needs to scroll (shows a fade at the bottom edge). */
-function updateOverflow(root = card) {
-  root?.querySelectorAll(".card-body").forEach((body) => {
-    body.classList.toggle("is-overflowing", body.scrollHeight > body.clientHeight + 2);
-  });
-}
-
-/**
- * Swap the card content (runs on the covered frame, so it stays lean: a cloned fragment,
- * no layout reads; updateOverflow() waits for the end of the transition).
- */
-function swapContent(section) {
-  contentNodes().forEach((node) => {
-    gsap.killTweensOf(node);
-    gsap.killTweensOf(node.querySelectorAll("*"));
-    node.remove();
-  });
-
-  card.insertBefore(contentFragment(section), pager);
-
-  card.dataset.section = section.stamp;
-  card.dataset.kind = section.kind;
-  if (watermark) watermark.textContent = section.stamp;
-  if (numberEl) numberEl.textContent = section.code;
-  const index = ORDER.indexOf(section.id);
-  updatePager(index);
-
-  hydrate(card);
-  const body = card.querySelector(".card-body");
-  if (body) body.scrollTop = 0;
-
-  const from = state.section;
-  state.section = section.id;
-  announce(section);
-  emit(EVT.SECTION_CHANGED, { from, to: section.id, index });
-}
-
-function cancelReveal() {
-  reveal.forEach((animation) => animation.cancel());
-  reveal = [];
 }
 
 /** Snap every animated element to its resting state and drop inline styles. */
 function cleanupReveal() {
-  cancelReveal();
+  reveal.forEach((animation) => animation.cancel());
+  reveal = [];
   if (!card) return;
   unsplitTitles(card);
   const nodes = [...contentNodes(), watermark, numberEl, backPlate, card].filter(Boolean);
   gsap.killTweensOf(nodes);
   gsap.set(nodes, { clearProps: "transform,opacity,visibility,clipPath" });
+}
+
+/**
+ * Track whether the card body needs to scroll (shows a fade at the bottom edge). A body that
+ * scrolls joins the tab order, so keyboard users can scroll it too (it may hold no links).
+ */
+function updateOverflow(root = card) {
+  root?.querySelectorAll(".card-body").forEach((body) => {
+    const overflowing = body.scrollHeight > body.clientHeight + 2;
+    body.classList.toggle("is-overflowing", overflowing);
+    if (overflowing) {
+      body.tabIndex = 0;
+      body.setAttribute("role", "region");
+      const title = body.closest(".content-card")?.querySelector("h2")?.textContent ?? "";
+      body.setAttribute("aria-label", t("card.scrollable", { section: title.trim() }));
+    } else {
+      body.removeAttribute("tabindex");
+      body.removeAttribute("role");
+      body.removeAttribute("aria-label");
+    }
+  });
 }
 
 /* ================================================== desktop: animation */
@@ -471,7 +378,7 @@ function cleanupReveal() {
  * targets, like GSAP from-tweens).
  */
 function startReveal(root, { direction = 1, delay = 0 } = {}) {
-  const { kicker, title, lead, items, slots, sigils } = revealTargets(root);
+  const { kicker, title, lead, items } = revealTargets(root);
   const animations = [];
   const at = (offset) => ({ duration: DUR.panel, delay: delay + offset, ease: "out" });
 
@@ -490,8 +397,6 @@ function startReveal(root, { direction = 1, delay = 0 } = {}) {
 
   if (lead) animations.push(enterFrom(lead, { y: 12 }, at(0.08)));
   items.forEach((item, i) => animations.push(enterFrom(item, { x: 22 * direction }, at(0.12 + i * STAGGER))));
-  if (slots.length) animations.push(...dealIn(slots, delay + 0.12));
-  if (sigils.length) animations.push(...drawSigils(sigils, delay + 0.3));
   return animations.filter(Boolean);
 }
 
@@ -514,202 +419,38 @@ function startWatermark(direction, delay = 0) {
   return animations.filter(Boolean);
 }
 
-/** Geometry of a wipe train for a card of size w x h. */
-function trainGeometry(w, h, direction) {
-  const bleed = 24;
-  const overhang = Math.ceil(((h + bleed * 2) / 2) * TAN8) + 8;
-  const trail = 4 + 10 + 18 + 40; // streak + gap + cyan + blue, in px (see .wb-* in panel.css)
-  const lead = 3;
-  const navy = Math.ceil(w + overhang * 2 + 32);
-  const length = trail + navy + lead;
-  // Positions of the train's left edge for a left-to-right sweep.
-  let start = -(length + overhang + 8);
-  let cover = -overhang - 16 - trail;
-  let end = w + overhang + 8;
-  if (direction < 0) {
-    // Mirror: x' = w - (x + length)
-    start = w - (start + length);
-    cover = w - (cover + length);
-    end = w - (end + length);
-  }
-  return { bleed, navy, length, start, cover, end };
-}
-
-const trainTransform = (x) => `translateX(${Math.round(x * 10) / 10}px) skewX(-8deg)`;
-
-/** Current x of a train, read from its computed (possibly animated) transform. */
-function trainX(train) {
-  try {
-    return new DOMMatrixReadOnly(getComputedStyle(train).transform).e;
-  } catch {
-    return train._geo.cover;
-  }
-}
-
-/** Move a train between two x positions on the compositor; it holds the end position. */
-function moveTrain(train, from, to, { duration, ease, delay = 0 }) {
-  train.style.transform = trainTransform(from);
-  return animate(train, [{ transform: trainTransform(from) }, { transform: trainTransform(to) }], {
-    duration,
-    delay,
-    ease,
-    fill: "both"
-  });
-}
-
-function makeTrain(section, direction) {
-  // The ResizeObserver keeps the size, so the click handler never forces a layout.
-  const w = cardSize?.w ?? card.offsetWidth;
-  const h = cardSize?.h ?? card.offsetHeight;
-  const geo = trainGeometry(w, h, direction);
-  const train = document.createElement("span");
-  train.className = "wipe-train";
-  train.dataset.dir = String(direction);
-  train.style.setProperty("--navy-w", `${geo.navy}px`);
-  train.style.setProperty("--wipe-bleed", `${geo.bleed}px`);
-  train.style.transform = trainTransform(geo.start);
-  train.innerHTML = `<i class="wb wb-streak"></i><i class="wb wb-gap"></i><i class="wb wb-cyan"></i><i class="wb wb-blue"></i><i class="wb wb-navy"><span class="wb-label">${esc(section.code)}</span></i><i class="wb wb-edge"></i>`;
-  train._geo = geo;
-  wipe.appendChild(train);
-  return train;
-}
-
-function removeOtherTrains(keep) {
-  wipe?.querySelectorAll(".wipe-train").forEach((train) => {
-    if (train === keep) return;
-    train.getAnimations?.().forEach((animation) => animation.cancel());
-    train.remove();
-  });
-}
-
-function finishTransition() {
-  cleanupReveal();
-  run?.train.remove();
-  run = null;
-  removeOtherTrains(null);
-  tl = null;
-  updateOverflow();
-}
-
-/** Kill the running transition and leave everything in a clean, resting state. */
-function interruptCurrent() {
-  token += 1;
-  if (!tl && !run && !reveal.length) return;
-  const current = run;
-  tl?.kill();
-  tl = null;
-  run = null;
-  cleanupReveal();
-  if (!current) return;
-  const { train, swapped } = current;
-  const x = trainX(train);
-  train.getAnimations?.().forEach((animation) => animation.cancel());
-  if (!swapped) {
-    // Park it over the card; the next train removes it once that one covers the card.
-    moveTrain(train, x, train._geo.cover, { duration: DUR.micro, ease: "out" });
-  } else {
-    const leave = moveTrain(train, x, train._geo.end, { duration: DUR.ui * 0.8, ease: "in" });
-    if (leave) leave.finished.then(() => train.remove(), () => {});
-    else train.remove();
-  }
-}
-
-function crossfadeTo(section) {
-  const nodes = contentNodes();
-  tl = gsap.timeline({ onComplete: finishTransition });
-  tl.to(nodes, { opacity: 0, duration: 0.08, ease: "none" });
-  tl.add(() => {
-    swapContent(section);
-    unsplitTitles(card); // no letter cascade here
-    tl.fromTo(contentNodes(), { opacity: 0 }, { opacity: 1, duration: 0.12, ease: "none" }, tl.time());
-  });
-}
-
-// Wipe timing (seconds): cover fast (decelerating into place), swap, then peel off
-// accelerating so the trailing bands sweep the new content in from the direction side.
-// Keep the covered hold short: a long still navy frame reads as lag.
-const COVER_S = 0.18;
-const HOLD_S = 0.02;
-const EXIT_S = 0.3;
-
-function transitionTo(sectionName, direction) {
-  const section = SECTION_MAP[sectionName];
-  interruptCurrent();
-
-  if (prefersReducedMotion() || !hasWaapi) {
-    crossfadeTo(section);
-    return;
-  }
-
-  const id = token;
-  const train = makeTrain(section, direction);
-  const geo = train._geo;
-  run = { train, swapped: false };
-
-  const cover = moveTrain(train, geo.start, geo.cover, { duration: COVER_S, ease: "power2Out" });
-  cover.finished.then(
-    () => {
-      if (id !== token) return;
-      run.swapped = true;
-      removeOtherTrains(train);
-      swapContent(section);
-      // All of these run on the compositor: the swap's style and layout work cannot stall them.
-      const exit = moveTrain(train, geo.cover, geo.end, { duration: EXIT_S, delay: HOLD_S, ease: "power1In" });
-      reveal.push(...startWatermark(direction, 0.04), ...startReveal(card, { direction, delay: 0.06 }));
-      allFinished([exit, ...reveal]).then(() => {
-        if (id === token) finishTransition();
-      });
-    },
-    () => {} // cancelled by an interruption
-  );
-}
-
-/** Desktop entrance after the intro: the card is cut in along the diagonal, then content cascades. */
+/** After the intro: the card is cut in along the diagonal, then its content cascades. */
 function playEntrance() {
   if (!entrancePending || !card) return;
   entrancePending = false;
-  interruptCurrent();
-
   if (prefersReducedMotion() || !hasWaapi) {
-    tl = gsap.timeline({ onComplete: finishTransition });
-    tl.fromTo(card, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none", clearProps: "opacity" });
+    gsap.fromTo(card, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "none", clearProps: "opacity" });
     return;
   }
-
-  const id = token;
   const delay = 0.12;
-  const cut = new Promise((resolve) => {
-    tl = gsap.timeline({ delay, onComplete: resolve });
-  });
-  tl.fromTo(
-    card,
-    { clipPath: "polygon(0% -6%, 0% -6%, -16% 106%, -16% 106%)" },
-    {
-      clipPath: "polygon(0% -6%, 118% -6%, 102% 106%, -16% 106%)",
-      duration: DUR.scene,
-      ease: EASE.snap,
-      clearProps: "clipPath"
-    },
-    0
-  );
-  if (backPlate) {
+  const cutIn = new Promise((resolve) => {
+    const tl = gsap.timeline({ delay, onComplete: resolve });
     tl.fromTo(
-      backPlate,
-      { x: -12, y: -12 },
-      { x: 0, y: 0, duration: DUR.panel, ease: EASE.spring, clearProps: "transform" },
-      DUR.scene - 0.06
+      card,
+      { clipPath: "polygon(0% -6%, 0% -6%, -16% 106%, -16% 106%)" },
+      { clipPath: "polygon(0% -6%, 118% -6%, 102% 106%, -16% 106%)", duration: DUR.scene, ease: EASE.snap, clearProps: "clipPath" },
+      0
     );
-  }
+    if (backPlate) {
+      tl.fromTo(backPlate, { x: -12, y: -12 }, { x: 0, y: 0, duration: DUR.panel, ease: EASE.spring, clearProps: "transform" }, DUR.scene - 0.06);
+    }
+  });
   reveal.push(...startWatermark(1, delay + 0.3), ...startReveal(card, { direction: 1, delay: delay + 0.34 }));
-  Promise.all([cut, allFinished(reveal)]).then(() => {
-    if (id === token) finishTransition();
+  Promise.all([cutIn, allFinished(reveal)]).then(() => {
+    cleanupReveal();
+    updateOverflow();
   });
 }
 
 /* ================================================================ mobile */
 
 function mobileCardMarkup(section) {
-  return `<article class="content-card" id="section-${esc(section.id)}" data-section="${esc(section.stamp)}" data-kind="${esc(section.kind)}" aria-labelledby="title-${esc(section.id)}">
+  return `<article class="content-card" id="welcome" data-section="${esc(section.id)}" data-kind="${esc(section.kind)}" aria-labelledby="title-${esc(section.id)}">
       ${decoMarkup(section)}
       ${contentMarkup(section, `title-${section.id}`)}
     </article>`;
@@ -744,168 +485,70 @@ function setupMobileReveal() {
   });
 }
 
+/** Phones: the welcome card sits under the menu (the chapters follow in the descent). */
 function buildMobile() {
-  if (!mobileStack || mobileBuilt) return;
-  mobileBuilt = true;
-  mobileStack.innerHTML = ORDER.map((id) => mobileCardMarkup(SECTION_MAP[id])).join("");
+  if (!mobileStack) return;
+  mobileObserver?.disconnect();
+  mobileStack.innerHTML = mobileCardMarkup(HOME);
   hydrate(mobileStack);
   setupMobileReveal();
 }
 
-function scrollToMobileSection(sectionName) {
-  const element = document.getElementById(`section-${sectionName}`);
-  if (!element) return;
-  element.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
-}
+/* ================================================================== init */
 
-/* ================================================================== API */
-
-/** Show a section (desktop: wipe the card over; mobile: scroll to it). */
-export function showSection(sectionName) {
-  if (!SECTION_MAP[sectionName]) return;
-
-  if (isMobileLayout()) {
-    buildMobile();
-    scrollToMobileSection(sectionName);
-    const from = state.section;
-    target = sectionName;
-    state.section = sectionName;
-    emit(EVT.SECTION_CHANGED, { from, to: sectionName, index: ORDER.indexOf(sectionName) });
-    return;
-  }
-
-  if (!card || sectionName === target) return;
-
-  const from = target;
-  const fromIndex = ORDER.indexOf(from);
-  const toIndex = ORDER.indexOf(sectionName);
-  const direction = toIndex >= fromIndex ? 1 : -1;
-  target = sectionName;
-
-  emit(EVT.SECTION_WILL_CHANGE, { from, to: sectionName, direction, index: toIndex });
-  sfx.whoosh();
-  transitionTo(sectionName, direction);
-}
-
-export function showHome() {
-  showSection(HOME.id);
-}
-
-/** The section the desktop card is showing or heading to. */
-export function getTargetSection() {
-  return target;
-}
-
-/** Render `sectionName` into the desktop card immediately, without a transition. */
-function renderInstant(sectionName) {
-  interruptCurrent();
-  removeOtherTrains(null);
-  swapContent(SECTION_MAP[sectionName] ?? HOME);
-  unsplitTitles(card);
-  updateOverflow();
-  target = state.section;
-}
-
-/** Parse every section's card content ahead of time, while the page is idle. */
-function prewarmTemplates() {
-  const idle = window.requestIdleCallback || ((fn) => window.setTimeout(fn, 200));
-  const queue = SECTIONS.slice();
-  const next = (deadline) => {
-    while (queue.length && (!deadline?.timeRemaining || deadline.timeRemaining() > 4)) {
-      contentFragment(queue.shift());
-    }
-    if (queue.length) idle(next, { timeout: 2000 });
-  };
-  idle(next, { timeout: 2000 });
-}
-
-function onResize() {
-  cancelAnimationFrame(resizeFrame);
-  resizeFrame = requestAnimationFrame(() => updateOverflow());
+function renderCard(splitTitle) {
+  card.innerHTML = `${decoMarkup(HOME)}${contentMarkup(HOME, "card-title", { splitTitle })}`;
+  card.setAttribute("aria-labelledby", "card-title");
+  card.dataset.section = HOME.id;
+  card.dataset.kind = HOME.kind;
+  watermark = card.querySelector(".card-watermark");
+  numberEl = card.querySelector(".card-num");
+  backPlate = card.querySelector(".card-back");
+  hydrate(card);
 }
 
 export function init() {
-  stage = document.querySelector(".panel-wrap > .card-stage");
-  card = stage?.querySelector(".content-card") ?? document.querySelector(".panel-wrap > .content-card");
+  card = document.querySelector(".panel-wrap > .card-stage > .content-card");
   mobileStack = document.querySelector(".mobile-section-stack");
-  announcer = document.querySelector("[data-section-announcer]");
 
   if (card) {
     // The title arrives split when the entrance will cascade its letters in.
     const splitTitle = !isMobileLayout() && !prefersReducedMotion();
-    card.innerHTML = `${decoMarkup(HOME)}${contentMarkup(HOME, "card-title", { splitTitle })}${pagerMarkup()}<span class="card-wipe" aria-hidden="true"></span>`;
-    card.setAttribute("aria-labelledby", "card-title");
-    card.dataset.section = HOME.stamp;
-    card.dataset.kind = HOME.kind;
-    watermark = card.querySelector(".card-watermark");
-    numberEl = card.querySelector(".card-num");
-    backPlate = card.querySelector(".card-back");
-    pager = card.querySelector(".card-pager");
-    wipe = card.querySelector(".card-wipe");
-    updatePager(0);
-    hydrate(card);
-    state.section = HOME.id;
-    target = HOME.id;
-
-    if ("ResizeObserver" in window) {
-      new ResizeObserver(([entry]) => {
-        const box = entry.borderBoxSize?.[0];
-        cardSize = box ? { w: box.inlineSize, h: box.blockSize } : { w: card.offsetWidth, h: card.offsetHeight };
-      }).observe(card);
-    }
-
+    renderCard(splitTitle);
     if (!isMobileLayout()) {
       entrancePending = true;
       if (prefersReducedMotion()) gsap.set(card, { opacity: 0 });
       else gsap.set(card, { clipPath: "polygon(0% -6%, 0% -6%, -16% 106%, -16% 106%)" });
     }
   }
-
-  if (isMobileLayout()) buildMobile();
+  buildMobile();
 
   afterIntro(() => {
     const cascades = entrancePending; // the entrance unsplits the title when it finishes
     playEntrance();
     if (!cascades) unsplitTitles(card);
     requestAnimationFrame(() => updateOverflow());
-    prewarmTemplates();
+  });
+
+  onLang(() => {
+    if (card) {
+      cleanupReveal();
+      renderCard(false);
+      updateOverflow();
+    }
+    buildMobile();
   });
   document.fonts?.ready?.then(() => updateOverflow());
-  window.addEventListener("resize", onResize, { passive: true });
-
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => updateOverflow());
+  }, { passive: true });
   onLayoutChange((mobile) => {
-    if (mobile) {
-      interruptCurrent();
-      buildMobile();
-      return;
-    }
-    // Back to desktop: make sure the card is visible and shows the current section.
-    if (entrancePending) {
+    if (!mobile && entrancePending) {
       entrancePending = false;
       gsap.set(card, { clearProps: "clipPath,opacity" });
       unsplitTitles(card);
     }
-    if (card && state.section !== target) renderInstant(state.section);
-    else updateOverflow();
-  });
-
-  // Quick-start tiles go through the menu, so the cursor, marker and sounds stay in sync.
-  // Capture phase: the glass engine stops click propagation inside the card.
-  document.addEventListener(
-    "click",
-    (event) => {
-      const tile = event.target.closest?.("[data-goto]");
-      if (!tile) return;
-      event.stopPropagation(); // a shortcut press is not a knock on the glass
-      const item =document.querySelector(`.menu-item[data-section="${CSS.escape(tile.dataset.goto)}"]`);
-      if (item && !item.disabled) item.click();
-      else showSection(tile.dataset.goto);
-    },
-    true
-  );
-
-  on(EVT.RESET, () => {
-    // shatter.js repairs the glass first; re-measure in case broken pieces changed sizes.
-    requestAnimationFrame(() => updateOverflow());
+    updateOverflow();
   });
 }

@@ -7,10 +7,12 @@
 //   .menu-cursor  hot plate that springs to the hovered / focused item and rests on the active one
 // Both are parallelograms leaning at -8deg, drawn with a px clip-path so the angle never
 // changes with the width; only transform and clip-path are animated.
-import { EVT, emit, on, afterIntro, isMobileLayout, onLayoutChange, prefersReducedMotion } from "./core.js";
+import { EVT, emit, on, state, afterIntro, isMobileLayout, onLayoutChange, prefersReducedMotion } from "./core.js";
 import { gsap, SplitText, DUR, EASE, STAGGER } from "./motion.js";
-import { showSection } from "./sections.js";
+import { goTo } from "./story.js";
 import { sfx } from "./sfx.js";
+import { SECTION_MAP } from "./content.js";
+import { onLang } from "./i18n.js";
 
 const TAN8 = Math.tan((8 * Math.PI) / 180);
 const BLEED = 64; // the plates extend this far left of the nav box (see .menu-cursor in menu.css)
@@ -218,7 +220,7 @@ function select(index) {
   if (index !== activeIndex) setActive(index);
   sfx.confirm();
   pulse(index);
-  showSection(section);
+  goTo(section);
 }
 
 function preview(index, { sound = true } = {}) {
@@ -310,6 +312,9 @@ function playEntrance() {
   const done = () => {
     gsap.set(all, { clearProps: "transform,opacity" });
     ready = true;
+    // The descent measures the menu for its fold into the rail once it stands still.
+    document.documentElement.classList.add("menu-ready");
+    window.dispatchEvent(new Event("menu:ready"));
     moveMarker();
     moveCursor(restingIndex());
   };
@@ -329,6 +334,22 @@ function playEntrance() {
   timeline.to([footer, cue].filter(Boolean), { opacity: 1, duration: DUR.panel, ease: "none" }, 0.4);
 }
 
+/** Menu labels in the current language (the broken-glass remains copy them too). */
+function relabel() {
+  items.forEach((item) => {
+    const label = SECTION_MAP[item.dataset.section]?.menu;
+    if (!label) return;
+    const text = item.querySelector(".menu-text");
+    if (text && text.textContent !== label) {
+      jitters.get(text)?.split.revert();
+      text.textContent = label;
+    }
+    item.querySelectorAll(".menu-remains > span").forEach((span) => {
+      span.textContent = label;
+    });
+  });
+}
+
 /* ================================================================== init */
 
 export function init() {
@@ -342,7 +363,15 @@ export function init() {
     item.removeAttribute("aria-pressed");
     bindItem(item, index);
   });
+  // A deep link opened the card on a section: mark it from the start.
+  const initial = indexOfSection(state.section);
+  if (initial >= 0) setActive(initial);
   updateTabStops();
+  relabel();
+  onLang(() => {
+    relabel();
+    refreshGeometry();
+  });
 
   nav.addEventListener("keydown", onKeydown);
   nav.addEventListener("pointerleave", () => {

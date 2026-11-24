@@ -1,10 +1,11 @@
-// QA only (?perfprobe or ?perfprobe=<rounds>): cycles through every section like a visitor
-// clicking the menu, records requestAnimationFrame deltas during each transition and logs a
+// QA only (?perfprobe or ?perfprobe=<rounds>): cuts to every chapter like a visitor using the
+// menu and the rail, records requestAnimationFrame deltas during each cut and logs a
 // table (p50 / p95 / max frame time, frames over 25 ms and 50 ms). Loaded by main.js only
 // when the flag is present. Results: console.table + window.__perfprobe, and
 // html[data-perfprobe="done"] once finished (for automation).
 import { afterIntro, params, isMobileLayout } from "./core.js";
-import { showSection, getSectionNames } from "./sections.js";
+import { goTo } from "./story.js";
+import { SECTIONS } from "./content.js";
 
 const WINDOW_MS = 1000; // record this long after each click (a full transition is ~0.8 s)
 const GAP_MS = 450; // rest between clicks
@@ -50,9 +51,7 @@ function summarize(deltas) {
 }
 
 function click(section) {
-  const item = document.querySelector(`.menu-item[data-section="${CSS.escape(section)}"]`);
-  if (item && !item.disabled) item.click();
-  else showSection(section);
+  goTo(section);
 }
 
 async function run() {
@@ -62,7 +61,7 @@ async function run() {
   await wait(SETTLE_MS);
   const idle = summarize(await record(IDLE_MS));
 
-  const order = [...getSectionNames(), "home"];
+  const order = [...SECTIONS.map((section) => section.id), "depths", "home"];
   const perSection = new Map(order.map((id) => [id, []]));
   for (let round = 0; round < rounds; round += 1) {
     for (const id of order) {

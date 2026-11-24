@@ -9,7 +9,7 @@
 
 .identity {
   --name-size: clamp(3.4rem, min(8.4vw, 10.6vh), 7.45rem);
-  --item-size: clamp(2.75rem, min(6vw, 8.2vh), 5.9rem);
+  --item-size: clamp(2.6rem, min(6vw, 7.2vh), 5.4rem); /* six items */
 }
 
 /* 921-1180px: the identity column narrows to 0.72fr (layout.css), so the name takes a
@@ -189,6 +189,7 @@
 .menu-item:nth-of-type(3) { --indent: 0.14; }
 .menu-item:nth-of-type(4) { --indent: 0.64; }
 .menu-item:nth-of-type(5) { --indent: 0.3; }
+.menu-item:nth-of-type(6) { --indent: 0.58; }
 
 .menu-label {
   position: relative;
@@ -349,6 +350,7 @@
   .menu-item:nth-of-type(3) { --indent: 0.08; }
   .menu-item:nth-of-type(4) { --indent: 0.4; }
   .menu-item:nth-of-type(5) { --indent: 0.18; }
+  .menu-item:nth-of-type(6) { --indent: 0.34; }
 
   .menu-code {
     right: calc(100% + var(--s-2));

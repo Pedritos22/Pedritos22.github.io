@@ -8,10 +8,34 @@ import { sfx } from "./sfx.js";
 import { lofi } from "./lofi.js";
 import { openHints } from "./hints.js";
 import { knock } from "./darkhour.js";
+import { t, getLang, setLang, onLang, locale, plural } from "./i18n.js";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const WEEKDAYS_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const WEEKDAYS = {
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  pl: ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"]
+};
+const TIME_OF_DAY_PL = {
+  "Dark Hour": "Dark Hour",
+  "Late Night": "Późna noc",
+  "Early Morning": "Świt",
+  Morning: "Rano",
+  Lunchtime: "Południe",
+  Afternoon: "Popołudnie",
+  "After School": "Po zajęciach",
+  Evening: "Wieczór"
+};
+const PHASES_PL = {
+  "New Moon": "Nów",
+  "Waxing Crescent": "Przybywający sierp",
+  "First Quarter": "Pierwsza kwadra",
+  "Waxing Gibbous": "Przybywający garb",
+  "Full Moon": "Pełnia",
+  "Waning Gibbous": "Ubywający garb",
+  "Last Quarter": "Ostatnia kwadra",
+  "Waning Crescent": "Ubywający sierp"
+};
+const localTod = (tod) => (getLang() === "pl" ? TIME_OF_DAY_PL[tod] ?? tod : tod);
+const localPhase = (name) => (getLang() === "pl" ? PHASES_PL[name] ?? name : name);
 
 let hud = null;
 let els = {};
@@ -45,11 +69,12 @@ export function timeOfDay(date = worldNow(), darkhour = state.darkhour) {
 }
 
 function moonCaption(moon) {
-  if (moon.index === 0) return ["New Moon", ""];
+  if (moon.index === 0) return [t("hud.newMoon"), ""];
   const days = Math.round(moon.daysToFull);
-  if (moon.index === 4 && (days < 1 || days > 28)) return ["Full Moon", "tonight"];
-  if (days < 1) return ["Full Moon", "tonight"];
-  return ["Full Moon", `in ${days} ${days === 1 ? "day" : "days"}`];
+  if (moon.index === 4 && (days < 1 || days > 28)) return [t("hud.fullMoon"), t("hud.tonight")];
+  if (days < 1) return [t("hud.fullMoon"), t("hud.tonight")];
+  const unit = plural(days, { one: getLang() === "pl" ? "dzień" : "day", few: "dni", many: "dni", other: "days" });
+  return [t("hud.fullMoon"), t("hud.inDays", { n: days, unit })];
 }
 
 /** SVG path of the lit part of a moon disc of radius r (real terminator). */
@@ -100,17 +125,17 @@ function renderMoon(date) {
   els.moonTop.textContent = top;
   els.moonBottom.textContent = bottom;
   els.moonCaption.classList.toggle("is-single", !bottom);
-  els.moon.setAttribute("aria-label", `Moon phase: ${moon.name}. ${top}${bottom ? ` ${bottom}` : ""}.`);
+  els.moon.setAttribute("aria-label", t("hud.moonAria", { name: localPhase(moon.name), caption: `${top}${bottom ? ` ${bottom}` : ""}` }));
 }
 
 function renderCalendar() {
   const date = now();
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
-  const tod = timeOfDay(date);
+  const tod = localTod(timeOfDay(date));
   els.month.textContent = String(date.getMonth() + 1);
   els.day.textContent = String(date.getDate());
-  els.weekday.textContent = WEEKDAYS[date.getDay()];
+  els.weekday.textContent = WEEKDAYS[getLang()][date.getDay()];
   els.weekdayPlate.dataset.day = String(date.getDay());
   els.hh.textContent = hh;
   els.mm.textContent = mm;
@@ -122,10 +147,10 @@ function renderCalendar() {
   hud.classList.toggle("is-shifted", shifted);
   els.time.dataset.shift = shifted ? (shift > 0 ? "ahead" : "back") : "";
   els.shift.textContent = shifted ? formatShift(shift) : "";
-  els.calendar.setAttribute(
-    "aria-label",
-    `${WEEKDAYS_LONG[date.getDay()]} ${date.getDate()} ${MONTHS_LONG[date.getMonth()]}, ${hh}:${mm}, ${tod}${shifted ? `, time shifted ${formatShift(shift)}` : ""}`
-  );
+  // The name starts with what is on screen (WCAG 2.5.3, label in name), then spells it out.
+  const shown = `${date.getMonth() + 1}/${date.getDate()} ${WEEKDAYS[getLang()][date.getDay()]} ${tod} ${hh}:${mm}`;
+  const spoken = date.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long" });
+  els.calendar.setAttribute("aria-label", `${shown} (${spoken}${shifted ? `, ${formatShift(shift)}` : ""})`);
   renderMoon(date);
 }
 
@@ -372,7 +397,7 @@ export function init() {
     els.volume.addEventListener("input", () => {
       syncVolume();
       lofi.setVolume(Number(els.volume.value) / 100);
-      if (tip?.classList.contains("is-visible")) tip.textContent = `Volume ${els.volume.value}%`;
+      if (tip?.classList.contains("is-visible")) tip.textContent = t("hud.volumeValue", { v: els.volume.value });
     });
   }
 
@@ -380,6 +405,25 @@ export function init() {
     sfx.click();
     if (els.volume) lofi.setVolume(Number(els.volume.value) / 100);
     lofi.toggle();
+  });
+
+  // Language: switches the whole page in place (content, menu, HUD); the CV link follows.
+  const langButton = q(".lang-toggle");
+  const cvLink = q(".cv-link");
+  const syncLang = () => {
+    if (cvLink) cvLink.setAttribute("href", getLang() === "pl" ? "cv/pl/" : "cv/");
+  };
+  syncLang();
+  langButton?.addEventListener("click", () => {
+    sfx.click();
+    setLang(getLang() === "pl" ? "en" : "pl");
+    if (!prefersReducedMotion()) gsap.fromTo(langButton, { "--flash": 1 }, { "--flash": 0, duration: 0.5, ease: "power2.out" });
+  });
+  cvLink?.addEventListener("click", () => sfx.confirm());
+  onLang(() => {
+    syncLang();
+    renderCalendar();
+    hideTip();
   });
 
   els.sfx?.addEventListener("click", () => {

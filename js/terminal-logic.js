@@ -257,7 +257,7 @@ function cd(args, ctx) {
   }
   if (target === ".") return [];
   if (target === ".depths" || target === "~/.depths" || target === "./.depths") {
-    if (!ctx.canDive()) return [out("cd: .depths: needs a wider screen (desktop only)", "error")];
+    if (!ctx.canDive()) return [out("cd: .depths: the water is not ready yet (close the dialog first)", "error")];
     if (!ctx.isDepths()) ctx.dive();
     return [];
   }
@@ -389,7 +389,7 @@ function stop(args, ctx) {
 }
 
 function dive(args, ctx) {
-  if (!ctx.canDive()) return [out("dive: needs a wider screen (desktop only)", "error")];
+  if (!ctx.canDive()) return [out("dive: the water is not ready yet (close the dialog first)", "error")];
   if (ctx.isDepths()) return [out("Already down here.", "dim")];
   ctx.dive();
   return [out("Taking a deep breath…")];
@@ -524,7 +524,7 @@ export const COMMANDS = Object.freeze([
   { name: "time", group: "world", usage: "time <HH:MM|now>", desc: "Move the world clock, or bring it back.", run: time, complete: (i) => (i === 0 ? ["now", "00:00"] : []) },
   { name: "play", aliases: ["music"], group: "world", usage: "play", desc: "Start the lo-fi.", run: play },
   { name: "stop", group: "world", usage: "stop", desc: "Stop the lo-fi.", run: stop },
-  { name: "dive", group: "world", usage: "dive", desc: "Go under the water (desktop).", run: dive },
+  { name: "dive", group: "world", usage: "dive", desc: "Cut down to the Depths, the bottom of the page.", run: dive },
   { name: "surface", group: "world", usage: "surface", desc: "Come back up.", run: surface },
   { name: "reset", group: "world", usage: "reset", desc: "Repair the glass, send the name home, turn the lights on.", run: (a, ctx) => { ctx.reset(); return [out("Rewound. Everything is back where it was.")]; } },
 

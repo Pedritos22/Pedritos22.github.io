@@ -23,11 +23,14 @@ export const FRACTURE_TARGETS = [
   ".content-card > p",
   ".detail-list li",
   ".skill",
-  ".project-card"
+  ".project-card",
+  ".status-tile",
+  ".reach-tile",
+  ".quest"
 ].join(", ");
 
 /** Plates (not text): heavier cracks and card-like shard counts, cracks fill the plate. */
-const LARGE_SURFACES = ".content-card, .skill, .detail-list li, .project-card";
+const LARGE_SURFACES = ".content-card, .skill, .detail-list li, .project-card, .status-tile, .reach-tile, .quest";
 
 /* ----------------------------------------------------------------- geometry */
 

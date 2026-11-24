@@ -789,7 +789,13 @@ export function init() {
   }
   events.forEach((type) => window.addEventListener(type, onGesture, options));
 
-  // Fetch the sample files once the page is idle; decoding waits for the context.
-  const idle = window.requestIdleCallback || ((fn) => window.setTimeout(fn, 1200));
-  idle(() => prefetch(), { timeout: 3000 });
+  // Fetch the sample files (about 290 KB) on the first sign of a visitor: a mouse move, a
+  // touch or a key. Audio cannot play before a gesture anyway, a pointer move comes well
+  // before the first click, and a visit that never interacts downloads nothing.
+  const intent = ["pointermove", "pointerdown", "touchstart", "keydown"];
+  const onIntent = () => {
+    intent.forEach((type) => window.removeEventListener(type, onIntent, { capture: true }));
+    prefetch();
+  };
+  intent.forEach((type) => window.addEventListener(type, onIntent, { capture: true, passive: true }));
 }

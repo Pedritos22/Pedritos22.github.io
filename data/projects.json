@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-11-24T13:14:55.244Z",
+  "user": "pedritos22",
+  "repos": [
+    {
+      "name": "LajkonikGO",
+      "description": "",
+      "language": "Dart",
+      "stars": 1,
+      "pushedAt": "2026-10-04T01:24:35Z",
+      "url": "https://github.com/Pedritos22/LajkonikGO",
+      "homepage": "",
+      "topics": []
+    },
+    {
+      "name": "OpenGuitar",
+      "description": "An opensource, built from the ground up, \"clone\" of guitar hero :)",
+      "language": "Java",
+      "stars": 8,
+      "pushedAt": "2026-07-03T17:34:34Z",
+      "url": "https://github.com/Pedritos22/OpenGuitar",
+      "homepage": "",
+      "topics": []
+    },
+    {
+      "name": "City_Bus",
+      "description": "Operating Systems Project - University Coursework",
+      "language": "C",
+      "stars": 2,
+      "pushedAt": "2026-02-06T16:51:10Z",
+      "url": "https://github.com/Pedritos22/City_Bus",
+      "homepage": "",
+      "topics": []
+    },
+    {
+      "name": "Mindly",
+      "description": "An app about emotions",
+      "language": "Dart",
+      "stars": 1,
+      "pushedAt": "2026-01-16T16:16:39Z",
+      "url": "https://github.com/Pedritos22/Mindly",
+      "homepage": "",
+      "topics": []
+    },
+    {
+      "name": "algo-animator",
+      "description": "An interactive program to visualize sorting algorithms. Developed in C using OpenGL, GLUT, and FreeType.",
+      "language": "C",
+      "stars": 0,
+      "pushedAt": "2025-04-01T23:14:31Z",
+      "url": "https://github.com/Pedritos22/algo-animator",
+      "homepage": "",
+      "topics": []
+    }
+  ]
+}

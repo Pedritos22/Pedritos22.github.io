@@ -116,7 +116,9 @@
 .projects__list.is-scrollable {
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* No containment: once this list or card is at its end, the wheel carries on down the
+     page (the descent, js/story.js). */
+  overscroll-behavior: auto;
   padding-right: var(--s-2);
   scrollbar-width: thin;
   scrollbar-color: var(--pc-edge) transparent;
@@ -335,6 +337,27 @@
 .projects p.project-card__desc.is-empty {
   color: var(--text-3);
   font-style: italic;
+}
+
+/* Stack of a featured project (content.js notes): small slanted chips. */
+.project-card__stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-card__stack li {
+  padding: 2px var(--s-2) 1px;
+  color: var(--ice);
+  background: color-mix(in srgb, var(--cyan) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cyan) 26%, transparent);
+  font: italic 600 var(--fs-xs) / 1.1 var(--font-hud);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
 }
 
 .project-card__meta {

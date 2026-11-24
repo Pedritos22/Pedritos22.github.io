@@ -1,0 +1,39 @@
+# Pietro Molendys
+
+> I study Computer Science at Cracow University of Technology and build fullstack Java at Smart4Aviation. I care about understanding how things work: not just making them run, but knowing why they do.
+
+Junior Fullstack Developer (Java), Smart4Aviation · Kraków, Poland. Finalist, HackNation 2026: Public Procurement Office (UZP) challenge “odwolania2json” · Bydgoszcz, November 2026.
+
+## Experience
+
+- Junior Fullstack Developer (Java) (Oct 2026 – now); Fullstack Developer Intern (Java) (Jul – Oct 2026), Smart4Aviation: Fullstack development in Java with Spring and Hibernate.
+- Finalist, UZP challenge “odwolania2json” (Nov 2026), HackNation 2026: OCR and small Polish language models turn appeal documents into JSON. F1 0.998, with the team from Tensor.
+- Technical organiser, Capture The Flag (May 2026); Organising team (May 2025), Kościuszkon: Created and hosted an original CTF next to the hackathon: the challenges, the infrastructure, live uptime.
+- Member, Digitalization Committee (Oct 2025 – now); Member (Nov 2024 – now), Faculty Student Council, WIiT: University websites, apps for events and IT-focused events.
+- Founder (May 2025 – now), Tensor, machine learning club: Machine learning from the ground up: neural networks built from scratch, with experienced supervisors.
+- Content Moderation (full-time) (Aug – Oct 2024), Genpact: Moderated content to internal rules and standards, and helped improve the platform.
+- Programming teacher, grades 6–⁠8 (freelance) (Oct 2023 – Mar 2024), MAT – Myślenicka Akademia Talentów: Python basics, algorithms like quicksort and Fibonacci, and first games in Pygame.
+
+## Pages
+
+- [CV (English)](https://pedritos22.github.io/cv/): the whole profile on one static page
+- [CV (Polski)](https://pedritos22.github.io/cv/pl/): the same in Polish
+- [Interactive portfolio](https://pedritos22.github.io/): the same content as a game-like pause menu (needs JavaScript)
+
+## Projects
+
+- [OpenGuitar](https://github.com/Pedritos22/OpenGuitar): A Guitar Hero-style rhythm game for the desktop. Drop in any song and it builds the beatmap from the audio. Stack: Java 21, JavaFX, Maven, TarsosDSP, SQLite, JUnit.
+- [LajkonikGO](https://github.com/Pedritos22/LajkonikGO): A mobile app for exploring Kraków: collect points on the map, plan multimodal routes, earn rewards. Stack: Flutter, Dart, FastAPI, PostgreSQL / PostGIS, Redis, Alembic, Docker Compose.
+- [Mindly](https://github.com/Pedritos22/Mindly): An app about emotions: mood tracking, daily tasks and quotes, with AI-generated suggestions. Stack: Flutter, Dart, BLoC, Firebase, Hugging Face API.
+- [City Bus](https://github.com/Pedritos22/City_Bus): Operating Systems coursework: a multi-process simulation of a suburban bus station, written in C. Stack: C, POSIX IPC, Signals, CMake.
+- [algo-animator](https://github.com/Pedritos22/algo-animator): An interactive visualiser of sorting algorithms in C and OpenGL, with a video about it on YouTube. Stack: C, OpenGL, GLUT, FreeType, CMake.
+
+## Skills
+
+Java (Spring and Hibernate at work. A rhythm game at home); Python (FastAPI backends, scripts; taught it to grades 6–⁠8); Dart / Flutter (Mindly, LajkonikGO and an Erasmus+ mobile course); SQL (PostgreSQL, migrations, and Hibernate at work); Algorithms (Complexity, problem solving and visualised sorts); Git (Branches, rebases and a history that reads well); Docker (API, Postgres and Redis up in one command); Linux / Bash (Processes, signals, IPC and shell scripts)
+
+## Contact
+
+- Email: molendyspietro@gmail.com
+- GitHub: https://github.com/pedritos22
+- LinkedIn: https://linkedin.com/in/pietro-molendys-b1324231b

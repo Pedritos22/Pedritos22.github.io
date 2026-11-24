@@ -1,18 +1,25 @@
-// Intro: a clock ticks down to midnight, the hidden hour flashes green, the screen cracks
-// from the centre and shatters into Voronoi shards that fall away to reveal the site.
-// Plays once per session, skippable with any click, tap or key.
+// Intro: surfacing. The visit starts deep under the water, the mirror of the descent below
+// the menu: the real water shader at full depth, bubbles rising past, light coming down from
+// far above, and a depth gauge counting from 400 m to the surface. At 0 m the waterline
+// sweeps down the screen and the pause menu comes up behind it.
+// Plays once per session (about 3 s); any click, key or scroll skips it.
 // Owner: HUD/overlays workstream (C).
-import { EVT, emit, state, flags, prefersReducedMotion, isMobileLayout } from "./core.js";
-import { gsap, EASE } from "./motion.js";
+import { EVT, emit, state, flags, prefersReducedMotion } from "./core.js";
+import { gsap } from "./motion.js";
 import { sfx } from "./sfx.js";
-import { createCracks, shatterSurface } from "./shatter.js";
+import { t } from "./i18n.js";
 
 const SEEN_KEY = "p3:intro-seen";
+const START_DEPTH_M = 400;
+const ASCENT_S = 2.2;
+const SWEEP_S = 0.8;
 const root = document.documentElement;
 
 function shouldPlay() {
   if (flags.nointro) return false;
   if (flags.intro) return true;
+  // A deep link (#projects) is someone who came for that section: no intro.
+  if (window.location.hash.length > 1) return false;
   try {
     return !window.sessionStorage.getItem(SEEN_KEY);
   } catch {
@@ -26,15 +33,12 @@ const playing = shouldPlay();
 if (playing) root.classList.add("intro-pending");
 
 let overlay = null;
-let surface = null;
 let timeline = null;
-let shards = null;
-let cracks = null;
-let broken = false;
-let skipped = false;
+let surfaced = false;
+const ascent = { d: 1 }; // 1 = 400 m down, 0 = the surface
 
 function finish() {
-  root.classList.remove("intro-pending");
+  root.classList.remove("intro-pending", "intro-playing", "intro-deep");
   if (state.introDone) return;
   state.introDone = true;
   emit(EVT.INTRO_DONE, {});
@@ -42,118 +46,138 @@ function finish() {
 
 /* ------------------------------------------------------------------ markup */
 
-function dialMarkup() {
-  let minor = "";
-  let major = "";
-  for (let i = 0; i < 60; i += 1) {
-    const a = (i * Math.PI) / 30;
-    const sin = Math.sin(a);
-    const cos = -Math.cos(a);
-    const isMajor = i % 5 === 0;
-    const r0 = isMajor ? 84 : 89;
-    const r1 = 94;
-    const seg = `M${(sin * r0).toFixed(2)} ${(cos * r0).toFixed(2)} L${(sin * r1).toFixed(2)} ${(cos * r1).toFixed(2)} `;
-    if (isMajor) major += seg;
-    else minor += seg;
-  }
-  return `
-    <svg class="intro-dial" viewBox="-120 -120 240 240" aria-hidden="true" focusable="false">
-      <circle class="intro-halo" r="112" />
-      <circle class="intro-ring" r="100" pathLength="1" />
-      <circle class="intro-ring-inner" r="78" />
-      <path class="intro-ticks-minor" d="${minor}" />
-      <path class="intro-ticks-major" d="${major}" />
-      <path class="intro-marker" d="M0 -104 L4.5 -111 L0 -118 L-4.5 -111 Z" />
-      <g class="intro-hand intro-hand--hour"><path d="M-2.6 8 L-1.6 -46 L0 -50 L1.6 -46 L2.6 8 Z" /></g>
-      <g class="intro-hand intro-hand--minute"><path d="M-1.6 10 L-0.9 -72 L0 -76 L0.9 -72 L1.6 10 Z" /></g>
-      <g class="intro-hand intro-hand--second"><path d="M-0.7 20 L-0.45 -90 L0 -94 L0.45 -90 L0.7 20 Z" /><circle cy="14" r="3.2" /></g>
-      <circle class="intro-pivot" r="4.2" />
-      <circle class="intro-pivot-core" r="1.6" />
-    </svg>`;
+function bubblesMarkup(count) {
+  // Fixed pseudo-random spread (the intro is the same every time; no Math.random needed).
+  return Array.from({ length: count }, (_, i) => {
+    const x = (i * 37 + 11) % 100;
+    const size = 3 + ((i * 7) % 9);
+    const dur = 2.6 + ((i * 13) % 17) / 10;
+    const delay = -((i * 29) % 30) / 10;
+    const drift = ((i % 2 ? 1 : -1) * (6 + ((i * 5) % 14)));
+    return `<i style="--x:${x}%;--size:${size}px;--dur:${dur}s;--delay:${delay}s;--drift:${drift}px"></i>`;
+  }).join("");
 }
 
-function buildOverlay({ reduced }) {
+function scaleMarkup() {
+  const marks = [];
+  for (let m = 0; m <= START_DEPTH_M; m += 25) {
+    marks.push(`<li class="${m % 100 === 0 ? "is-major" : ""}" style="--m:${m}">${m % 100 === 0 ? `<span>${m}</span>` : ""}</li>`);
+  }
+  return `<ol class="intro-scale" role="list">${marks.join("")}</ol>`;
+}
+
+function buildOverlay() {
   const el = document.createElement("div");
-  el.className = reduced ? "intro intro--reduced" : "intro";
+  el.className = "intro";
   el.setAttribute("aria-hidden", "true");
   el.innerHTML = `
-    <div class="intro-surface">
-      <div class="intro-clock">
-        ${dialMarkup()}
-        <p class="intro-readout"><span class="intro-hh">23</span><i>:</i><span class="intro-mm">59</span><i>:</i><span class="intro-ss">55</span></p>
+    <div class="intro-water">
+      <div class="intro-tint"></div>
+      <div class="intro-rays"><i></i><i></i><i></i><i></i></div>
+      <div class="intro-bubbles">${bubblesMarkup(22)}</div>
+      ${scaleMarkup()}
+      <div class="intro-gauge">
+        <p class="intro-kicker"><span class="intro-kicker__text">${t("intro.surfacing")}</span></p>
+        <p class="intro-depth"><span class="intro-depth__value">${START_DEPTH_M}</span><span class="intro-depth__unit">m</span></p>
+        <span class="intro-meter"><i></i></span>
       </div>
-      ${reduced ? "" : '<p class="intro-skip">Press any key</p>'}
+      <p class="intro-skip">${t("intro.skip")}</p>
     </div>
-    <div class="intro-flash"></div>`;
+    <svg class="intro-line" aria-hidden="true" focusable="false" preserveAspectRatio="none"><path /></svg>`;
   return el;
 }
 
 /* ----------------------------------------------------------------- playback */
 
-function setReadout(seconds) {
-  const midnight = seconds >= 60;
-  const set = (cls, value) => {
-    const node = overlay?.querySelector(cls);
-    if (node) node.textContent = value;
-  };
-  set(".intro-hh", midnight ? "00" : "23");
-  set(".intro-mm", midnight ? "00" : "59");
-  set(".intro-ss", String(midnight ? 0 : seconds).padStart(2, "0"));
+/** Everything that follows the depth: the shader, the tint, the light, the gauge. */
+function applyDepth() {
+  const d = ascent.d;
+  emit(EVT.DIVE, { depth: d, preview: true });
+  if (!overlay) return;
+  overlay.style.setProperty("--d", d.toFixed(4));
+  const value = overlay.querySelector(".intro-depth__value");
+  const metres = String(Math.round(START_DEPTH_M * d));
+  if (value && value.textContent !== metres) value.textContent = metres;
+}
+
+/**
+ * The waterline at `cut` (0..1 of the screen height): a wave across the screen. Below it is
+ * still water (the overlay), above it the air (the page). Returns the polygon for the clip.
+ */
+function waterline(cut, phase) {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const amp = Math.min(12, h * 0.015) * (1 - Math.abs(cut - 0.5));
+  const steps = 32;
+  const points = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const x = (i / steps) * w;
+    // The line leans on the counter angle (tan 4deg ~ 0.07), like every plate on the page.
+    const tilt = -(x - w / 2) * 0.07;
+    const y = cut * h + tilt + Math.sin(i * 0.55 + phase) * amp + Math.sin(i * 0.21 - phase * 0.7) * amp * 0.6;
+    points.push([x, y]);
+  }
+  const line = overlay?.querySelector(".intro-line");
+  if (line) {
+    line.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    line.querySelector("path").setAttribute("d", `M${points.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(" L")}`);
+  }
+  const poly = [...points.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`), `${w}px ${h}px`, `0px ${h}px`];
+  return `polygon(${poly.join(", ")})`;
+}
+
+/** 0 m: the waterline runs down the screen and the page comes up behind it. */
+function breakSurface({ fast = false } = {}) {
+  if (surfaced || !overlay) return;
+  surfaced = true;
+  timeline?.kill();
+  window.removeEventListener("pointerdown", onSkip, true);
+  window.removeEventListener("keydown", onSkipKey, true);
+  window.removeEventListener("wheel", onSkip, true);
+
+  ascent.d = 0;
+  applyDepth();
+  root.classList.remove("intro-deep");
+  overlay.classList.add("is-surfacing");
+  const kicker = overlay.querySelector(".intro-kicker__text");
+  if (kicker) kicker.textContent = t("intro.surface");
+  sfx.whoosh();
+
+  const water = overlay.querySelector(".intro-water");
+  const sweep = { cut: 0, phase: 0 };
+  timeline = gsap.timeline({ onComplete: cleanup });
+  timeline.to(sweep, {
+    cut: 1.12,
+    phase: 5,
+    duration: fast ? SWEEP_S * 0.45 : SWEEP_S,
+    ease: "power2.in",
+    onUpdate: () => {
+      if (water) water.style.clipPath = waterline(sweep.cut, sweep.phase);
+    }
+  });
+  timeline.to(overlay.querySelector(".intro-line"), { opacity: 0, duration: 0.2, ease: "none" }, ">-0.12");
+  // The page enters as the line passes the menu.
+  window.setTimeout(finish, fast ? 0 : SWEEP_S * 250);
 }
 
 function cleanup() {
   timeline?.kill();
   timeline = null;
-  window.removeEventListener("pointerdown", onSkipPointer, true);
-  window.removeEventListener("keydown", onSkipKey, true);
   overlay?.remove();
   overlay = null;
-  surface = null;
-}
-
-function breakGlass({ fast = false } = {}) {
-  if (broken || !overlay) return;
-  broken = true;
-  timeline?.kill();
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const impact = [w / 2, h / 2 - (isMobileLayout() ? 0 : h * 0.02)];
-  if (!cracks) {
-    cracks = createCracks({ width: w, height: h, impact, count: isMobileLayout() ? 24 : 40, large: true, weight: 1.5 });
-    surface.appendChild(cracks.svg);
-  }
-  cracks.showAll();
-  cracks.flatten();
-
-  shards = shatterSurface(surface, {
-    cells: cracks.cells,
-    impact: [...cracks.impact],
-    zIndex: "var(--z-intro)",
-    power: 1.35,
-    gravity: 3000,
-    life: 1.2,
-    ripple: 0.2,
-    baseSpeed: 260
-  });
-  // The live overlay disappears on the same frame the shards appear.
-  overlay.classList.add("is-broken");
-  gsap.set(overlay.querySelector(".intro-flash"), { opacity: 0 });
-  sfx.glass();
-  if (fast) shards.hurry(4.5);
-  shards.done.then(cleanup);
-  window.setTimeout(finish, fast ? 0 : 140);
 }
 
 function skip() {
-  if (skipped) return;
-  skipped = true;
   sfx.unlock?.();
-  if (broken) shards?.hurry(4.5);
-  else breakGlass({ fast: true });
+  if (surfaced) {
+    timeline?.timeScale(3);
+    return;
+  }
+  breakSurface({ fast: true });
   finish();
 }
 
-function onSkipPointer() {
+function onSkip() {
   skip();
 }
 
@@ -165,87 +189,39 @@ function onSkipKey(event) {
 }
 
 function play() {
-  overlay = buildOverlay({ reduced: false });
-  surface = overlay.querySelector(".intro-surface");
+  overlay = buildOverlay();
   document.body.appendChild(overlay);
+  root.classList.add("intro-playing", "intro-deep");
   root.classList.remove("intro-pending");
 
-  const q = (sel) => overlay.querySelector(sel);
-  const ring = q(".intro-ring");
-  const second = q(".intro-hand--second");
-  const hour = q(".intro-hand--hour");
-  const minute = q(".intro-hand--minute");
-  const flash = q(".intro-flash");
-  const clock = q(".intro-clock");
-
-  gsap.set([hour], { rotation: -0.4, svgOrigin: "0 0" });
-  gsap.set([minute], { rotation: -3, svgOrigin: "0 0" });
-  gsap.set(second, { rotation: 330, svgOrigin: "0 0" });
-
-  window.addEventListener("pointerdown", onSkipPointer, true);
+  window.addEventListener("pointerdown", onSkip, true);
   window.addEventListener("keydown", onSkipKey, true);
+  window.addEventListener("wheel", onSkip, { capture: true, passive: true });
 
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const impact = [w / 2, h / 2 - (isMobileLayout() ? 0 : h * 0.02)];
+  const q = (sel) => overlay.querySelector(sel);
+  ascent.d = 1;
+  applyDepth();
 
-  const tl = gsap.timeline({ defaults: { ease: EASE.out } });
+  const tl = gsap.timeline();
   timeline = tl;
-
-  // 1. The dial assembles out of the dark.
-  tl.fromTo(ring, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.55, ease: "power3.out" }, 0);
-  tl.fromTo(q(".intro-ring-inner"), { opacity: 0, scale: 0.86, svgOrigin: "0 0" }, { opacity: 1, scale: 1, duration: 0.45 }, 0.08);
-  tl.fromTo([q(".intro-ticks-minor"), q(".intro-ticks-major"), q(".intro-marker")], { opacity: 0 }, { opacity: 1, duration: 0.3, stagger: 0.05 }, 0.1);
-  tl.fromTo([hour, minute, second, q(".intro-pivot"), q(".intro-pivot-core")], { opacity: 0 }, { opacity: 1, duration: 0.24, stagger: 0.035 }, 0.18);
-  tl.fromTo(q(".intro-readout"), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.32 }, 0.2);
-  tl.fromTo(q(".intro-skip"), { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0.35);
-
-  // 2. Five ticks, each a little faster than the last, closing in on 0:00.
-  const ticks = [0.52, 0.69, 0.84, 0.97, 1.08];
-  ticks.forEach((t, i) => {
-    tl.call(() => {
-      sfx.tick();
-      setReadout(56 + i);
-    }, null, t);
-    tl.to(second, { rotation: 336 + i * 6, duration: 0.1, ease: "back.out(3.2)", svgOrigin: "0 0" }, t);
-  });
-  tl.to(minute, { rotation: 0, duration: 0.1, ease: "back.out(3)", svgOrigin: "0 0" }, ticks[4]);
-  tl.to(hour, { rotation: 0, duration: 0.1, ease: "back.out(3)", svgOrigin: "0 0" }, ticks[4]);
-
-  // 3. Midnight: the hidden hour flashes green.
-  const midnight = ticks[4];
-  tl.call(() => {
-    overlay?.classList.add("is-midnight");
-    sfx.bell();
-  }, null, midnight);
-  tl.fromTo(flash, { opacity: 0 }, { opacity: 0.72, duration: 0.03, ease: "none" }, midnight);
-  tl.to(flash, { opacity: 0, duration: 0.42, ease: "power2.out" }, midnight + 0.05);
-  tl.fromTo(clock, { scale: 1 }, { scale: 1.04, duration: 0.07, ease: "power2.out", yoyo: true, repeat: 1 }, midnight);
-  tl.to(q(".intro-skip"), { opacity: 0, duration: 0.2 }, midnight);
-
-  // 4. Cracks run outward from the centre of the dial.
-  tl.call(() => {
-    cracks = createCracks({ width: w, height: h, impact, count: isMobileLayout() ? 24 : 40, large: true, weight: 1.5 });
-    surface?.appendChild(cracks.svg);
-    cracks.reveal(0.3, { duration: 0.16, spread: 0.12, glints: 2 });
-    sfx.crack(2);
-  }, null, midnight + 0.18);
-  tl.call(() => {
-    cracks?.reveal(1, { duration: 0.17, spread: 0.2, glints: 5 });
-    sfx.crack(3);
-  }, null, midnight + 0.34);
-
-  // 5. The glass gives way.
-  tl.call(() => breakGlass(), null, midnight + 0.82);
+  // 1. Out of the dark: the gauge, then the light far above.
+  tl.fromTo(q(".intro-gauge"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.1);
+  tl.fromTo(q(".intro-scale"), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "none" }, 0.2);
+  tl.fromTo(q(".intro-skip"), { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 0.5);
+  // 2. The ascent: slow off the bottom, fast through the middle, easing into the light.
+  tl.to(ascent, { d: 0, duration: ASCENT_S, ease: "power2.inOut", onUpdate: applyDepth }, 0.35);
+  tl.to(q(".intro-skip"), { opacity: 0, duration: 0.2, ease: "none" }, 0.35 + ASCENT_S - 0.3);
+  // 3. The surface.
+  tl.call(() => breakSurface(), null, 0.35 + ASCENT_S);
 }
 
 function playReduced() {
-  overlay = buildOverlay({ reduced: true });
-  surface = overlay.querySelector(".intro-surface");
-  overlay.classList.add("is-midnight");
-  setReadout(60);
+  overlay = buildOverlay();
+  overlay.classList.add("intro--reduced", "is-surfacing");
   document.body.appendChild(overlay);
   root.classList.remove("intro-pending");
+  ascent.d = 0;
+  applyDepth();
   finish();
   timeline = gsap.timeline();
   timeline.to(overlay, { opacity: 0, duration: 0.4, ease: "power1.out", delay: 0.12, onComplete: cleanup });

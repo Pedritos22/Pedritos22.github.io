@@ -4,7 +4,7 @@
 // Owner: HUD/overlays workstream (C).
 import { EVT, on, prefersReducedMotion, rafLoop, clamp, lerp } from "./core.js";
 import { gsap, EASE } from "./motion.js";
-import { showHome } from "./sections.js";
+import { goTo } from "./story.js";
 import { showObjection } from "./objection.js";
 import { isHintsOpen } from "./hints.js";
 import { sfx } from "./sfx.js";
@@ -64,7 +64,7 @@ function tweenPose(vars) {
 
 function handleNameClick() {
   // A name that was picked up and dropped elsewhere is a toy, not a link home.
-  if (!lifted) showHome();
+  if (!lifted) goTo("home");
   clickCount += 1;
   window.clearTimeout(clickTimer);
 

@@ -66,6 +66,7 @@
   --z-fx: 2;
   --z-grain: 3;
   --z-shell: 10;
+  --z-cut: 20;
   --z-hud: 30;
   --z-drag: 40;
   --z-console: 50;
@@ -163,6 +164,28 @@ body {
 
 a {
   color: inherit;
+}
+
+/* Skip link: off screen until it takes keyboard focus. */
+.skip-link {
+  position: fixed;
+  top: var(--s-3);
+  left: var(--s-3);
+  z-index: var(--z-modal);
+  padding: var(--s-2) var(--s-5);
+  color: var(--ink);
+  background: var(--cyan);
+  font: italic 800 var(--fs-sm) / 1.1 var(--font-hud);
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  translate: 0 -200%;
+}
+
+.skip-link:focus-visible {
+  outline: none;
+  translate: 0 0;
 }
 
 .visually-hidden {

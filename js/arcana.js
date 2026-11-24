@@ -276,7 +276,7 @@ function dismissFool(stage) {
     setFlipped(card, false);
   };
   grid?.classList.remove("is-dimmed");
-  const chip = stage.closest(".content-card")?.querySelector(".fool-chip");
+  const chip = stage.closest(".content-card, [data-deck]")?.querySelector(".fool-chip");
   if (hadFocus && chip && !chip.hidden) chip.focus({ preventScroll: true });
 
   const leave = prefersReducedMotion()
@@ -307,7 +307,7 @@ function onFoolClick(event) {
 
 function onChipClick(event) {
   const chip = event.currentTarget;
-  const stage = stageOf(chip.closest(".content-card"));
+  const stage = stageOf(chip.closest(".content-card, [data-deck]"));
   if (!stage) return;
   if (stage.hidden) summonFool(stage);
   else dismissFool(stage);
@@ -321,7 +321,7 @@ function markTurned(button) {
   turned.add(name);
   if (foolDealt || !deckSize || turned.size < deckSize) return;
   foolDealt = true;
-  const stage = stageOf(button.closest(".card-body"));
+  const stage = stageOf(button.closest(".card-body, [data-deck]"));
   // Let the last card finish turning before the hidden one arrives.
   window.setTimeout(() => summonFool(stage), prefersReducedMotion() ? 0 : DUR.panel * 1000);
 }

@@ -5,14 +5,20 @@
 // time the Projects card is shown, on mobile once in the stacked layout. It is
 // idempotent and instant on re-render (memory cache + localStorage with a 6 h TTL), and
 // it makes at most one network request per page load (concurrent calls share it).
+//
+// Data: data/projects.json first (same origin, refreshed daily by the projects workflow in
+// .github/workflows, so no rate limit), then the GitHub API as a fallback. Featured repos
+// show their note from content.js (summary + stack) instead of the GitHub description.
 import { escapeHtml, prefersReducedMotion, isMobileLayout } from "./core.js";
 import { DUR, STAGGER, animate, allFinished } from "./motion.js";
-import { FEATURED_PROJECTS, HIDDEN_PROJECTS, PROFILE } from "./content.js";
+import { FEATURED_PROJECTS, HIDDEN_PROJECTS, PROFILE, PROJECT_NOTES } from "./content.js";
+import { t, locale } from "./i18n.js";
 import { sfx } from "./sfx.js";
 
 const USER = "pedritos22";
+const SNAPSHOT_URL = new URL("../data/projects.json", import.meta.url).href;
 const API_URL = `https://api.github.com/users/${USER}/repos?per_page=100&sort=pushed`;
-const CACHE_KEY = "p3:repos:v2"; // v2: HIDDEN_PROJECTS filtered at fetch time
+const CACHE_KEY = "p3:repos:v3"; // v3: snapshot first (data/projects.json)
 const TTL_MS = 6 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 9000;
 const SHOW = 6;
@@ -105,9 +111,9 @@ function normalize(list) {
       name: String(repo.name || ""),
       description: repo.description ? String(repo.description) : "",
       language: repo.language ? String(repo.language) : "",
-      stars: Number(repo.stargazers_count) || 0,
-      pushedAt: repo.pushed_at || repo.updated_at || null,
-      url: String(repo.html_url || ""),
+      stars: Number(repo.stargazers_count ?? repo.stars) || 0,
+      pushedAt: repo.pushed_at || repo.pushedAt || repo.updated_at || null,
+      url: String(repo.html_url || repo.url || ""),
       homepage: repo.homepage ? String(repo.homepage) : ""
     }));
 }
@@ -118,6 +124,25 @@ class BoardError extends Error {
     this.kind = kind;
     this.status = status;
     this.resetAt = resetAt;
+  }
+}
+
+/** The daily snapshot written by the projects workflow (already normalised). */
+async function fetchSnapshot() {
+  const response = await fetch(SNAPSHOT_URL, { cache: "no-cache" });
+  if (!response.ok) throw new BoardError("http", { status: response.status });
+  const json = await response.json();
+  if (!Array.isArray(json?.repos)) throw new BoardError("http");
+  const repos = normalize(json.repos.map((repo) => ({ ...repo, fork: false, archived: false })));
+  return { repos, total: repos.length, at: Date.now() };
+}
+
+/** Snapshot first; the live API when the snapshot is missing or broken. */
+async function fetchBoard() {
+  try {
+    return await fetchSnapshot();
+  } catch {
+    return fetchRepos();
   }
 }
 
@@ -172,7 +197,7 @@ function load() {
   const ready = peek();
   if (ready) return Promise.resolve(ready);
   if (!loading) {
-    loading = fetchRepos()
+    loading = fetchBoard()
       .then((data) => {
         memory = data;
         writeCache(data);
@@ -232,11 +257,16 @@ function safeUrl(value) {
   }
 }
 
-const relative = typeof Intl !== "undefined" && Intl.RelativeTimeFormat
-  ? new Intl.RelativeTimeFormat("en", { numeric: "auto" })
-  : null;
+const formatters = new Map();
+function relativeFormat() {
+  if (typeof Intl === "undefined" || !Intl.RelativeTimeFormat) return null;
+  const tag = locale();
+  if (!formatters.has(tag)) formatters.set(tag, new Intl.RelativeTimeFormat(tag, { numeric: "auto" }));
+  return formatters.get(tag);
+}
 
 function updatedLabel(iso) {
+  const relative = relativeFormat();
   const time = Date.parse(iso);
   if (!Number.isFinite(time)) return "";
   const seconds = Math.round((time - Date.now()) / 1000);
@@ -249,11 +279,11 @@ function updatedLabel(iso) {
     ["hour", 3600],
     ["minute", 60]
   ];
-  if (!relative) return `Updated ${new Date(time).toLocaleDateString("en")}`;
+  if (!relative) return t("proj.updated", { when: new Date(time).toLocaleDateString(locale()) });
   for (const [unit, size] of units) {
-    if (abs >= size) return `Updated ${relative.format(Math.round(seconds / size), unit)}`;
+    if (abs >= size) return t("proj.updated", { when: relative.format(Math.round(seconds / size), unit) });
   }
-  return "Updated just now";
+  return t("proj.justNow");
 }
 
 const pad = (value) => String(value).padStart(2, "0");
@@ -261,26 +291,31 @@ const pad = (value) => String(value).padStart(2, "0");
 /* -------------------------------------------------------------- templates */
 
 function cardMarkup(repo, index) {
-  const name = escapeHtml(prettify(repo.name));
+  const note = PROJECT_NOTES?.[repo.name];
+  const name = escapeHtml(note?.title ?? prettify(repo.name));
   const original = escapeHtml(repo.name);
   const url = safeUrl(repo.url) || `${githubUrl()}/${encodeURIComponent(repo.name)}`;
   const homepage = safeUrl(repo.homepage);
-  const description = repo.description
-    ? `<p class="project-card__desc">${escapeHtml(repo.description)}</p>`
-    : '<p class="project-card__desc is-empty">No description yet.</p>';
+  const text = note?.summary || repo.description;
+  const description = text
+    ? `<p class="project-card__desc">${escapeHtml(text)}</p>`
+    : `<p class="project-card__desc is-empty">${escapeHtml(t("proj.noDesc"))}</p>`;
+  const stack = note?.stack?.length
+    ? `<ul class="project-card__stack" role="list" aria-label="Stack">${note.stack.slice(0, 5).map((tech) => `<li>${escapeHtml(tech)}</li>`).join("")}</ul>`
+    : "";
   const language = repo.language
     ? `<span class="project-card__lang"><span class="project-card__diamond" style="--lang: ${escapeHtml(languageColor(repo.language))}" aria-hidden="true"></span>${escapeHtml(repo.language)}</span>`
     : "";
   const stars = repo.stars > 0
-    ? `<span class="project-card__stars">${ICON_STAR}<span>${repo.stars}</span><span class="visually-hidden"> ${repo.stars === 1 ? "star" : "stars"}</span></span>`
+    ? `<span class="project-card__stars">${ICON_STAR}<span>${repo.stars}</span><span class="visually-hidden"> ${escapeHtml(repo.stars === 1 ? t("proj.star") : t("proj.stars"))}</span></span>`
     : "";
   const updated = repo.pushedAt
-    ? `<time class="project-card__time" datetime="${escapeHtml(repo.pushedAt)}" title="${escapeHtml(new Date(repo.pushedAt).toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" }))}">${escapeHtml(updatedLabel(repo.pushedAt))}</time>`
+    ? `<time class="project-card__time" datetime="${escapeHtml(repo.pushedAt)}" title="${escapeHtml(new Date(repo.pushedAt).toLocaleDateString(locale(), { year: "numeric", month: "long", day: "numeric" }))}">${escapeHtml(updatedLabel(repo.pushedAt))}</time>`
     : "";
   const live = homepage
-    ? `<a class="project-card__live" href="${escapeHtml(homepage)}" target="_blank" rel="noopener">Live<span class="visually-hidden"> site of ${name}</span>${ICON_ARROW}</a>`
+    ? `<a class="project-card__live" href="${escapeHtml(homepage)}" target="_blank" rel="noopener">${escapeHtml(t("proj.live"))}<span class="visually-hidden">${escapeHtml(t("proj.liveOf", { name: note?.title ?? prettify(repo.name) }))}</span>${ICON_ARROW}</a>`
     : "";
-  const tag = repo.featured ? '<span class="project-card__tag">Featured</span>' : "";
+  const tag = repo.featured ? `<span class="project-card__tag">${escapeHtml(t("proj.featured"))}</span>` : "";
 
   return `
     <li class="project-card${repo.featured ? " is-featured" : ""}">
@@ -292,6 +327,7 @@ function cardMarkup(repo, index) {
         <a href="${escapeHtml(url)}" target="_blank" rel="noopener" title="${original}"><span class="project-card__label">${name}</span>${ICON_ARROW}</a>
       </h3>
       ${description}
+      ${stack}
       <div class="project-card__meta">
         ${stars}
         ${updated}
@@ -319,7 +355,7 @@ function noticeMarkup({ kind, title, text, watermark }) {
       ${ICON_SIGNAL}
       <p class="projects-notice__title">${title}</p>
       <p class="projects-notice__text">${text}</p>
-      <a class="projects-cta" href="${escapeHtml(githubUrl())}" target="_blank" rel="noopener">View my GitHub${ICON_ARROW}</a>
+      <a class="projects-cta" href="${escapeHtml(githubUrl())}" target="_blank" rel="noopener">${escapeHtml(t("proj.viewGithub"))}${ICON_ARROW}</a>
     </div>`;
 }
 
@@ -327,15 +363,13 @@ function errorCopy(error) {
   if (error?.kind === "rate") {
     const minutes = error.resetAt ? Math.max(1, Math.ceil((error.resetAt - Date.now()) / 60000)) : null;
     return {
-      title: "The board is resting",
-      text: minutes
-        ? `GitHub's rate limit kicked in. The live feed returns in about ${minutes} min, but every project is one click away.`
-        : "GitHub's rate limit kicked in. The live feed returns soon, but every project is one click away."
+      title: t("proj.restTitle"),
+      text: minutes ? t("proj.restMinutes", { m: minutes }) : t("proj.restSoon")
     };
   }
   return {
-    title: "Signal lost",
-    text: "GitHub isn't answering right now. The projects are still there, waiting on my profile."
+    title: t("proj.lostTitle"),
+    text: t("proj.lostText")
   };
 }
 
@@ -362,7 +396,7 @@ function paintLoading(root) {
   root.dataset.state = "loading";
   root.setAttribute("aria-busy", "true");
   root.innerHTML = `
-    <p class="visually-hidden">Loading projects from GitHub…</p>
+    <p class="visually-hidden">${escapeHtml(t("proj.loading"))}</p>
     <div class="projects__bar" aria-hidden="true"><span class="projects-sk projects-sk--bar"></span></div>
     <ol class="projects__list" role="list">${skeletonMarkup(SHOW)}</ol>`;
   fit(root);
@@ -376,20 +410,20 @@ function paintData(root, data, { animate }) {
     root.dataset.state = "empty";
     root.innerHTML = noticeMarkup({
       kind: "empty",
-      watermark: "Empty",
-      title: "The board is empty",
-      text: "No public projects yet. New requests are on their way."
+      watermark: t("proj.emptyMark"),
+      title: t("proj.emptyTitle"),
+      text: t("proj.emptyText")
     });
     reveal(root, root.querySelectorAll(".projects-notice"), animate);
     return;
   }
 
   root.dataset.state = "ready";
-  const staleNote = data.stale ? '<span class="projects__stale">Offline copy</span>' : "";
+  const staleNote = data.stale ? `<span class="projects__stale">${escapeHtml(t("proj.offline"))}</span>` : "";
   root.innerHTML = `
     <div class="projects__bar">
-      <p class="projects__count">Showing <b>${pad(ranked.length)}</b> of <b>${pad(data.total ?? data.repos.length)}</b>${staleNote}</p>
-      <a class="projects__all" href="${escapeHtml(githubUrl())}?tab=repositories" target="_blank" rel="noopener">All repositories${ICON_ARROW}</a>
+      <p class="projects__count">${t("proj.showing", { shown: pad(ranked.length), total: pad(data.total ?? data.repos.length) })}${staleNote}</p>
+      <a class="projects__all" href="${escapeHtml(githubUrl())}?tab=repositories" target="_blank" rel="noopener">${escapeHtml(t("proj.all"))}${ICON_ARROW}</a>
     </div>
     <ol class="projects__list" role="list">${ranked.map(cardMarkup).join("")}</ol>`;
 
@@ -401,7 +435,7 @@ function paintError(root, error, { animate }) {
   root.removeAttribute("aria-busy");
   root.dataset.state = "error";
   const copy = errorCopy(error);
-  const watermark = error?.kind === "rate" ? "Resting" : "No signal";
+  const watermark = error?.kind === "rate" ? t("proj.restMark") : t("proj.lostMark");
   root.innerHTML = noticeMarkup({ kind: "error", watermark, ...copy });
   reveal(root, root.querySelectorAll(".projects-notice"), animate);
 }
@@ -475,6 +509,22 @@ function updateScrollEdge(list) {
 }
 
 /* ------------------------------------------------------------- public API */
+
+/**
+ * Live facts for the project reel (story.js): repo name -> { language, stars, updated } and
+ * the totals. Shares the board's single request, cache and snapshot.
+ */
+export async function boardFacts() {
+  const data = await load();
+  const repos = Object.fromEntries(
+    data.repos.map((repo) => [
+      repo.name,
+      { language: repo.language, color: repo.language ? languageColor(repo.language) : "", stars: repo.stars, updated: repo.pushedAt ? updatedLabel(repo.pushedAt) : "" }
+    ])
+  );
+  const latest = data.repos.map((repo) => Date.parse(repo.pushedAt) || 0).reduce((a, b) => Math.max(a, b), 0);
+  return { repos, total: data.total ?? data.repos.length, updated: latest ? updatedLabel(new Date(latest).toISOString()) : "" };
+}
 
 /** Render the board into `container` (idempotent; instant when data is cached). */
 export function renderProjects(container) {

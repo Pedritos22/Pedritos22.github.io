@@ -148,7 +148,8 @@ pseudo-element) or on an unclipped wrapper. Always verify focus-visible on scree
 | `--z-skyline` | 1 | procedural city skyline |
 | `--z-fx` | 2 | butterflies, particles |
 | `--z-grain` | 3 | scanlines / grain / slash overlays |
-| `--z-shell` | 10 | main layout (menu, panel, emblem) |
+| `--z-shell` | 10 | main layout (menu, panel, emblem), the descent's chapters |
+| `--z-cut` | 20 | the cut: the navigation transition (under the HUD and the rail) |
 | `--z-hud` | 30 | HUD, top tools |
 | `--z-drag` | 40 | dragged nameplate |
 | `--z-console` | 50 | system console (drops from the top, not modal) |
@@ -258,7 +259,8 @@ Rules:
 
 ## 10. Architecture
 
-No build step. ES modules served as-is (local preview: `python3 -m http.server`).
+No build step. ES modules served as-is (local preview: `python3 -m http.server`). Node is only
+for the tests and the generators in `tools/` (`package.json` scripts); their output is committed.
 
 ```
 index.html            markup + mount points; loads vendor/gsap/*.min.js (defer), then js/main.js (module)
@@ -274,19 +276,36 @@ css/effects.css       background canvas, skyline, butterflies, emblem, Dark Hour
 css/projects.css      projects section
 css/battle.css        Debug Battle dialog, sprites, crawler
 css/rhythm.css        Night Session dialog and highway
-css/dive.css          the dive: rest positions above / below the water, the Depths layer
+css/dive.css          the Depths (an in-flow section at the bottom of the page)
 css/terminal.css      system console
-js/main.js            imports and init()s every module, each wrapped in try/catch
+css/cv.css            the CV page (screen + print)
+css/chrono.css        the chronograph on the Experience card
+css/story.css         the descent: chapters, the rail, the hero leaving, reveal blocks
+js/main.js            imports and init()s every module, each wrapped in try/catch: MODULES on first
+                      paint, DEFERRED (battle, rhythm, dive, terminal, extras) after the intro on idle
+                      or on the first gesture that needs one (a [data-*] trigger click or ~ is replayed)
+js/i18n.js            language (en, pl): detection, setLang/onLang, t() interface strings, localize(),
+                      applyStatic() for data-i18n attributes in index.html
+js/chrono.js          the chronograph: the quest log on a time axis, NOW line on the world clock
+js/story.js           the descent: scroll-driven chapters under the pause menu (desktop), the
+                      chapter rail, the shader depth from the scroll
+js/router.js          deep links: #<section> per section, history entries, Back/Forward, document.title
+js/pwa.js             registers sw.js after load (skipped on localhost unless ?sw)
 js/core.js            event bus (EVT), state, flags, media queries, moonPhase, daySeed, rafLoop
 js/motion.js          gsap + SplitText + CustomEase, DUR, EASE, STAGGER; WAAPI helpers (CSS_EASE, animate, enterFrom)
-js/content.js         all copy and section data (single source of truth)
-js/sections.js        card rendering + section transitions (+ mobile stack)
-js/menu.js            menu state, cursor, keyboard navigation
+js/content.js         all copy and section data in { en, pl } (single source of truth): six sections,
+                      project notes, highlights, the quest log, schooling; live-binding exports
+                      re-resolved on a language change
+js/sections.js        the title screen's fixed "Press start" card (entrance cascade) and blocks shared
+                      with the descent: contactMarkup(), questListMarkup(), hydrate()
+js/cut.js             the cut: the one navigation transition (a full-screen wipe train at -8deg)
+js/menu.js            menu state, cursor, keyboard navigation; choosing an item cuts to its chapter
 js/sigils.js          procedural arcana sigils (SVG); { hub: true } puts a medallion in the centre
 js/arcana.js          Skills cards: markup, deal from the deck, holo sheen, typed spells, card 0 (The Fool)
 js/marks.js           technology marks for the cards and battle commands (the only brand marks)
 js/hud.js             HUD + tool buttons + audio controls UI
-js/intro.js           intro sequence
+js/intro.js           intro: surfacing from 400 m (the shader at full depth, bubbles, light from above,
+                      a depth gauge), then the waterline sweeps down and the page comes up behind it
 js/hints.js           hints dialog
 js/shatter.js         glass fracture engine (cracks, Voronoi shards)
 js/name-drag.js       hold-to-drag nameplate
@@ -306,7 +325,7 @@ js/battle-logic.js    battle rules: bugs, weak spots, damage, ranks (pure, teste
 js/fx/bug-art.js      bug sprites: one silhouette per bug, cel shading, every expression (pure, tested)
 js/rhythm.js          Night Session rhythm game (hold the lo-fi button, or hint 10)
 js/rhythm-logic.js    rhythm chart, judging and scoring (pure, tested)
-js/dive.js            the dive: scroll past the desktop page to go under the water (the Depths)
+js/dive.js            the Depths: the last screen of the descent; dive() / surface() scroll there and back
 js/terminal.js        system console UI (~ opens it) and its browser context
 js/terminal-logic.js  console tokenizer, history, completion and the command table (pure, tested)
 js/toast.js           toasts: one slanted plate in the lower left, aria-live
@@ -317,6 +336,16 @@ js/glyphs.js          small line icons used in card rows
 404.html + css/404.css  standalone not-found page (absolute paths; served by GitHub Pages for any missing URL)
 assets/favicon-away.svg the sleeping moon shown in the tab while the visitor is away (js/extras.js)
 assets/og-image.png   social preview, rendered from the live page (1200x630)
+assets/icon-*.png     app icons for the manifest (rendered from favicon.svg)
+sw.js                 service worker: network first for same-origin GETs, cache as offline fallback
+manifest.webmanifest  installable app (icons, shortcuts to the CV, Projects, Contact)
+cv/, cv/pl/           the CV pages and PDFs: GENERATED by tools/build-cv.mjs, never edit by hand
+data/projects.json    projects snapshot: GENERATED daily by .github/workflows/projects.yml
+sitemap.xml, llms.txt GENERATED by tools/build-cv.mjs; robots.txt, humans.txt, .well-known/ by hand
+tools/build-cv.mjs    CV pages + PDFs (--pdf), sitemap, llms.txt from js/content.js (--check for CI)
+tools/fetch-projects.mjs  data/projects.json from the GitHub API
+tools/module-graph.mjs    the modulepreload list in index.html (first-paint import closure)
+tests/e2e/            Playwright: deep links, history, language, ?plain, CV, axe (playwright.config.mjs)
 ```
 
 QA-only URL flags (harmless in production): `?moonphase=0..1` (emblem), `?moon=0..1` and
@@ -338,9 +367,19 @@ over 25 and 50 ms; `js/perfprobe.js`, loaded only with the flag).
   AudioContext clock (the rhythm game charts from it). Returns an unsubscribe function.
 - **Shatter API** (`shatter.js`): `makeFracturable(root)`, `shatter(element, {x, y})`,
   `resetAllFractures()`.
-- **Sections:** `content.js` exports `SECTIONS` (ordered) and `HOME`. A section may define
-  `render(container)` for custom content (Projects uses it). `sections.js` exports
-  `showSection(name)`, `showHome()` and `getSectionNames()`.
+- **One document, one order:** the site is the title screen (name, menu, HUD, the moon emblem and one
+  fixed "Press start" card) followed by the descent: About, Experience (+ HackNation), Projects,
+  Skills, Education, Contact, then the Depths. `SECTIONS` in `content.js` is that order and feeds the
+  menu, the chapter rail, the CV and the hashes. The card never swaps content any more; everything
+  lives in exactly one chapter.
+- **Navigation:** `story.js` exports `goTo(id, { history, animate })` (`id`: a section id,
+  `"hacknation"`, `"depths"` or `"home"`) and `currentChapter()`. Every deliberate move (menu, rail,
+  `[data-goto]` links, the name, the console's `cd`, Back/Forward) uses it: `SECTION_WILL_CHANGE`, the
+  cut (`cut.js`) and, while the screen is covered, an instant jump to the chapter's landing point
+  (`LAND` in `story.js`: pinned scenes land on their finished state). The chapter in view is reported
+  with `SECTION_CHANGED {from, to, index, history}`; `router.js` turns it into the URL (push for
+  deliberate moves, replace while scrolling, none for Back/Forward). Never smooth-scroll across pinned
+  chapters: it plays every scene on the way.
 - **Scene pause:** an opaque full-screen overlay calls `pauseScene(true)` / `pauseScene(false)`
   (`core.js`); every `rafLoop` skips its frames meanwhile, except loops started with
   `rafLoop(tick, { always: true })` (the overlay's own).
@@ -374,15 +413,71 @@ over 25 and 50 ms; `js/perfprobe.js`, loaded only with the flag).
   only through `ctx`, so the table is tested in node (`tests/terminal.test.mjs`). `hidden`
   commands stay off `help`. History persists in `localStorage` (`p3:console:history`).
   Commands that open a modal close the console first.
-- **The dive:** `dive.js` exports `dive()`, `surface()` and `canDive()` (desktop, after the
-  intro, no dialog). It sets `html[data-depths]` and `state.depths`, makes `.shell` inert, and
-  emits `EVT.DIVE` `{depth, preview}`: `preview: true` while the wheel pulls (depth 0..0.08,
-  or 1..0.92 on the way up), `false` on a commit (0 or 1). Rest positions for both states live
-  in `css/dive.css`; a transition animates from wherever things are to the new rest, so it can
-  be interrupted. The shader reads it as `uDepth` (no extra noise evaluations). Any
-  `[data-dive]` button dives; `EVT.RESET` and a section change surface.
+- **The descent:** `story.js` builds the chapters under the pause menu on desktop (who, quest log,
+  HackNation, the deck, projects, archive, signal) and the Depths close it. Pinned chapters are
+  `[data-scene]` boxes `--len` viewports tall with a sticky `.scene`; their progress `--p` (0..1)
+  is the only thing the scroll writes, and CSS moves everything with `calc(var(--p))` (transform
+  and opacity). Offsets are measured on resize, never per frame. `<html>` carries `--hero` (the
+  menu leaving: the card drifts up, the emblem turns, the city sinks) and `--descent`. Hooks add
+  what CSS cannot: the scrubbed chronograph (`scrubChrono()`), the metric counters, the ring's
+  rests on every card. Reveal blocks (`[data-reveal]`) fade in once via IntersectionObserver.
+  Reduced motion sets `html[data-story-static]`: nothing pins, every chapter shows its final
+  state. Phones keep the card stack (the descent and the Depths are desktop only).
+  Choreography rules for chapters: a heading arrives in the first tenth of a chapter; things
+  that are not reached yet are hidden or at least 3:1 (large text), never a faint ghost; a
+  pinned chapter is 2.5 to 3.5 viewports long; rotation and scale are tied to the scroll, never
+  to time.
+- **Seams of the descent:** the title screen ends at the **waterline** (the top edge of `.story`, the
+  intro's glowing line, drifting slowly). While `--hero` runs, the fixed surface layers (city, slash,
+  butterflies) are clipped below it (`clip-path: inset(0 0 calc(var(--hero) * 100svh) 0)`), so the city
+  sinks under the line instead of fading. Every boundary between two chapters is a **seam**: the cut's
+  trailing bands (streak, cyan, a fading blue slab) on the half major angle, riding the boundary as it
+  scrolls. The menu **folds into the rail** (`applyFold()` in `story.js`): while `--hero` goes 0.25 to
+  0.8 each rail link flies from its menu item to its slot, scaling from the menu's size to the rail's,
+  measured on the first frame the page moves (after the menu's entrance). Kickers read their chapter's
+  depth on the intro's 0-400 m scale. `.story` uses `overflow-x: clip` (never `hidden`: it would break
+  the sticky scenes).
+- **Depth and the Depths:** `story.js` emits `EVT.DIVE` `{depth, preview: true}` continuously from
+  the scroll (the shader's `uDepth`), and `{depth, preview: false, scroll: true}` when the reader
+  goes under the menu (butterflies rest) or reaches the Depths (`state.depths`,
+  `html[data-depths]`). `dive.js` renders the Depths and exports `dive()` (scroll to them),
+  `surface()` (scroll to the top) and `canDive()`. Any `[data-dive]` button dives.
 - **God mode:** `battle.js` exports `armGodMode()` (the Konami code in `extras.js`): the next
   run takes no damage and ends on rank ∞.
+- **Language:** `i18n.js`. Content strings are `{ en, pl }` leaves in `content.js` (a leaf may also
+  hold a list per language); interface strings live in `UI` and are read with `t(key, vars)`. Static
+  markup uses `data-i18n`, `data-i18n-html` (trusted strings only) and `data-i18n-attr="attr:key; ..."`.
+  `setLang()` persists `p3:lang`, sets `<html lang>` and calls `onLang` listeners (content first, then
+  sections, menu, HUD, the Depths, the router). Ids, skill names (battle commands), marks and spells
+  never change with the language. The games and the console stay in English. Polish copy uses
+  neutral forms for the visitor (no gendered verbs).
+- **Deep links:** `router.js`. A section change pushes `#<id>` (Home is the bare URL; the mobile stack
+  keeps `#section-<id>`, both are accepted by `sectionFromHash()` in `content.js`). A hash on load opens
+  that section and skips the intro (inline script in `index.html` and `intro.js`). Hashes that are not
+  sections (`#main`) are ignored.
+- **Quest log (Experience):** `QUESTS` in `content.js`, `kind: "quests"` in `sections.js`. Entries are
+  `{ id, group: work | lead | highlight, type, org, place, roles: [{ title, from, to }], note, points?, stack? }`,
+  roles newest first, months as `"YYYY-MM"` (`to: null` = current), shown with `formatPeriod()` from
+  `i18n.js`. The card shows the note; the CV shows points (work and lead groups; the highlight group is
+  the HackNation entry, which the CV shows under Highlights). A card body that scrolls joins the tab
+  order (`updateOverflow()` in `sections.js`).
+- **Chronograph:** `chrono.js` renders the Experience card body on desktop (`chronoMarkup()`), binds it
+  (`bindChrono()`) and adds its entrance to the section reveal (`chronoReveal()`). Lanes: work, university
+  (`group: lead`) and events (quests whose roles are all one month; the `highlight` group gets a star).
+  Geometry is CSS from month numbers (`--span`, `--now`, `--from`, `--to`, `--at`); `chrono.js` only moves
+  `--now` on `EVT.TIME`, so the time dial slides the NOW line and current bars, and entries that start
+  after it fade as "not yet". Hover / focus previews an entry in the detail plate, click selects, arrow
+  keys walk entries in time order. On mobile the axis is an overview above the quest list.
+- **Bespoke cards:** About renders `status` (a crest from `renderSigil(PROFILE.name)` with the initials,
+  and six fact tiles; `role` and `exploring` span both columns). Contact renders `reach` (the address as the
+  call to action with a copy button, channel tiles, and the real local time in Kraków, not the world
+  clock). New plate-like elements are added to `FRACTURE_TARGETS` in `shatter.js` so they break like glass.
+- **Quick view:** the HUD's CV link, `?plain` and `?cv` lead to `cv/` (`cv/pl/` in Polish). Contact
+  facts, project notes and highlights come from `content.js`, so the CV and the site never disagree.
+- **Generated files:** after changing `content.js`, run `npm run cv`; after adding or removing a
+  first-paint import, run `node tools/module-graph.mjs`. CI fails when either is stale.
+- **CSP:** a `<meta http-equiv="Content-Security-Policy">` in `index.html`; the one inline script is
+  allowed by its sha256 (tests/index-html.test.mjs). New origins (fetch, images) must be added there.
 
 ---
 
@@ -403,3 +498,5 @@ Run this before calling anything done. Review it on screenshots at 1440×900, 12
 9. **Dark Hour:** every component reads well in the green palette.
 10. **Reduced motion:** the page is calm but still beautiful.
 11. **Console:** zero errors, zero 404s.
+12. **Languages:** the change reads well in English and Polish (Polish words run longer: check the
+    menu, watermarks and card backs), and the CV still fits two A4 pages (`npm run cv`).

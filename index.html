@@ -4,26 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Pietro Molendys · Portfolio</title>
-  <meta name="description" content="Pietro Molendys – Computer Science student and software developer from Cracow, Poland." />
+  <meta name="description" content="Pietro Molendys: Computer Science student and Junior Fullstack Developer (Java) at Smart4Aviation in Kraków, Poland. HackNation 2026 finalist, founder of the Tensor ML club." />
   <meta name="theme-color" content="#020713" />
   <meta name="color-scheme" content="dark" />
   <link rel="canonical" href="https://pedritos22.github.io/" />
+  <link rel="alternate" hreflang="en" href="https://pedritos22.github.io/?lang=en" />
+  <link rel="alternate" hreflang="pl" href="https://pedritos22.github.io/?lang=pl" />
+  <link rel="alternate" hreflang="x-default" href="https://pedritos22.github.io/" />
+  <meta name="author" content="Pietro Molendys" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <!-- CSP: the inline script below is allowed by its hash. If you edit it, update the hash (tests/csp.test.mjs checks it). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-fftcNH8tf3lz+p0ExB/YMHeyyfCoQffuVpdoOmCzwYk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.github.com; media-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' mailto:" />
 
-  <meta property="og:type" content="website" />
+  <meta property="og:type" content="profile" />
+  <meta property="og:site_name" content="Pietro Molendys" />
+  <meta property="og:locale" content="en_GB" />
+  <meta property="og:locale:alternate" content="pl_PL" />
+  <meta property="profile:first_name" content="Pietro" />
+  <meta property="profile:last_name" content="Molendys" />
   <meta property="og:url" content="https://pedritos22.github.io/" />
   <meta property="og:title" content="Pietro Molendys · Portfolio" />
-  <meta property="og:description" content="Computer Science student and software developer from Cracow, Poland." />
+  <meta property="og:description" content="Computer Science student and Junior Fullstack Developer (Java) at Smart4Aviation in Kraków. HackNation 2026 finalist." />
   <meta property="og:image" content="https://pedritos22.github.io/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Pietro Molendys, portfolio: a moonlit pause menu" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Pietro Molendys · Portfolio" />
-  <meta name="twitter:description" content="Computer Science student and software developer from Cracow, Poland." />
+  <meta name="twitter:description" content="Computer Science student and Junior Fullstack Developer (Java) at Smart4Aviation in Kraków. HackNation 2026 finalist." />
   <meta name="twitter:image" content="https://pedritos22.github.io/assets/og-image.png" />
 
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
 
   <link rel="preload" href="assets/fonts/anton-400-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/bebas-neue-400-latin.woff2" as="font" type="font/woff2" crossorigin />
@@ -35,7 +49,14 @@
       var root = document.documentElement;
       try {
         var q = new URLSearchParams(location.search);
-        if (q.has("nointro")) return;
+        // ?plain (or ?cv): the calm one-page version for a quick read.
+        if (q.has("plain") || q.has("cv")) {
+          var pl = q.get("lang") === "pl" || (!q.get("lang") && localStorage.getItem("p3:lang") === "pl");
+          location.replace(pl ? "cv/pl/" : "cv/");
+          return;
+        }
+        // A deep link (#projects) skips the intro.
+        if (q.has("nointro") || (location.hash.length > 1 && !q.has("intro"))) return;
         if (q.has("intro") || !sessionStorage.getItem("p3:intro-seen")) {
           root.classList.add("intro-pending");
           setTimeout(function () { root.classList.remove("intro-pending"); }, 4000);
@@ -51,6 +72,8 @@
   <link rel="stylesheet" href="css/menu.css" />
   <link rel="stylesheet" href="css/panel.css" />
   <link rel="stylesheet" href="css/projects.css" />
+  <link rel="stylesheet" href="css/chrono.css" />
+  <link rel="stylesheet" href="css/story.css" />
   <link rel="stylesheet" href="css/hud.css" />
   <link rel="stylesheet" href="css/glass.css" />
   <link rel="stylesheet" href="css/overlays.css" />
@@ -63,48 +86,125 @@
   <script defer src="vendor/gsap/SplitText.min.js"></script>
   <script defer src="vendor/gsap/CustomEase.min.js"></script>
   <script type="module" src="js/main.js"></script>
+  <!-- Flatten the import waterfall of the first paint: every module it needs, fetched at once. -->
+  <!-- modulepreload:start (tools/module-graph.mjs) -->
+  <link rel="modulepreload" href="js/arcana.js" />
+  <link rel="modulepreload" href="js/background.js" />
+  <link rel="modulepreload" href="js/battle-logic.js" />
+  <link rel="modulepreload" href="js/butterflies.js" />
+  <link rel="modulepreload" href="js/chrono.js" />
+  <link rel="modulepreload" href="js/content.js" />
+  <link rel="modulepreload" href="js/core.js" />
+  <link rel="modulepreload" href="js/cut.js" />
+  <link rel="modulepreload" href="js/darkhour.js" />
+  <link rel="modulepreload" href="js/dive.js" />
+  <link rel="modulepreload" href="js/emblem.js" />
+  <link rel="modulepreload" href="js/fx/butterfly-art.js" />
+  <link rel="modulepreload" href="js/fx/city-art.js" />
+  <link rel="modulepreload" href="js/fx/dial-art.js" />
+  <link rel="modulepreload" href="js/fx/moon-art.js" />
+  <link rel="modulepreload" href="js/fx/palette.js" />
+  <link rel="modulepreload" href="js/fx/pointer.js" />
+  <link rel="modulepreload" href="js/fx/slash.js" />
+  <link rel="modulepreload" href="js/fx/water-shader.js" />
+  <link rel="modulepreload" href="js/glyphs.js" />
+  <link rel="modulepreload" href="js/hints.js" />
+  <link rel="modulepreload" href="js/hud.js" />
+  <link rel="modulepreload" href="js/i18n.js" />
+  <link rel="modulepreload" href="js/intro.js" />
+  <link rel="modulepreload" href="js/lofi.js" />
+  <link rel="modulepreload" href="js/marks.js" />
+  <link rel="modulepreload" href="js/menu.js" />
+  <link rel="modulepreload" href="js/motion.js" />
+  <link rel="modulepreload" href="js/name-drag.js" />
+  <link rel="modulepreload" href="js/objection.js" />
+  <link rel="modulepreload" href="js/proc/noise.js" />
+  <link rel="modulepreload" href="js/proc/rng.js" />
+  <link rel="modulepreload" href="js/proc/voronoi.js" />
+  <link rel="modulepreload" href="js/projects.js" />
+  <link rel="modulepreload" href="js/pwa.js" />
+  <link rel="modulepreload" href="js/router.js" />
+  <link rel="modulepreload" href="js/sections.js" />
+  <link rel="modulepreload" href="js/sfx.js" />
+  <link rel="modulepreload" href="js/shatter.js" />
+  <link rel="modulepreload" href="js/sigils.js" />
+  <link rel="modulepreload" href="js/skyline.js" />
+  <link rel="modulepreload" href="js/story.js" />
+  <link rel="modulepreload" href="js/terminal-logic.js" />
+  <link rel="modulepreload" href="js/time-math.js" />
+  <link rel="modulepreload" href="js/timedial.js" />
+  <link rel="modulepreload" href="js/toast.js" />
+  <!-- modulepreload:end -->
 
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Person",
-      "name": "Pietro Molendys",
+      "@type": "ProfilePage",
       "url": "https://pedritos22.github.io/",
-      "jobTitle": "Computer Science student, software developer",
-      "address": { "@type": "PostalAddress", "addressLocality": "Cracow", "addressCountry": "PL" },
-      "alumniOf": { "@type": "CollegeOrUniversity", "name": "Cracow University of Technology" },
-      "sameAs": [
-        "https://github.com/pedritos22",
-        "https://linkedin.com/in/pietro-molendys-b1324231b"
-      ]
+      "inLanguage": ["en", "pl"],
+      "mainEntity": {
+        "@type": "Person",
+        "@id": "https://pedritos22.github.io/#person",
+        "name": "Pietro Molendys",
+        "givenName": "Pietro",
+        "familyName": "Molendys",
+        "url": "https://pedritos22.github.io/",
+        "image": "https://pedritos22.github.io/assets/og-image.png",
+        "jobTitle": "Junior Fullstack Developer (Java)",
+        "worksFor": { "@type": "Organization", "name": "Smart4Aviation" },
+        "description": "Computer Science student at Cracow University of Technology, Junior Fullstack Developer (Java) at Smart4Aviation, founder of the Tensor machine learning club.",
+        "email": "mailto:molendyspietro@gmail.com",
+        "address": { "@type": "PostalAddress", "addressLocality": "Cracow", "addressCountry": "PL" },
+        "alumniOf": [
+          { "@type": "CollegeOrUniversity", "name": "Cracow University of Technology", "sameAs": "https://www.pk.edu.pl/" },
+          { "@type": "HighSchool", "name": "II Liceum Ogólnokształcące im. Tytusa Chałubińskiego w Myślenicach" }
+        ],
+        "award": "Finalist, HackNation 2026: Public Procurement Office (UZP) challenge odwolania2json",
+        "hasCredential": {
+          "@type": "EducationalOccupationalCredential",
+          "name": "Erasmus+ Blended Intensive Programme: Mobile Programming and Technologies",
+          "recognizedBy": { "@type": "CollegeOrUniversity", "name": "Université Marie et Louis Pasteur" }
+        },
+        "knowsLanguage": ["pl", "en", "it"],
+        "knowsAbout": ["Java", "Spring Framework", "Hibernate", "Python", "Dart", "Flutter", "SQL", "PostgreSQL", "Algorithms", "Git", "Docker", "Linux", "Bash", "FastAPI", "JavaFX", "Machine learning", "Neural networks"],
+        "sameAs": [
+          "https://github.com/pedritos22",
+          "https://linkedin.com/in/pietro-molendys-b1324231b"
+        ]
+      }
     }
   </script>
 </head>
 <body>
+  <a class="skip-link" href="#main" data-i18n="skip.main">Skip to content</a>
+
   <!-- Background layers (canvas, skyline, butterflies) are mounted here by js/background.js & co. -->
   <div class="fx-root" aria-hidden="true"></div>
 
   <!-- HUD: calendar, clock, moon phase + tools and audio controls (js/hud.js) -->
-  <header class="hud" aria-label="Status and tools">
+  <header class="hud" aria-label="Status and tools" data-i18n-attr="aria-label:hud.status">
     <span class="hud-plates" aria-hidden="true"><i class="hud-plate-back"></i><i class="hud-plate-front"></i><i class="hud-plate-divider"></i><i class="hud-plate-line"></i><i class="hud-plate-notch"></i><i class="hud-plate-glint"></i></span>
-    <div class="hud-tools" role="group" aria-label="Site tools">
-      <button class="hud-tool audio-toggle" type="button" aria-pressed="false" aria-label="Lo-fi music" data-tip="Lo-fi">
+    <div class="hud-tools" role="group" aria-label="Site tools" data-i18n-attr="aria-label:hud.tools">
+      <button class="hud-tool audio-toggle" type="button" aria-pressed="false" aria-label="Lo-fi music" data-tip="Lo-fi" data-i18n-attr="aria-label:hud.lofi; data-tip:hud.lofiTip">
         <span class="hud-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
       </button>
-      <button class="hud-tool help-toggle" type="button" aria-label="Hints" aria-haspopup="dialog" aria-controls="hint-panel" aria-expanded="false" data-tip="Hints">
+      <button class="hud-tool help-toggle" type="button" aria-label="Hints" aria-haspopup="dialog" aria-controls="hint-panel" aria-expanded="false" data-tip="Hints" data-i18n-attr="aria-label:hud.hints; data-tip:hud.hints">
         <span class="hud-glyph" aria-hidden="true">?</span>
       </button>
-      <button class="hud-tool reset-toggle" type="button" aria-label="Reset easter eggs" data-tip="Reset">
+      <button class="hud-tool reset-toggle" type="button" aria-label="Reset easter eggs" data-tip="Reset" data-i18n-attr="aria-label:hud.reset; data-tip:hud.resetTip">
         <svg class="hud-icon reset-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path class="reset-arc" d="M5.16 8.87 A7.5 7.5 0 1 1 7.18 17.74" />
           <path class="reset-head" d="M2.15 7.77 L8.16 9.96 L3.79 12.63 Z" />
         </svg>
       </button>
-      <label class="hud-volume" data-tip="Volume">
-        <span class="visually-hidden">Lo-fi volume</span>
+      <a class="hud-tool cv-link" href="cv/" aria-label="Open the CV: the whole profile on one calm page" data-tip="CV / quick view" data-i18n-attr="aria-label:cv.aria; data-tip:cv.tip">
+        <span class="hud-glyph hud-glyph--text" aria-hidden="true">CV</span>
+      </a>
+      <label class="hud-volume" data-tip="Volume" data-i18n-attr="data-tip:hud.volumeTip">
+        <span class="visually-hidden" data-i18n="hud.volume">Lo-fi volume</span>
         <input class="volume-slider" type="range" min="0" max="100" step="1" value="92" />
       </label>
-      <button class="hud-tool sfx-toggle" type="button" aria-pressed="false" aria-label="Mute sound effects" data-tip="Sound FX">
+      <button class="hud-tool sfx-toggle" type="button" aria-pressed="false" aria-label="Mute sound effects" data-tip="Sound FX" data-i18n-attr="aria-label:hud.sfx; data-tip:hud.sfxTip">
         <svg class="hud-icon sfx-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path class="sfx-body" d="M3 9.2 H7 L12.4 4.8 V19.2 L7 14.8 H3 Z" />
           <path class="sfx-wave" d="M15.6 9.2 A4 4 0 0 1 15.6 14.8" />
@@ -112,17 +212,20 @@
           <path class="sfx-x" d="M15.8 9.4 L21 14.6 M21 9.4 L15.8 14.6" />
         </svg>
       </button>
+      <button class="hud-tool lang-toggle" type="button" lang="pl" aria-label="PL: przełącz na polski" data-tip="Polski" data-i18n-attr="aria-label:lang.switchAria; data-tip:lang.switch; lang:lang.code">
+        <span class="hud-glyph hud-glyph--text" aria-hidden="true" data-i18n="lang.tip">PL</span>
+      </button>
     </div>
 
     <div class="hud-status">
-      <button class="hud-calendar" type="button" aria-label="Date and time">
+      <button class="hud-calendar" type="button" aria-label="Date and time" data-i18n-attr="aria-label:hud.calendar">
         <span class="hud-date" aria-hidden="true"><span class="hud-date-inner"><span class="hud-month">11</span><span class="hud-slash">/</span><span class="hud-day">10</span></span></span>
         <span class="hud-weekday" aria-hidden="true"><span class="hud-weekday-text">Tue</span></span>
         <span class="hud-tod" aria-hidden="true"><span class="hud-tod-text">After School</span></span>
         <span class="hud-time" aria-hidden="true"><span class="hud-hh">15</span><span class="hud-colon">:</span><span class="hud-mm">42</span></span>
         <span class="hud-shift" aria-hidden="true"></span>
       </button>
-      <div class="hud-moon" role="img" aria-label="Moon phase">
+      <div class="hud-moon" role="img" aria-label="Moon phase" data-i18n-attr="aria-label:hud.moon">
         <svg class="hud-moon-icon" viewBox="-26 -26 52 52" aria-hidden="true" focusable="false"></svg>
         <span class="hud-moon-caption" aria-hidden="true"><b class="hud-moon-top">Full Moon</b><span class="hud-moon-bottom">in 14 days</span></span>
       </div>
@@ -131,28 +234,29 @@
 
   <main class="shell" id="main">
     <section class="identity" aria-labelledby="site-title">
-      <p class="status-line"><span class="status-rule" aria-hidden="true"></span><span>Cracow, Poland</span><span class="status-sep" aria-hidden="true">/</span><span>Computer Science</span></p>
+      <p class="status-line"><span class="status-rule" aria-hidden="true"></span><span data-i18n="id.location">Cracow, Poland</span><span class="status-sep" aria-hidden="true">/</span><span data-i18n="id.field">Computer Science</span></p>
       <h1 id="site-title" class="nameplate">
-        <button class="name-button" type="button" aria-label="Pietro Molendys, back to the welcome card">
+        <button class="name-button" type="button" aria-label="Pietro Molendys, back to the welcome card" data-i18n-attr="aria-label:id.nameAria">
           <span class="name-first" data-text="Pietro">Pietro</span>
           <span class="name-last" data-text="Molendys">Molendys</span>
         </button>
       </h1>
 
-      <nav class="menu" aria-label="Profile sections">
+      <nav class="menu" aria-label="Profile sections" data-i18n-attr="aria-label:id.menu">
         <span class="menu-marker" aria-hidden="true"></span>
         <span class="menu-cursor" aria-hidden="true"></span>
         <button class="menu-item" type="button" data-code="01" data-section="about"><span class="menu-code" aria-hidden="true">01</span><span class="menu-label"><span class="menu-text">About</span></span><span class="menu-remains" aria-hidden="true"><span>About</span><span>About</span></span></button>
-        <button class="menu-item" type="button" data-code="02" data-section="education"><span class="menu-code" aria-hidden="true">02</span><span class="menu-label"><span class="menu-text">Education</span></span><span class="menu-remains" aria-hidden="true"><span>Education</span><span>Education</span></span></button>
-        <button class="menu-item" type="button" data-code="03" data-section="skills"><span class="menu-code" aria-hidden="true">03</span><span class="menu-label"><span class="menu-text">Skills</span></span><span class="menu-remains" aria-hidden="true"><span>Skills</span><span>Skills</span></span></button>
-        <button class="menu-item" type="button" data-code="04" data-section="projects"><span class="menu-code" aria-hidden="true">04</span><span class="menu-label"><span class="menu-text">Projects</span></span><span class="menu-remains" aria-hidden="true"><span>Projects</span><span>Projects</span></span></button>
-        <button class="menu-item" type="button" data-code="05" data-section="contact"><span class="menu-code" aria-hidden="true">05</span><span class="menu-label"><span class="menu-text">Contact</span></span><span class="menu-remains" aria-hidden="true"><span>Contact</span><span>Contact</span></span></button>
+        <button class="menu-item" type="button" data-code="02" data-section="experience"><span class="menu-code" aria-hidden="true">02</span><span class="menu-label"><span class="menu-text">Experience</span></span><span class="menu-remains" aria-hidden="true"><span>Experience</span><span>Experience</span></span></button>
+        <button class="menu-item" type="button" data-code="03" data-section="projects"><span class="menu-code" aria-hidden="true">03</span><span class="menu-label"><span class="menu-text">Projects</span></span><span class="menu-remains" aria-hidden="true"><span>Projects</span><span>Projects</span></span></button>
+        <button class="menu-item" type="button" data-code="04" data-section="skills"><span class="menu-code" aria-hidden="true">04</span><span class="menu-label"><span class="menu-text">Skills</span></span><span class="menu-remains" aria-hidden="true"><span>Skills</span><span>Skills</span></span></button>
+        <button class="menu-item" type="button" data-code="05" data-section="education"><span class="menu-code" aria-hidden="true">05</span><span class="menu-label"><span class="menu-text">Education</span></span><span class="menu-remains" aria-hidden="true"><span>Education</span><span>Education</span></span></button>
+        <button class="menu-item" type="button" data-code="06" data-section="contact"><span class="menu-code" aria-hidden="true">06</span><span class="menu-label"><span class="menu-text">Contact</span></span><span class="menu-remains" aria-hidden="true"><span>Contact</span><span>Contact</span></span></button>
       </nav>
 
-      <a class="scroll-cue" href="#section-home"><span>Scroll</span><span class="scroll-cue-line" aria-hidden="true"></span></a>
+      <a class="scroll-cue" href="#section-home" data-goto="about"><span data-i18n="id.scroll">Scroll</span><span class="scroll-cue-line" aria-hidden="true"></span></a>
     </section>
 
-    <section class="panel-wrap" aria-label="Profile card">
+    <section class="panel-wrap" aria-label="Profile card" data-i18n-attr="aria-label:card.region">
       <!-- Clock/moon emblem, rendered by js/emblem.js; its time dial (a slider) by js/timedial.js -->
       <div class="emblem-mount"></div>
 
@@ -173,7 +277,7 @@
 
       <p class="visually-hidden" aria-live="polite" data-section-announcer></p>
 
-      <div class="mobile-section-stack" aria-label="All profile sections"></div>
+      <div class="mobile-section-stack" aria-label="All profile sections" data-i18n-attr="aria-label:card.stack"></div>
     </section>
   </main>
 
@@ -187,7 +291,8 @@
       @media (max-width: 920px) { .panel-wrap > .card-stage { display: block !important; } }
     </style>
     <section class="noscript-note">
-      <p>This site works best with JavaScript enabled. You can reach me at
+      <p>This site works best with JavaScript enabled. The whole profile is also on
+        <a href="cv/">one plain page</a> (<a href="cv/pl/">po polsku</a>). You can reach me at
         <a href="mailto:molendyspietro@gmail.com">molendyspietro@gmail.com</a>, on
         <a href="https://github.com/pedritos22">GitHub</a> or on
         <a href="https://linkedin.com/in/pietro-molendys-b1324231b">LinkedIn</a>.</p>
@@ -225,106 +330,106 @@
       <span class="hints-plate" aria-hidden="true"></span>
       <button class="hints-close" type="button" data-close>
         <span class="hints-close-key" aria-hidden="true">Esc</span>
-        <span>Close</span>
+        <span data-i18n="hints.close">Close</span>
       </button>
       <header class="hints-head">
-        <p class="hints-kicker">Side requests <span class="hints-count">13</span></p>
-        <h2 id="hint-title">Requests</h2>
-        <p class="hints-lede">Nothing here is required. All of it is fun.</p>
+        <p class="hints-kicker"><span data-i18n="hints.kicker">Side requests</span> <span class="hints-count">13</span></p>
+        <h2 id="hint-title" data-i18n="hints.title">Requests</h2>
+        <p class="hints-lede" data-i18n="hints.lede">Nothing here is required. All of it is fun.</p>
       </header>
       <ol class="hints-list">
         <li class="hint">
           <span class="hint-no" aria-hidden="true">01</span>
           <div class="hint-body">
-            <h3>Order in the court</h3>
-            <p>Click the name seven times in quick succession. Someone will have something to say.</p>
+            <h3 data-i18n="hint.1.t">Order in the court</h3>
+            <p data-i18n="hint.1.p">Click the name seven times in quick succession. Someone will have something to say.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">02</span>
           <div class="hint-body">
-            <h3>Pick me up</h3>
-            <p>Press and hold the name until it lifts, then drag it anywhere. Double-click it or press Esc to send it home.</p>
+            <h3 data-i18n="hint.2.t">Pick me up</h3>
+            <p data-i18n="hint.2.p">Press and hold the name until it lifts, then drag it anywhere. Double-click it or press Esc to send it home.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">03</span>
           <div class="hint-body">
-            <h3>Handle with care</h3>
-            <p>The glass panels are fragile. Click one rapidly and the cracks spread. Keep going and it gives.</p>
+            <h3 data-i18n="hint.3.t">Handle with care</h3>
+            <p data-i18n="hint.3.p">The glass panels are fragile. Click one rapidly and the cracks spread. Keep going and it gives.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">04</span>
           <div class="hint-body">
-            <h3>Night music</h3>
-            <p>The equalizer button plays lo-fi generated live in your browser, with a new progression every day.</p>
+            <h3 data-i18n="hint.4.t">Night music</h3>
+            <p data-i18n="hint.4.p">The equalizer button plays lo-fi generated live in your browser, with a new progression every day.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">05</span>
           <div class="hint-body">
-            <h3>Rewind</h3>
-            <p>The <span class="hint-key">&#8634;</span> button repairs every broken pane, sends the name home and turns the lights back on.</p>
+            <h3 data-i18n="hint.5.t">Rewind</h3>
+            <p data-i18n-html="hint.5.p">The <span class="hint-key">&#8634;</span> button repairs every broken pane, sends the name home and turns the lights back on.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">06</span>
           <div class="hint-body">
-            <h3>Catch and release</h3>
-            <p>One of the butterflies drifting past can be caught. Be patient, then be quick.</p>
+            <h3 data-i18n="hint.6.t">Catch and release</h3>
+            <p data-i18n="hint.6.p">One of the butterflies drifting past can be caught. Be patient, then be quick.</p>
           </div>
         </li>
         <li class="hint hint--secret">
           <span class="hint-no" aria-hidden="true">07</span>
           <div class="hint-body">
-            <h3>Between days</h3>
-            <p>There is an hour hidden between one day and the next. Midnight isn't the only way in. Knock on the clock three times.</p>
+            <h3 data-i18n="hint.7.t">Between days</h3>
+            <p data-i18n="hint.7.p">There is an hour hidden between one day and the next. Midnight isn't the only way in. Knock on the clock three times.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">08</span>
           <div class="hint-body">
-            <h3>Turn back the clock</h3>
-            <p>Grab the big moon clock and turn it. The face moves the hours, the outer rings move the days and the moon with them. The <span class="hint-key">&#8634;</span> button brings you back to now.</p>
+            <h3 data-i18n="hint.8.t">Turn back the clock</h3>
+            <p data-i18n-html="hint.8.p">Grab the big moon clock and turn it. The face moves the hours, the outer rings move the days and the moon with them. The <span class="hint-key">&#8634;</span> button brings you back to now.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">09</span>
           <div class="hint-body">
-            <h3>Debug session</h3>
-            <p>The Skills card can run a battle test against real-world bugs. Every bug is weak to one skill. In the Dark Hour, bugs crawl out on their own.</p>
+            <h3 data-i18n="hint.9.t">Debug session</h3>
+            <p data-i18n="hint.9.p">The Skills card can run a battle test against real-world bugs. Every bug is weak to one skill. In the Dark Hour, bugs crawl out on their own.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">10</span>
           <div class="hint-body">
-            <h3>Night session</h3>
-            <p>Hold the equalizer button to play along with the lo-fi: kick, snare and melody on <span class="hint-key">D</span> <span class="hint-key">F</span> <span class="hint-key">J</span> <span class="hint-key">K</span>.</p>
-            <button class="hint-action" type="button" data-session>Play now</button>
+            <h3 data-i18n="hint.10.t">Night session</h3>
+            <p data-i18n-html="hint.10.p">Hold the equalizer button to play along with the lo-fi: kick, snare and melody on <span class="hint-key">D</span> <span class="hint-key">F</span> <span class="hint-key">J</span> <span class="hint-key">K</span>.</p>
+            <button class="hint-action" type="button" data-session data-i18n="hints.play">Play now</button>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">11</span>
           <div class="hint-body">
-            <h3>Full deck</h3>
-            <p>Turn over every card on the Skills card. The deck isn't complete.</p>
+            <h3 data-i18n="hint.11.t">Full deck</h3>
+            <p data-i18n="hint.11.p">Turn over every card on the Skills card. The deck isn't complete.</p>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">12</span>
           <div class="hint-body">
-            <h3>Talk to the machine</h3>
-            <p>There is a console behind the page. Press <span class="hint-key">~</span> to open it, then type <span class="hint-key">help</span>. Not every command is on the list.</p>
-            <button class="hint-action" type="button" data-console>Open now</button>
+            <h3 data-i18n="hint.12.t">Talk to the machine</h3>
+            <p data-i18n-html="hint.12.p">There is a console behind the page. Press <span class="hint-key">~</span> to open it, then type <span class="hint-key">help</span>. Not every command is on the list.</p>
+            <button class="hint-action" type="button" data-console data-i18n="hints.open">Open now</button>
           </div>
         </li>
         <li class="hint">
           <span class="hint-no" aria-hidden="true">13</span>
           <div class="hint-body">
-            <h3>Deep end</h3>
-            <p>On a big screen the page ends at the bottom edge. The water doesn't. Scroll down and keep going.</p>
-            <button class="hint-action" type="button" data-dive>Dive now</button>
+            <h3 data-i18n="hint.13.t">Deep end</h3>
+            <p data-i18n="hint.13.p">On a big screen the page ends at the bottom edge. The water doesn't. Scroll down and keep going.</p>
+            <button class="hint-action" type="button" data-dive data-i18n="hints.dive">Dive now</button>
           </div>
         </li>
       </ol>
@@ -332,7 +437,7 @@
   </dialog>
 
   <footer class="meta-bar">
-    <p class="meta-quote"><q>Nothing in life is to be feared. It is only to be understood.</q> <span class="meta-author">Maria Skłodowska-Curie</span></p>
+    <p class="meta-quote"><q data-i18n="footer.quote">Nothing in life is to be feared. It is only to be understood.</q> <span class="meta-author">Maria Skłodowska-Curie</span></p>
     <p class="meta-sign"><span>2026</span><span class="meta-sep" aria-hidden="true">/</span><span>PM</span></p>
   </footer>
 </body>

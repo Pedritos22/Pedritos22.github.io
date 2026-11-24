@@ -11,7 +11,7 @@
   --hud-lean: 5px; /* horizontal offset of a -8deg lean over one tool row: 34px * tan(8deg) */
   --hud-pad-left: 22px;
   --hud-gap: var(--s-4);
-  --hud-tools-w: calc(3 * var(--hud-tool) + 2 * var(--hud-tool-gap));
+  --hud-tools-w: calc(4 * var(--hud-tool) + 3 * var(--hud-tool-gap));
 
   position: fixed;
   top: var(--s-3);
@@ -436,12 +436,13 @@ html:not(.is-ready) .hud {
 
 .hud-tools {
   display: grid;
-  grid-template-columns: repeat(3, var(--hud-tool));
+  grid-template-columns: repeat(4, var(--hud-tool));
   grid-auto-rows: var(--hud-tool);
   gap: var(--hud-tool-gap);
 }
 
-/* Row 1: lo-fi, hints, reset. Row 2: volume (two cells) + SFX, shifted along the lean. */
+/* Row 1: lo-fi, hints, reset, CV. Row 2: volume (two cells), SFX and language, shifted along
+   the lean. */
 .hud-volume {
   grid-column: 1 / span 2;
   grid-row: 2;
@@ -452,6 +453,24 @@ html:not(.is-ready) .hud {
   grid-column: 3;
   grid-row: 2;
   translate: calc(-1 * var(--hud-lean)) 0;
+}
+
+.cv-link {
+  grid-column: 4;
+  grid-row: 1;
+  text-decoration: none;
+}
+
+.lang-toggle {
+  grid-column: 4;
+  grid-row: 2;
+  translate: calc(-1 * var(--hud-lean)) 0;
+}
+
+/* Two-letter labels (CV, PL / EN): the display face, a size down from the "?" glyph. */
+.hud-glyph--text {
+  font-size: 15px;
+  letter-spacing: 0.04em;
 }
 
 .hud-tool {
@@ -808,7 +827,7 @@ html:not(.is-ready) .hud {
 
   .hud-tools {
     order: 2;
-    grid-template-columns: repeat(3, var(--hud-tool));
+    grid-template-columns: repeat(4, var(--hud-tool));
   }
 
   .hud-date-inner {

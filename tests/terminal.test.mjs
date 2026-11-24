@@ -178,7 +178,7 @@ test("cd moves between sections, home and the depths", () => {
     ["showHome"], ["showHome"], ["dive"]
   ]);
   assert.match(text(execute("cd nowhere", ctx)), /no such file or directory: nowhere/);
-  assert.match(text(execute("cd .depths", makeCtx({ canDive: () => false }))), /desktop only/);
+  assert.match(text(execute("cd .depths", makeCtx({ canDive: () => false }))), /not ready/);
 });
 
 test("findSection matches ids, labels and menu codes", () => {

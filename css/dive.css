@@ -1,54 +1,28 @@
-/* The dive (js/dive.js): where things rest above and below the water, and the Depths layer.
-   js/dive.js animates from wherever things are to these rest positions, so this file is the
-   single source of truth for both states. Desktop only. Owner: atmosphere workstream (A). */
-
-@media (min-width: 921px) {
-  /* Under the water: the page above has floated up and out of view; the city, being far
-     away, moves less and fades. */
-  html[data-depths] .shell,
-  html[data-depths] .meta-bar {
-    translate: 0 -100svh;
-  }
-
-  html[data-depths] .fx-skyline {
-    translate: 0 -55svh;
-    opacity: 0;
-  }
-
-  /* The red slash belongs to the page above: it leaves with it. */
-  html[data-depths] .fx-slash {
-    translate: 0 -100svh;
-    opacity: 0;
-  }
-}
+/* The Depths (js/dive.js): the last screen of the descent (js/story.js), at the bottom of the
+   page on desktop. html[data-depths] is set while it is in view (the light shafts sway and
+   bubbles rise only then). Desktop only. Owner: atmosphere workstream (A). */
 
 /* ------------------------------------------------------------------ layer */
 
 .depths {
   --depths-gutter: clamp(var(--s-5), 3.6vw, var(--s-8));
-  position: fixed;
-  inset: 0;
+  position: relative;
   z-index: var(--z-shell);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-height: 100svh;
   padding: calc(var(--s-9) + var(--s-5)) var(--depths-gutter) var(--s-7);
   overflow: hidden;
   isolation: isolate;
-  translate: 0 100svh;
-  visibility: hidden;
 }
 
 .depths[hidden] {
   display: none;
 }
 
-html[data-depths] .depths {
-  translate: 0 0;
-  visibility: visible;
-}
-
 /* Without WebGL (or with ?nofx) the shader is not there to draw the water: paint it. */
+.fx-root--fallback ~ .depths,
 .depths--solid {
   background:
     radial-gradient(ellipse 60% 30% at 40% 0%, color-mix(in srgb, var(--cyan) 16%, transparent), transparent 70%),
@@ -56,9 +30,13 @@ html[data-depths] .depths {
 }
 
 @media (max-width: 920px) {
-  .depths,
-  .hint-action[data-dive] {
-    display: none;
+  .depths {
+    min-height: auto;
+    padding: var(--s-9) clamp(var(--s-4), 5vw, 36px) var(--s-8);
+  }
+
+  .depths-plates {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -243,9 +221,6 @@ html[data-depths] .depths-surface-arrow {
   gap: var(--s-4);
   width: min(calc(1080px * var(--k)), 100%);
   min-height: 0;
-  max-height: 100%;
-  overflow-y: auto;
-  scrollbar-width: none;
 }
 
 .depths-kicker {
@@ -446,26 +421,10 @@ html[data-depths] .depths-surface-arrow {
 
 /* --------------------------------------------------------- reduced motion */
 
-/* A crossfade instead of a camera move. */
-@media (prefers-reduced-motion: reduce) and (min-width: 921px) {
-  html[data-depths] .shell,
-  html[data-depths] .meta-bar {
-    translate: none;
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  html[data-depths] .fx-skyline,
-  html[data-depths] .fx-slash {
-    translate: none;
-  }
-
-  .depths {
-    translate: none;
-    opacity: 0;
-  }
-
-  html[data-depths] .depths {
-    opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  .depths-light i,
+  .depths-bubbles i,
+  .depths-surface-arrow {
+    animation: none !important;
   }
 }

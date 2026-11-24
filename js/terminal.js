@@ -8,7 +8,7 @@ import { gsap, DUR, EASE } from "./motion.js";
 import { sfx } from "./sfx.js";
 import { lofi } from "./lofi.js";
 import { PROFILE, HOME, SECTIONS, SECTION_MAP, FEATURED_PROJECTS, ROMAN } from "./content.js";
-import { showSection, showHome } from "./sections.js";
+import { goTo } from "./story.js";
 import { setDarkHour } from "./darkhour.js";
 import { returnToNow } from "./timedial.js";
 import { openBattle } from "./battle.js";
@@ -67,16 +67,6 @@ function foolFound() {
 }
 
 /* ----------------------------------------------------------------- context */
-
-/** Run `fn` at the surface: come up first when the camera is under the water. */
-function atSurface(fn) {
-  if (!state.depths) {
-    fn();
-    return;
-  }
-  surface();
-  window.setTimeout(fn, DUR.panel * 1000 + 60);
-}
 
 /**
  * Close the console and hand over to a modal (it takes focus; its opener gets it back).
@@ -144,8 +134,8 @@ function buildContext() {
     canDive: () => canDive({ ignoreConsole: true }),
     foolFound,
     brokenCount: () => document.querySelectorAll(".glass-broken").length,
-    showSection: (id) => atSurface(() => showSection(id)),
-    showHome: () => atSurface(() => showHome()),
+    showSection: (id) => goTo(id),
+    showHome: () => goTo("home"),
     setDarkHour: (active) => setDarkHour(active),
     setTime: (h, m) => {
       const date = new Date();
